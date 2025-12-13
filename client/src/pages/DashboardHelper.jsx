@@ -5,7 +5,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import TransactionItem from '../components/TransactionItem';
 import SummaryCard from '../components/SummaryCard';
 import Summary30Days from '../components/dashboard/Summary30Days';
-import { texts } from '../i18n/es';
+import TransactionsModal from '../components/TransactionsModal';
+import { texts, formatCurrency } from '../i18n/es';
 
 import API_URL from '../config';
 
@@ -80,6 +81,15 @@ const DashboardHelper = () => {
                         icon="wallet"
                     />
                 </div>
+                {rate && (
+                    <div className="mt-4 bg-gradient-to-r from-primary/10 to-secondary/10 p-4 rounded-xl border border-primary/20 flex justify-between items-center">
+                        <div>
+                            <span className="text-textSecondary text-xs uppercase font-bold">Total en Bolívares</span>
+                            <p className="text-xs text-muted">Tasa BCV: {rate.toLocaleString('es-VE')} Bs/$</p>
+                        </div>
+                        <span className="text-2xl font-bold text-text">{formatCurrency(totalInVES, 'VES')}</span>
+                    </div>
+                )}
             </section>
 
             {/* New 30-Day Summary Module */}

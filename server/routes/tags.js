@@ -21,18 +21,27 @@ router.get('/', async (req, res) => {
 // POST /api/tags
 router.post('/', async (req, res) => {
     const { name, color } = req.body;
+
+    if (!name || name.trim() === '') {
+        return res.status(400).json({ error: '[Tags] El nombre es requerido' });
+    }
+
     try {
         const tag = await prisma.tag.create({
             data: {
-                name,
-                color,
+                name: name.trim(),
+                color: color || 'blue',
                 userId: req.userId
             }
         });
         res.json(tag);
     } catch (error) {
-        // Handle unique constraint violation specifically if needed
-        res.status(500).json({ error: 'Error creating tag' });
+        console.error("[Tags POST] Error:", error);
+        // Check for unique constraint violation (Prisma error code P2002)
+        if (error.code === 'P2002') {
+            return res.status(409).json({ error: `[Tags] Ya existe una etiqueta con el nombre "${name}"` });
+        }
+        res.status(500).json({ error: `[Tags] Error creando etiqueta: ${error.message}` });
     }
 });
 

@@ -15,14 +15,16 @@ export const AuthProvider = ({ children }) => {
         const storedUser = localStorage.getItem('finance_user');
         const token = localStorage.getItem('finance_token');
 
-        if (storedUser && token) {
+        if (storedUser) {
             try {
                 const parsedUser = JSON.parse(storedUser);
-                // Initialize user state from localStorage (valid pattern for initialization)
-                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setUser(parsedUser);
-                // Set default header
-                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                // Always set x-user-id for backend auth
+                axios.defaults.headers.common['x-user-id'] = parsedUser.id;
+                // Also set token if available
+                if (token) {
+                    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                }
             } catch (e) {
                 console.error("Error parsing stored user", e);
                 localStorage.removeItem('finance_user');
@@ -36,12 +38,12 @@ export const AuthProvider = ({ children }) => {
         setUser(userData);
         localStorage.setItem('finance_user', JSON.stringify(userData));
 
+        // Always set x-user-id header (required by backend)
+        axios.defaults.headers.common['x-user-id'] = userData.id;
+
         if (token) {
             localStorage.setItem('finance_token', token);
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        } else {
-            // Fallback for legacy (should not happen if backend updated)
-            axios.defaults.headers.common['x-user-id'] = userData.id;
         }
     };
 

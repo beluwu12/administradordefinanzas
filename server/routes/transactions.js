@@ -58,7 +58,7 @@ router.post('/', async (req, res) => {
                 exchangeRate: parsedExchangeRate,
                 date: date ? new Date(date) : new Date(),
                 userId: req.userId,
-                tags: tags && Array.isArray(tags) ? {
+                tags: tags && Array.isArray(tags) && tags.length > 0 ? {
                     connect: tags.map(tagId => ({ id: tagId }))
                 } : undefined
             },
@@ -66,8 +66,8 @@ router.post('/', async (req, res) => {
         });
         res.json(transaction);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error creating transaction' });
+        console.error("[Transactions POST] Error:", error);
+        res.status(500).json({ error: `[Transactions] Error creando transacción: ${error.message}` });
     }
 });
 
