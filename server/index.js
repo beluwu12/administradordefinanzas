@@ -34,7 +34,7 @@ app.use(express.json({ limit: '10mb' }));
 // Rate limiting for sensitive endpoints
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // Limit each IP to 20 requests per window
+  max: 50, // Increased for development
   message: {
     success: false,
     error: 'Demasiados intentos, intenta de nuevo en 15 minutos',
@@ -44,9 +44,8 @@ const authLimiter = rateLimit({
   legacyHeaders: false
 });
 
-// Apply rate limiting to auth routes
+// Apply rate limiting ONLY to PIN verification (most sensitive)
 app.use('/api/users/verify', authLimiter);
-app.use('/api/users', rateLimit({ windowMs: 60000, max: 10 })); // 10 user creates per minute
 
 // ═══════════════════════════════════════════════════════════════
 // ROUTES

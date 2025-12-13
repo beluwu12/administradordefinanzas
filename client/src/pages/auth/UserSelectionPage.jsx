@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../../api';
 import { useNavigate } from 'react-router-dom';
 import { Plus, User } from 'lucide-react';
-
-import API_URL from '../../config';
 
 const UserSelectionPage = () => {
     const [users, setUsers] = useState([]);
@@ -13,8 +11,8 @@ const UserSelectionPage = () => {
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                const res = await axios.get(`${API_URL}/users`);
-                setUsers(res.data);
+                const res = await api.get('/users');
+                setUsers(res.data || []);
             } catch (error) {
                 console.error("Error loading users", error);
             } finally {
