@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Tag as IconTag, Plus, Trash2, X } from 'lucide-react';
+import { Tag as IconTag, Plus, X } from 'lucide-react';
+import TransactionsModal from '../components/TransactionsModal';
 
 import API_URL from '../config';
 

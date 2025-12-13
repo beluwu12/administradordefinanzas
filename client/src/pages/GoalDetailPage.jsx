@@ -55,12 +55,13 @@ export default function GoalDetailPage() {
     };
 
     const handleDelete = async () => {
-        if (!confirm('¿Eliminar este objetivo?')) return;
+        if (!window.confirm('¿Eliminar este objetivo?')) return;
         try {
             await axios.delete(`${API_URL}/goals/${id}`);
             navigate('/goals');
-        } catch {
-            alert('Error eliminando objetivo');
+        } catch (error) {
+            console.error('[GoalDetail] Error eliminando objetivo:', error);
+            alert('Error eliminando objetivo: ' + (error.response?.data?.error || error.message));
         }
     };
 
