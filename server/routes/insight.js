@@ -33,19 +33,33 @@ router.get('/summary', async (req, res) => {
             const amount = tx.amount;
             const currency = tx.currency; // 'USD' or 'VES'
 
+            // Validate amount and currency
+            if (!isFinite(amount) || isNaN(amount)) {
+                console.warn(`Invalid amount in transaction ${tx.id}: ${amount}`);
+                return;
+            }
+            if (!currency || !['USD', 'VES'].includes(currency)) {
+                console.warn(`Invalid currency in transaction ${tx.id}: ${currency}`);
+                return;
+            }
+
             if (tx.type === 'INCOME') {
-                summary.totalIncome[currency] += amount;
-            } else {
-                summary.totalExpense[currency] += amount;
+                summary.totalIncome[currency] = (summary.totalIncome[currency] || 0) + amount;
+            } else if (tx.type === 'EXPENSE') {
+                summary.totalExpense[currency] = (summary.totalExpense[currency] || 0) + amount;
 
                 // Track tag usage for expenses
-                tx.tags.forEach(tag => {
-                    if (!tagMap[tag.name]) {
-                        tagMap[tag.name] = { name: tag.name, totalUSD: 0, totalVES: 0, count: 0 };
-                    }
-                    tagMap[tag.name][`total${currency}`] += amount;
-                    tagMap[tag.name].count += 1;
-                });
+                if (Array.isArray(tx.tags)) {
+                    tx.tags.forEach(tag => {
+                        if (tag && tag.name) {
+                            if (!tagMap[tag.name]) {
+                                tagMap[tag.name] = { name: tag.name, totalUSD: 0, totalVES: 0, count: 0 };
+                            }
+                            tagMap[tag.name][`total${currency}`] = (tagMap[tag.name][`total${currency}`] || 0) + amount;
+                            tagMap[tag.name].count += 1;
+                        }
+                    });
+                }
             }
         });
 

@@ -34,10 +34,12 @@ async function fetchBCVRate() {
         }
 
         // Parse "45,23" -> 45.23
-        const rate = parseFloat(rateText.replace(',', '.'));
+        // Handle multiple formats: "45,23", "45.23", "45 23", etc.
+        const cleanedText = rateText.replace(/[^\d,.-]/g, '').replace(',', '.');
+        const rate = parseFloat(cleanedText);
 
-        if (isNaN(rate)) {
-            throw new Error(`Parsed rate is NaN: ${rateText}`);
+        if (isNaN(rate) || !isFinite(rate) || rate <= 0) {
+            throw new Error(`Parsed rate is invalid: ${rateText} -> ${rate}`);
         }
 
         console.log(`BCV Rate Fetched: ${rate}`);

@@ -5,13 +5,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import TransactionItem from '../components/TransactionItem';
 import SummaryCard from '../components/SummaryCard';
 import Summary30Days from '../components/dashboard/Summary30Days';
-import { useAuth } from '../context/AuthContext';
 import { texts } from '../i18n/es';
 
 const API_URL = 'http://localhost:3000/api';
 
 const DashboardHelper = () => {
-    const { user } = useAuth();
     const [balance, setBalance] = useState({ USD: 0, VES: 0 });
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -36,7 +34,7 @@ const DashboardHelper = () => {
         fetchData();
     }, []);
 
-    const handleTransactionClick = (tx) => {
+    const handleTransactionClick = () => {
         navigate('/transactions');
     };
 

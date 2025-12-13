@@ -13,7 +13,7 @@ export function useTransactionDate(value, onChange) {
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             return now.toISOString().slice(0, 19);
-        } catch (e) {
+        } catch {
             return new Date().toISOString().slice(0, 19);
         }
     }, [value]);
@@ -22,13 +22,25 @@ export function useTransactionDate(value, onChange) {
     const datePart = safeDate.slice(0, 10);
 
     let hours24 = 0;
-    try { hours24 = parseInt(safeDate.slice(11, 13)) || 0; } catch (e) { }
+    try { 
+        hours24 = parseInt(safeDate.slice(11, 13)) || 0; 
+    } catch {
+        hours24 = 0;
+    }
 
     let minutes = '00';
-    try { minutes = safeDate.slice(14, 16) || '00'; } catch (e) { }
+    try { 
+        minutes = safeDate.slice(14, 16) || '00'; 
+    } catch {
+        minutes = '00';
+    }
 
     let seconds = '00';
-    try { seconds = safeDate.slice(17, 19) || '00'; } catch (e) { }
+    try { 
+        seconds = safeDate.slice(17, 19) || '00'; 
+    } catch {
+        seconds = '00';
+    }
 
     const ampm = hours24 >= 12 ? 'PM' : 'AM';
     const hours12 = (hours24 % 12) || 12;

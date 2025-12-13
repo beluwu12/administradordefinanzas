@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, CreditCard, Tag, Settings, Menu, X, PiggyBank } from 'lucide-react';
+import { LayoutDashboard, CreditCard, Tag, Menu, X, PiggyBank } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
+// eslint-disable-next-line no-unused-vars
 const SidebarItem = ({ icon: Icon, label, to, active }) => (
     <Link
         to={to}

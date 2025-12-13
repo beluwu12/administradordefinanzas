@@ -43,7 +43,7 @@ const PinEntryPage = () => {
                 login(res.data.user);
                 navigate('/'); // Go to Dashboard
             }
-        } catch (err) {
+        } catch {
             setError('PIN incorrecto');
             setPin('');
         }

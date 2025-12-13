@@ -1,4 +1,4 @@
-export const formatCurrency = (amount, currency, exchangeRate = null) => {
+export const formatCurrency = (amount, currency) => {
     const symbol = currency === 'USD' ? '$' : 'Bs.';
     return `${symbol} ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };

@@ -1,4 +1,10 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { X, Plus } from 'lucide-react';
 import { useTransactionDate } from '../utils/useTransactionDate';
+import { texts } from '../i18n/es';
+
+const API_URL = 'http://localhost:3000/api';
 
 export default function TransactionForm({ onClose, onSuccess, initialData = null }) {
     // 1. SAFE STATE INITIALIZATION
@@ -42,10 +48,6 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
         (newDate) => setFormData(prev => ({ ...prev, date: newDate }))
     );
 
-    useEffect(() => {
-        fetchTags();
-    }, []);
-
     const fetchTags = async () => {
         try {
             const res = await axios.get(`${API_URL}/tags`);
@@ -59,6 +61,10 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
             setAvailableTags([]);
         }
     };
+
+    useEffect(() => {
+        fetchTags();
+    }, []);
 
     // Auto-fetch Rate Effect
     useEffect(() => {
@@ -75,6 +81,7 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
             }
         };
         fetchRate();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [formData.currency]);
 
     const handleSubmit = async (e) => {

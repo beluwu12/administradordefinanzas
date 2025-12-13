@@ -3,16 +3,18 @@ const prisma = require('../db');
 const requireUser = async (req, res, next) => {
     const userId = req.headers['x-user-id'];
 
-    if (!userId) {
+    if (!userId || typeof userId !== 'string' || userId.trim() === '') {
         return res.status(401).json({ error: 'Autorización requerida (Usuario no identificado)' });
     }
 
     try {
-        // Optional: Verify user exists in DB for strictness
-        // const user = await prisma.user.findUnique({ where: { id: userId } });
-        // if (!user) return res.status(401).json({ error: 'Usuario no válido' });
+        // Verify user exists in DB for security
+        const user = await prisma.user.findUnique({ where: { id: userId.trim() } });
+        if (!user) {
+            return res.status(401).json({ error: 'Usuario no válido' });
+        }
 
-        req.userId = userId;
+        req.userId = userId.trim();
         next();
     } catch (error) {
         console.error("Auth Middleware Error:", error);

@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import React from 'react';
 import { LayoutDashboard, CreditCard, Tag, PiggyBank, Target, LogOut, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { texts } from '../../i18n/es';
@@ -8,7 +7,6 @@ import BottomNav from './BottomNav';
 
 const MainLayout = ({ children }) => {
     const { user, logout } = useAuth();
-    const location = useLocation();
 
     const navItems = [
         { icon: LayoutDashboard, label: texts.nav.dashboard, to: '/' },
