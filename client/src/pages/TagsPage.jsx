@@ -31,6 +31,7 @@ export default function TagsPage() {
     const [loading, setLoading] = useState(true);
     const [newTag, setNewTag] = useState({ name: '', color: 'blue' });
     const [showForm, setShowForm] = useState(false);
+    const [selectedTag, setSelectedTag] = useState(null);
 
     useEffect(() => {
         fetchTags();

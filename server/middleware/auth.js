@@ -6,24 +6,18 @@ const requireUser = async (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
-    if (token) {
-        // Verify JWT
-        jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret', (err, decoded) => {
-            if (err) {
-                return res.status(403).json({ error: 'Token inválido o expirado' });
-            }
-            req.userId = decoded.id;
-            next();
-        });
-        return;
+    if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+        return res.status(401).json({ error: 'Autorización requerida (Usuario no identificado)' });
     }
 
-    // 2. Legacy Support (Temporary): Check for x-user-id
-    // TODO: Remove this after frontend migration is fully confirmed
-    const legacyUserId = req.headers['x-user-id'];
-    if (legacyUserId) {
-        console.warn("Using legacy x-user-id auth");
-        req.userId = legacyUserId;
+    try {
+        // Verify user exists in DB for security
+        const user = await prisma.user.findUnique({ where: { id: userId.trim() } });
+        if (!user) {
+            return res.status(401).json({ error: 'Usuario no válido' });
+        }
+
+        req.userId = userId.trim();
         next();
         return;
     }

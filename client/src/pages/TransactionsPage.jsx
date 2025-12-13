@@ -37,7 +37,7 @@ export default function TransactionsPage() {
         try {
             await axios.delete(`${API_URL}/transactions/${id}`);
             fetchTransactions();
-        } catch (error) {
+        } catch {
             alert(texts.common.error);
         }
     };

@@ -28,7 +28,10 @@ router.post('/', async (req, res) => {
         if (startDate) {
             const dateObj = new Date(startDate);
             if (!isNaN(dateObj.getTime())) {
-                day = parseInt(startDate.split('-')[2]);
+                const dayFromDate = parseInt(startDate.split('-')[2]);
+                if (!isNaN(dayFromDate) && dayFromDate >= 1 && dayFromDate <= 31) {
+                    day = dayFromDate;
+                }
             }
         }
 
@@ -36,21 +39,24 @@ router.post('/', async (req, res) => {
         const parsedDay = parseInt(day);
 
         // Validation
-        if (isNaN(parsedAmount)) {
-            return res.status(400).json({ error: 'Monto inválido (debe ser un número)' });
+        if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
+            return res.status(400).json({ error: 'Monto inválido (debe ser un número positivo)' });
         }
-        if (isNaN(parsedDay) || parsedDay < 1 || parsedDay > 31) {
+        if (!day || isNaN(parsedDay) || parsedDay < 1 || parsedDay > 31) {
             return res.status(400).json({ error: 'Día inválido (debe ser entre 1 y 31)' });
         }
-        if (!description) {
+        if (!description || description.trim() === '') {
             return res.status(400).json({ error: 'Descripción requerida' });
+        }
+        if (currency && !['USD', 'VES'].includes(currency)) {
+            return res.status(400).json({ error: 'Moneda debe ser USD o VES' });
         }
 
         const expense = await prisma.fixedExpense.create({
             data: {
                 amount: parsedAmount,
                 currency: currency || 'USD',
-                description,
+                description: description.trim(),
                 dueDay: parsedDay,
                 userId: req.userId
             }
@@ -83,6 +89,7 @@ router.get('/insight', async (req, res) => {
         // 1. Calculate Monthly Fixed Expenses
         const fixedExpenses = await prisma.fixedExpense.findMany({ where: { isActive: true, userId: req.userId } });
         const totalFixed = fixedExpenses.reduce((acc, curr) => {
+            if (!curr || !curr.currency || !isFinite(curr.amount)) return acc;
             if (!acc[curr.currency]) acc[curr.currency] = 0;
             acc[curr.currency] += curr.amount;
             return acc;
@@ -101,6 +108,7 @@ router.get('/insight', async (req, res) => {
         });
 
         const totalIncome = recentIncome.reduce((acc, curr) => {
+            if (!curr || !curr.currency || !isFinite(curr.amount)) return acc;
             if (!acc[curr.currency]) acc[curr.currency] = 0;
             acc[curr.currency] += curr.amount;
             return acc;
@@ -124,6 +132,7 @@ router.get('/insight', async (req, res) => {
         });
 
         const totalQuincena = quincenaIncomeTransactions.reduce((acc, curr) => {
+            if (!curr || !curr.currency || !isFinite(curr.amount)) return acc;
             if (!acc[curr.currency]) acc[curr.currency] = 0;
             acc[curr.currency] += curr.amount;
             return acc;

@@ -47,7 +47,7 @@ export default function GoalsPage() {
                 startDate: new Date().toISOString().slice(0, 10)
             });
             fetchGoals();
-        } catch (error) {
+        } catch {
             alert(texts.common.error);
         }
     };
@@ -130,7 +130,9 @@ export default function GoalsPage() {
                     </div>
                 ) : (
                     goals.map(goal => {
-                        const progressPercent = Math.min(100, (goal.savedAmount / goal.totalCost) * 100);
+                        const progressPercent = goal.totalCost > 0 
+                            ? Math.min(100, (goal.savedAmount / goal.totalCost) * 100) 
+                            : 0;
                         return (
                             <Link to={`/goals/${goal.id}`} key={goal.id} className="group">
                                 <div className="bg-surface border border-border rounded-2xl p-5 hover:border-primary/50 transition-all shadow-sm hover:shadow-md relative overflow-hidden">

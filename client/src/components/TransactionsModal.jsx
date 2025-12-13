@@ -10,13 +10,8 @@ export default function TransactionsModal({ tag, onClose }) {
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        if (tag?.id) {
-            fetchTransactions();
-        }
-    }, [tag]);
-
     const fetchTransactions = async () => {
+        if (!tag?.id) return;
         try {
             const res = await axios.get(`${API_URL}/tags/${tag.id}/transactions`);
             setTransactions(res.data);
@@ -26,6 +21,13 @@ export default function TransactionsModal({ tag, onClose }) {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        if (tag?.id) {
+            fetchTransactions();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tag]);
 
     if (!tag) return null;
 

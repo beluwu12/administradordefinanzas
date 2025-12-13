@@ -14,6 +14,7 @@ export default function GoalDetailPage() {
 
     useEffect(() => {
         if (id) fetchGoalDetails();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
     const fetchGoalDetails = async () => {
@@ -55,7 +56,7 @@ export default function GoalDetailPage() {
         try {
             await axios.delete(`${API_URL}/goals/${id}`);
             navigate('/goals');
-        } catch (error) {
+        } catch {
             alert('Error eliminando objetivo');
         }
     };
@@ -63,8 +64,10 @@ export default function GoalDetailPage() {
     if (loading) return <div className="p-8 text-center text-muted">{texts.app.loading}</div>;
     if (!goal) return <div className="p-8 text-center text-muted">Objetivo no encontrado</div>;
 
-    const progressPercent = Math.min(100, (goal.savedAmount / goal.totalCost) * 100);
-    const nextMonth = goal.progress.find(m => !m.isCompleted);
+    // Prevent division by zero
+    const progressPercent = goal.totalCost > 0 
+        ? Math.min(100, (goal.savedAmount / goal.totalCost) * 100) 
+        : 0;
 
     return (
         <div className="space-y-6 animate-fadeIn pb-20">

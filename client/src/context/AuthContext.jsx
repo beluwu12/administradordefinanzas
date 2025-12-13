@@ -3,6 +3,7 @@ import axios from 'axios';
 
 const AuthContext = createContext();
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
@@ -17,6 +18,8 @@ export const AuthProvider = ({ children }) => {
         if (storedUser && token) {
             try {
                 const parsedUser = JSON.parse(storedUser);
+                // Initialize user state from localStorage (valid pattern for initialization)
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setUser(parsedUser);
                 // Set default header
                 axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
