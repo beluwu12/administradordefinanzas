@@ -67,7 +67,7 @@ router.put('/:id', async (req, res) => {
                 source,
                 exchangeRate: exchangeRate ? parseFloat(exchangeRate) : null,
                 date: date ? new Date(date) : undefined,
-                tags: tags ? {
+                tags: Array.isArray(tags) ? {
                     set: tags.map(tagId => ({ id: tagId }))
                 } : undefined
             },
