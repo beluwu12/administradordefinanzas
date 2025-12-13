@@ -80,9 +80,11 @@ export const texts = {
 };
 
 export const formatCurrency = (amount, currency) => {
-    return new Intl.NumberFormat('es-VE', {
-        style: 'currency',
-        currency: currency,
-        minimumFractionDigits: 2
-    }).format(amount);
+    // Return absolute value formatted, no signs
+    const absAmount = Math.abs(amount);
+    const formatted = absAmount.toLocaleString('es-VE', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    return `${currency} ${formatted}`;
 };

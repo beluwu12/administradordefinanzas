@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api';
-import { Target, Plus, TrendingUp, Calendar } from 'lucide-react';
+import { Target, Plus, TrendingUp, Calendar, Trophy } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import CircularProgressBar from '../components/common/CircularProgressBar';
+import Skeleton from '../components/common/Skeleton';
+import EmptyState from '../components/common/EmptyState';
 import { texts, formatCurrency } from '../i18n/es';
 
 export default function GoalsPage() {
@@ -64,7 +67,16 @@ export default function GoalsPage() {
         }
     };
 
-    if (loading) return <div className="p-8 text-center text-muted">{texts.app.loading}</div>;
+    if (loading) return (
+        <div className="space-y-6 animate-pulse">
+            <div className="h-8 w-48 bg-surface rounded"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[1, 2, 3].map(i => (
+                    <Skeleton key={i} className="h-64 rounded-2xl" />
+                ))}
+            </div>
+        </div>
+    );
 
     return (
         <div className="space-y-6 animate-fadeIn">
@@ -137,50 +149,61 @@ export default function GoalsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {goals.length === 0 ? (
-                    <div className="col-span-full text-center py-10 text-muted">
-                        No tienes objetivos activos. ¡Crea uno para empezar a ahorrar!
+                    <div className="col-span-full">
+                        <EmptyState
+                            icon={Trophy}
+                            title="Sin objetivos"
+                            description="Establece una meta de ahorro para ese viaje o compra especial."
+                            action={() => setShowForm(true)}
+                            actionLabel="Crear mi primer objetivo"
+                        />
                     </div>
                 ) : (
                     goals.map(goal => {
                         const progressPercent = goal.totalCost > 0
                             ? Math.min(100, (goal.savedAmount / goal.totalCost) * 100)
                             : 0;
+                        const isCompleted = progressPercent >= 100;
+
                         return (
                             <Link to={`/goals/${goal.id}`} key={goal.id} className="group">
-                                <div className="bg-surface border border-border rounded-2xl p-5 hover:border-primary/50 transition-all shadow-sm hover:shadow-md relative overflow-hidden">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="bg-primary/10 p-3 rounded-xl text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                                            <Target size={24} />
-                                        </div>
-                                        <span className="text-xs font-bold text-muted bg-background px-2 py-1 rounded-full border border-border">
-                                            {formatCurrency(goal.monthlyAmount, goal.currency)} /mes
-                                        </span>
-                                    </div>
+                                <div className="bg-surface border border-border rounded-2xl p-6 hover:border-primary/50 transition-all shadow-sm hover:shadow-md relative overflow-hidden flex flex-col items-center text-center h-full">
 
-                                    <h3 className="text-lg font-bold text-text mb-1">{goal.title}</h3>
-                                    <div className="flex justify-between items-end mb-2">
-                                        <div className="text-xs text-muted">
-                                            Ahorrado: <span className="text-text font-bold">{formatCurrency(goal.savedAmount, goal.currency)}</span>
-                                        </div>
-                                        <div className="text-xs text-muted">
-                                            Meta: <span className="text-text font-bold">{formatCurrency(goal.totalCost, goal.currency)}</span>
+                                    <div className="absolute top-4 right-4">
+                                        <div className="bg-primary/10 p-2 rounded-lg text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                                            <Target size={20} />
                                         </div>
                                     </div>
 
-                                    <div className="h-2 bg-background rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-primary transition-all duration-500 ease-out"
-                                            style={{ width: `${progressPercent}%` }}
-                                        />
+                                    <div className="mb-4">
+                                        <CircularProgressBar
+                                            percentage={progressPercent}
+                                            size={120}
+                                            color={isCompleted ? '#22c55e' : '#3b82f6'}
+                                        >
+                                            <div className="flex flex-col items-center">
+                                                <span className={`text-xl font-bold ${isCompleted ? 'text-green-500' : 'text-primary'}`}>
+                                                    {progressPercent.toFixed(0)}%
+                                                </span>
+                                            </div>
+                                        </CircularProgressBar>
                                     </div>
 
-                                    <div className="mt-4 flex items-center justify-between text-xs text-muted">
-                                        <span className="flex items-center gap-1">
-                                            <Calendar size={12} /> {goal.durationMonths} meses
-                                        </span>
-                                        <span className={`font-bold ${progressPercent >= 100 ? 'text-green-500' : 'text-primary'}`}>
-                                            {progressPercent.toFixed(0)}%
-                                        </span>
+                                    <h3 className="text-lg font-bold text-text mb-1 truncate w-full">{goal.title}</h3>
+
+                                    <div className="text-xs text-muted mb-4 bg-background px-3 py-1 rounded-full border border-border">
+                                        Meta: <span className="text-text font-bold">{formatCurrency(goal.totalCost, goal.currency)}</span>
+                                    </div>
+
+                                    <div className="w-full grid grid-cols-2 gap-2 text-xs border-t border-border pt-4 mt-auto">
+                                        <div className="flex flex-col">
+                                            <span className="text-muted mb-1">Ahorrado</span>
+                                            <span className="font-bold text-text">{formatCurrency(goal.savedAmount, goal.currency)}</span>
+                                        </div>
+                                        <div className="flex flex-col border-l border-border pl-2">
+                                            <span className="text-muted mb-1">Cuota</span>
+                                            <span className="font-bold text-text">{formatCurrency(goal.monthlyAmount, goal.currency)}/m</span>
+                                        </div>
                                     </div>
                                 </div>
                             </Link>

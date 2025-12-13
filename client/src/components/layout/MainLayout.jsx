@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { texts } from '../../i18n/es';
 import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
+import FloatingActionButton from '../common/FloatingActionButton';
 
 const MainLayout = ({ children }) => {
     const { user, logout } = useAuth();
@@ -23,6 +24,9 @@ const MainLayout = ({ children }) => {
 
             {/* Mobile Bottom Nav */}
             <BottomNav navItems={navItems} />
+
+            {/* Mobile FAB */}
+            <FloatingActionButton />
 
             {/* Main Content Area */}
             <main className="md:pl-64 min-h-screen flex flex-col pb-20 md:pb-0">

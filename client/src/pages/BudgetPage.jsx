@@ -28,11 +28,18 @@ export default function BudgetPage() {
 
     const fetchData = async () => {
         try {
-            const [insightRes, listRes] = await Promise.all([
-                api.get('/fixed-expenses/insight').catch(() => ({ data: null })),
+            const [summaryRes, listRes] = await Promise.all([
+                api.get('/insight/summary').catch(() => ({ data: null })),
                 api.get('/fixed-expenses')
             ]);
-            setInsight(insightRes.data);
+
+            // Build insight from summary data
+            if (summaryRes.data) {
+                setInsight({
+                    recentMonthlyIncome: summaryRes.data.totalIncome || { USD: 0, VES: 0 },
+                    netSavings: summaryRes.data.netSavings || { USD: 0, VES: 0 }
+                });
+            }
             setFixedExpenses(listRes.data || []);
         } catch (error) {
             console.error("Error loading budget data", error);
@@ -44,7 +51,18 @@ export default function BudgetPage() {
     const handleAddExpense = async (e) => {
         e.preventDefault();
         try {
-            await api.post('/fixed-expenses', newItem);
+            // Extract dueDay from startDate (day of month)
+            const dateObj = new Date(newItem.startDate + 'T12:00:00');
+            const dueDay = dateObj.getDate();
+
+            const payload = {
+                description: newItem.description,
+                amount: newItem.amount,
+                currency: newItem.currency,
+                dueDay: dueDay
+            };
+
+            await api.post('/fixed-expenses', payload);
             // Reset and reload
             setNewItem({
                 description: '',
@@ -77,9 +95,14 @@ export default function BudgetPage() {
 
     if (loading) return <div className="p-8 text-center text-muted">{texts.app.loading}</div>;
 
-    // Calculate generic insight for USD (can repeat for VES if needed)
+    // Calculate insight for both currencies
     const monthlyIncomeUSD = insight?.recentMonthlyIncome?.USD || 0;
-    const fixedCostUSD = insight?.fixedExpenses?.USD || 0;
+    const monthlyIncomeVES = insight?.recentMonthlyIncome?.VES || 0;
+
+    // Calculate fixed costs from the list if insight is not available
+    const fixedCostUSD = fixedExpenses.filter(e => e.currency === 'USD').reduce((sum, e) => sum + e.amount, 0);
+    const fixedCostVES = fixedExpenses.filter(e => e.currency === 'VES').reduce((sum, e) => sum + e.amount, 0);
+
     const disposableUSD = monthlyIncomeUSD - fixedCostUSD;
     const savingsTarget = disposableUSD * 0.2; // Example 20% savings rule
 
@@ -91,36 +114,43 @@ export default function BudgetPage() {
             </div>
 
             {/* Insight Section */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-surface p-5 rounded-lg border border-border">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="bg-surface p-4 rounded-lg border border-border">
                     <h3 className="text-muted text-xs font-bold uppercase mb-2">{texts.budget.incomeAvg}</h3>
-                    <p className="text-2xl font-bold text-text mb-1">{formatCurrency(monthlyIncomeUSD, 'USD')}</p>
+                    <p className="text-xl font-bold text-text truncate">{formatCurrency(monthlyIncomeUSD, 'USD')}</p>
                 </div>
 
-                <div className="bg-surface p-5 rounded-lg border border-border">
+                <div className="bg-surface p-4 rounded-lg border border-border">
                     <h3 className="text-muted text-xs font-bold uppercase mb-2">{texts.budget.fixedTotal} (USD)</h3>
-                    <p className="text-2xl font-bold text-danger">{formatCurrency(fixedCostUSD, 'USD')}</p>
+                    <p className="text-xl font-bold text-text truncate">{formatCurrency(fixedCostUSD, 'USD')}</p>
                     <p className="text-xs text-muted">{texts.budget.monthly || "Mensual"}</p>
                 </div>
 
-                <div className="bg-surface p-5 rounded-lg border border-border">
+                <div className="bg-surface p-4 rounded-lg border border-border">
+                    <h3 className="text-muted text-xs font-bold uppercase mb-2">{texts.budget.fixedTotal} (VES)</h3>
+                    <p className="text-xl font-bold text-text truncate">{formatCurrency(fixedCostVES, 'VES')}</p>
+                    <p className="text-xs text-muted">{texts.budget.monthly || "Mensual"}</p>
+                </div>
+
+                <div className="bg-surface p-4 rounded-lg border border-border">
                     <h3 className="text-muted text-xs font-bold uppercase mb-2">{texts.budget.quincenaTitle}</h3>
-                    <div className="flex justify-between items-end mb-1">
-                        <p className="text-2xl font-bold text-text">{formatCurrency((insight?.quincenaFixed?.targetUSD || 0), 'USD')}</p>
-                        <span className={`text-xs font-bold px-2 py-1 rounded ${(insight?.quincenaFixed?.collectedUSD || 0) >= (insight?.quincenaFixed?.targetUSD || 0)
-                            ? 'bg-green-500/10 text-green-500'
-                            : 'bg-yellow-500/10 text-yellow-500'
-                            }`}>
-                            {texts.budget.collected}: {formatCurrency((insight?.quincenaFixed?.collectedUSD || 0), 'USD')}
-                        </span>
+                    <p className="text-xl font-bold text-text mb-1 truncate">{formatCurrency(fixedCostUSD / 2, 'USD')}</p>
+                    <p className="text-xs text-muted mb-1">50% de gastos fijos</p>
+                    <div className={`text-xs font-bold px-2 py-1 rounded inline-block ${monthlyIncomeUSD >= fixedCostUSD
+                        ? 'bg-green-500/10 text-green-500'
+                        : 'bg-yellow-500/10 text-yellow-500'
+                        }`}>
+                        {texts.budget.collected}: {formatCurrency(monthlyIncomeUSD, 'USD')}
                     </div>
                 </div>
 
-                <div className={`p-5 rounded-lg border border-border ${disposableUSD > 0 ? 'bg-primary/5 border-primary/20' : 'bg-surface'}`}>
-                    <h3 className="text-primary text-xs font-bold uppercase mb-2">{texts.budget.disposable}</h3>
-                    <p className="text-2xl font-bold text-text mb-1">{formatCurrency(disposableUSD, 'USD')}</p>
-                    <p className="text-xs text-muted">
-                        20% Sugerido: <strong className="text-primary">{formatCurrency(savingsTarget, 'USD')}</strong>
+                <div className={`p-4 rounded-lg border border-border ${disposableUSD >= 0 ? 'bg-primary/5 border-primary/20' : 'bg-red-500/5 border-red-500/20'}`}>
+                    <h3 className={`${disposableUSD >= 0 ? 'text-primary' : 'text-danger'} text-xs font-bold uppercase mb-2`}>{texts.budget.disposable}</h3>
+                    <p className={`text-xl font-bold ${disposableUSD >= 0 ? 'text-text' : 'text-danger'} mb-1 truncate`}>
+                        {formatCurrency(disposableUSD, 'USD')}
+                    </p>
+                    <p className="text-xs text-muted truncate">
+                        20% Sugerido: <strong className={disposableUSD >= 0 ? 'text-primary' : 'text-danger'}>{formatCurrency(savingsTarget, 'USD')}</strong>
                     </p>
                 </div>
             </div>

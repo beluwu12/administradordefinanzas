@@ -91,4 +91,54 @@ router.delete('/:id',
     }
 );
 
+/**
+ * GET /api/tags/:id/transactions - Get transactions for a specific tag
+ * Validates: id param is UUID
+ * Checks ownership before returning
+ */
+router.get('/:id/transactions',
+    validate(idParamSchema, 'params'),
+    async (req, res, next) => {
+        try {
+            const { id } = req.params;
+
+            // Check tag ownership
+            const tag = await prisma.tag.findUnique({
+                where: { id },
+                select: { userId: true }
+            });
+
+            if (!tag) {
+                const errResponse = errors.notFound('Etiqueta');
+                return res.status(errResponse.status).json(errResponse);
+            }
+
+            if (!verifyOwnership(tag.userId, req.userId)) {
+                const errResponse = errors.ownershipFailed();
+                return res.status(errResponse.status).json(errResponse);
+            }
+
+            // Get transactions with this tag
+            const transactions = await prisma.transaction.findMany({
+                where: {
+                    userId: req.userId,
+                    tags: {
+                        some: { id: id }
+                    }
+                },
+                include: {
+                    tags: {
+                        select: { id: true, name: true, color: true }
+                    }
+                },
+                orderBy: { date: 'desc' }
+            });
+
+            res.json(success(transactions));
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
 module.exports = router;
