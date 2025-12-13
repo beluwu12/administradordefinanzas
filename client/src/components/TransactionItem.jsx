@@ -39,15 +39,19 @@ export default function TransactionItem({ transaction, onEdit, onDelete, onTagCl
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
         >
-            {/* Delete Background for Swipe */}
-            <div className="absolute inset-0 bg-red-500 flex items-center justify-end px-6 rounded-xl">
-                <Trash2 size={24} className="text-white" />
-            </div>
+            {/* Delete Button - Visible when swiped */}
+            {swiped && (
+                <button
+                    onClick={() => onDelete && onDelete(transaction.id)}
+                    className="absolute right-0 top-0 bottom-0 w-20 bg-red-500 flex items-center justify-center rounded-r-xl active:bg-red-600 z-20"
+                >
+                    <Trash2 size={24} className="text-white" />
+                </button>
+            )}
 
             {/* Foreground Content */}
             <div
-                className={`first-letter:relative flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-surface rounded-xl border border-transparent hover:border-border transition-transform duration-300 ease-out z-10 ${swiped ? '-translate-x-20' : 'translate-x-0'}`}
-                onClick={() => swiped && onDelete && onDelete(transaction.id)} // Click to confirm delete if swiped
+                className={`relative flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-surface rounded-xl border border-border transition-transform duration-150 ease-out ${swiped ? '-translate-x-20' : 'translate-x-0'}`}
             >
                 <div className="flex items-center space-x-4">
                     <div className={`p-3 rounded-full ${isIncome ? 'bg-secondary/10 text-secondary' : 'bg-danger/10 text-danger'}`}>

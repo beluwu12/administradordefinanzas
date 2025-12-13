@@ -67,22 +67,19 @@ export default function TransactionsPage() {
                 </button>
             </div>
 
-            <div className="bg-surface border border-border rounded-lg overflow-hidden">
-                <div className="divide-y divide-border">
-                    {transactions.length === 0 ? (
-                        <div className="p-8 text-center text-muted">No hay transacciones registradas.</div>
-                    ) : (
-                        transactions.map(tx => (
-                            <div key={tx.id} className="hover:bg-background/50 transition-colors">
-                                <TransactionItem
-                                    transaction={tx}
-                                    onEdit={handleEdit}
-                                    onDelete={handleDelete}
-                                />
-                            </div>
-                        ))
-                    )}
-                </div>
+            <div className="space-y-3">
+                {transactions.length === 0 ? (
+                    <div className="p-8 text-center text-muted bg-surface rounded-xl border border-border">No hay transacciones registradas.</div>
+                ) : (
+                    transactions.map(tx => (
+                        <TransactionItem
+                            key={tx.id}
+                            transaction={tx}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                        />
+                    ))
+                )}
             </div>
 
             {showForm && (

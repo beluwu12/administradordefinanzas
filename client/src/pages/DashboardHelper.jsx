@@ -48,7 +48,7 @@ const DashboardHelper = () => {
 
     // Prepare Pie Chart Data
     const pieData = [
-        { label: 'USD (en Bs)', value: rate ? balance.USD * rate : 0, color: '#2563eb' }, // blue-600
+        { label: 'USD', value: rate ? balance.USD * rate : 0, color: '#2563eb' }, // blue-600
         { label: 'Bolívares', value: balance.VES, color: '#16a34a' } // green-600
     ].filter(d => d.value > 0);
 
@@ -97,12 +97,12 @@ const DashboardHelper = () => {
                     </div>
 
                     {rate && (
-                        <div className="bg-surface p-6 rounded-2xl border border-border flex justify-between items-center shadow-md transition-transform hover:scale-[1.02] duration-300">
-                            <div>
-                                <span className="text-muted text-xs uppercase font-bold tracking-wider">Total Estimado en Bolívares</span>
-                                <p className="text-xs text-textSecondary mt-1">Tasa BCV: <span className="text-primary font-mono">{rate.toLocaleString('es-VE')}</span></p>
+                        <div className="bg-surface p-4 md:p-6 rounded-2xl border border-border flex flex-col md:flex-row md:justify-between md:items-center gap-2 shadow-md transition-transform hover:scale-[1.02] duration-300 overflow-hidden">
+                            <div className="min-w-0">
+                                <span className="text-muted text-[10px] md:text-xs uppercase font-bold tracking-wider">Total Estimado en Bolívares</span>
+                                <p className="text-[10px] md:text-xs text-textSecondary mt-1">Tasa BCV: <span className="text-primary font-mono">{rate.toLocaleString('es-VE')}</span></p>
                             </div>
-                            <span className="text-4xl font-black text-text tracking-tighter bg-gradient-to-r from-green-400 to-emerald-600 bg-clip-text text-transparent">{formatCurrency(totalInVES, 'VES')}</span>
+                            <span className="text-xl md:text-3xl lg:text-4xl font-black text-text tracking-tighter bg-gradient-to-r from-green-400 to-emerald-600 bg-clip-text text-transparent truncate">{formatCurrency(totalInVES, 'VES')}</span>
                         </div>
                     )}
                 </div>
@@ -142,36 +142,6 @@ const DashboardHelper = () => {
                             action={() => navigate('/transactions', { state: { openForm: true } })}
                             actionLabel="Registrar Gasto"
                         />
-                    )}
-                </div>
-            </section>
-
-            {/* Recent Transactions */}
-            <section>
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold text-text">{texts.dashboard.recentTransactions}</h2>
-                    <Link to="/transactions" className="text-primary hover:text-primary/80 font-medium text-sm">
-                        {texts.dashboard.viewAll}
-                    </Link>
-                </div>
-
-                <div className="bg-surface rounded-2xl border border-border overflow-hidden shadow-sm">
-                    {transactions.length === 0 ? (
-                        <div className="p-8 text-center text-textSecondary">
-                            No hay movimientos recientes
-                        </div>
-                    ) : (
-                        <div className="divide-y divide-border">
-                            {transactions.map(tx => (
-                                <TransactionItem
-                                    key={tx.id}
-                                    transaction={tx}
-                                    onClick={() => handleTransactionClick(tx)}
-                                    onTagClick={setSelectedTag}
-                                    simpleView={true}
-                                />
-                            ))}
-                        </div>
                     )}
                 </div>
             </section>

@@ -142,10 +142,17 @@ export default function TagsPage() {
                 {/* Tags Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                     {tags.map(tag => (
-                        <div key={tag.id} className="group relative bg-background border border-border p-4 rounded-lg flex flex-col items-center justify-center text-center hover:border-text transition-colors cursor-default">
+                        <div
+                            key={tag.id}
+                            className="group relative bg-background border border-border p-4 rounded-lg flex flex-col items-center justify-center text-center hover:border-primary transition-colors cursor-pointer active:scale-95"
+                            onClick={() => setSelectedTag(tag)}
+                        >
                             <button
-                                onClick={() => handleDelete(tag.id)}
-                                className="absolute top-2 right-2 text-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDelete(tag.id);
+                                }}
+                                className="absolute top-2 right-2 text-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity z-10"
                             >
                                 <X size={14} />
                             </button>
@@ -159,12 +166,6 @@ export default function TagsPage() {
                             <span className="text-xs text-muted mt-1">
                                 {tag.transactions ? tag.transactions.length : 0} usos
                             </span>
-
-                            {/* Clickable Overlay */}
-                            <div
-                                className="absolute inset-0 cursor-pointer z-0"
-                                onClick={() => setSelectedTag(tag)}
-                            />
                         </div>
                     ))}
                 </div>
