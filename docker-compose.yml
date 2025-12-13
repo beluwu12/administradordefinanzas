@@ -1,69 +1,60 @@
 version: '3.8'
 
 services:
-  # ══════════════════════════════════════════════════════════════
-  # BACKEND - Express + Prisma + SQLite
-  # ══════════════════════════════════════════════════════════════
+  postgres:
+    image: postgres:16-alpine
+    container_name: finanzas-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-finanzas}
+      POSTGRES_USER: ${POSTGRES_USER:-finanzas}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-securepassword}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finanzas -d finanzas"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - finanzas-network
+
   backend:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
-    container_name: finance-backend
+    build: ./server
+    container_name: finanzas-backend
+    restart: always
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - DATABASE_URL=file:./data/finance.db
-      - JWT_SECRET=${JWT_SECRET:-change-this-secret-in-production}
-      - FRONTEND_URL=http://localhost:5173
-      - CRON_ENABLED=true
-    volumes:
-      - backend-data:/app/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
+      DATABASE_URL: postgresql://${POSTGRES_USER:-finanzas}:${POSTGRES_PASSWORD:-securepassword}@postgres:5432/${POSTGRES_DB:-finanzas}
+      JWT_SECRET: ${JWT_SECRET}
+      NODE_ENV: production
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      CRON_ENABLED: "true"
+      PORT: 3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - finanzas-network
 
-  # ══════════════════════════════════════════════════════════════
-  # FRONTEND - React + Vite (Production Build)
-  # ══════════════════════════════════════════════════════════════
   frontend:
     build:
-      context: ./client
-      dockerfile: Dockerfile
-      args:
-        - VITE_API_URL=http://localhost:3000/api
-    container_name: finance-frontend
+      context: .
+      dockerfile: client/Dockerfile
+    container_name: finanzas-frontend
+    restart: always
     ports:
-      - "5173:80"
+      - "80:80"
     depends_on:
       - backend
-    restart: unless-stopped
+    networks:
+      - finanzas-network
 
 volumes:
-  backend-data:
-    driver: local
+  postgres_data:
 
-# ══════════════════════════════════════════════════════════════
-# USAGE:
-# ══════════════════════════════════════════════════════════════
-# 
-# Quick start:
-#   docker-compose up -d
-#
-# View logs:
-#   docker-compose logs -f
-#
-# Stop:
-#   docker-compose down
-#
-# Rebuild:
-#   docker-compose up -d --build
-#
-# Access:
-#   Frontend: http://localhost:5173
-#   Backend:  http://localhost:3000/api/health
-# ══════════════════════════════════════════════════════════════
+networks:
+  finanzas-network:
+    driver: bridge

@@ -6,21 +6,26 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model User {
   id        String   @id @default(uuid())
+  email     String   @unique
+  password  String   // bcrypt
   firstName String
   lastName  String
-  pin       String   // Hashed 4-digit PIN
+  verified  Boolean  @default(false)
   createdAt DateTime @default(now())
 
   transactions  Transaction[]
   fixedExpenses FixedExpense[]
   tags          Tag[]
   goals         Goal[]
+  
+  notifications Notification[]
+  pushSubscriptions PushSubscription[]
 }
 
 model Tag {
@@ -116,4 +121,32 @@ model ExchangeRate {
   fetchedAt DateTime @default(now())
 
   @@index([fetchedAt]) // Optimize finding latest rate
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  body      String
+  type      String   // 'quincena_reminder', 'goal_warning', 'system'
+  isRead    Boolean  @default(false)
+  link      String?  // Optional deep link
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  
+  createdAt DateTime @default(now())
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  endpoint  String
+  p256dh    String
+  auth      String
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([endpoint, userId])
 }

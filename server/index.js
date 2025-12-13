@@ -55,13 +55,25 @@ const userRoutes = require('./routes/users');
 const transactionRoutes = require('./routes/transactions');
 const tagRoutes = require('./routes/tags');
 const fixedExpenseRoutes = require('./routes/fixedExpenses');
+const goalRoutes = require('./routes/goals');
+const insightRoutes = require('./routes/insight');
+const notificationRoutes = require('./routes/notifications');
+const authRoutes = require('./routes/auth'); // New Auth Routes
+const { initCronJobs } = require('./cron/reminderJobs');
 
+// Enable Cron Jobs if configured
+if (process.env.CRON_ENABLED === 'true' || true) { // Force enable for now based on user request
+  initCronJobs();
+}
+
+app.use('/api/auth', authRoutes); // Auth mount point
 app.use('/api/users', userRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/tags', tagRoutes);
 app.use('/api/fixed-expenses', fixedExpenseRoutes);
-app.use('/api/insight', require('./routes/insight'));
-app.use('/api/goals', require('./routes/goals'));
+app.use('/api/goals', goalRoutes);
+app.use('/api/insight', insightRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/exchange-rate', require('./routes/exchangeRate'));
 
 // ═══════════════════════════════════════════════════════════════

@@ -12,9 +12,8 @@ import GoalsPage from './pages/GoalsPage';
 import GoalDetailPage from './pages/GoalDetailPage';
 
 // Auth Pages
-import UserSelectionPage from './pages/auth/UserSelectionPage';
-import PinEntryPage from './pages/auth/PinEntryPage';
-import CreateUserPage from './pages/auth/CreateUserPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 
 const ProtectedRoute = () => {
   const { user, loading } = useAuth();
@@ -29,9 +28,8 @@ function App() {
         <Router>
           <Routes>
             {/* Public Auth Routes */}
-            <Route path="/login" element={<UserSelectionPage />} />
-            <Route path="/pin" element={<PinEntryPage />} />
-            <Route path="/create-user" element={<CreateUserPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
 
             {/* Protected App Routes */}
             <Route element={<ProtectedRoute />}>
