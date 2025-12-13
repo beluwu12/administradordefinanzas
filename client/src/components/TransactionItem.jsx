@@ -2,7 +2,7 @@ import React from 'react';
 import { ArrowUpRight, ArrowDownRight, Edit2, Trash2, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { formatCurrency, formatDate } from '../utils/formatters';
 
-export default function TransactionItem({ transaction, onEdit, onDelete, simpleView = false }) {
+export default function TransactionItem({ transaction, onEdit, onDelete, onTagClick, simpleView = false }) {
     const isIncome = transaction.type === 'INCOME';
 
     return (
@@ -30,9 +30,18 @@ export default function TransactionItem({ transaction, onEdit, onDelete, simpleV
                                 <span>•</span>
                                 <div className="flex gap-1">
                                     {transaction.tags.map(tag => (
-                                        <span key={tag.id} className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px]">
+                                        <button
+                                            key={tag.id}
+                                            onClick={(e) => {
+                                                if (onTagClick) {
+                                                    e.stopPropagation();
+                                                    onTagClick(tag);
+                                                }
+                                            }}
+                                            className={`bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px] ${onTagClick ? 'hover:bg-primary/20 cursor-pointer' : ''}`}
+                                        >
                                             {tag.name}
-                                        </span>
+                                        </button>
                                     ))}
                                 </div>
                             </>
