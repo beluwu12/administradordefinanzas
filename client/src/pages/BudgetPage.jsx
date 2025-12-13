@@ -102,7 +102,7 @@ export default function BudgetPage() {
                 <div className="bg-surface p-5 rounded-lg border border-border">
                     <h3 className="text-muted text-xs font-bold uppercase mb-2">{texts.budget.fixedTotal} (USD)</h3>
                     <p className="text-2xl font-bold text-danger">{formatCurrency(fixedCostUSD, 'USD')}</p>
-                    <p className="text-xs text-muted">Mensual</p>
+                    <p className="text-xs text-muted">{texts.budget.monthly || "Mensual"}</p>
                 </div>
 
                 <div className="bg-surface p-5 rounded-lg border border-border">

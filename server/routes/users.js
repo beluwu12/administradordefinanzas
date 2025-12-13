@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../db');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 // POST /api/users - Create new user
 router.post('/', async (req, res) => {
@@ -68,7 +69,17 @@ router.post('/verify', async (req, res) => {
 
         const isValid = await bcrypt.compare(pin, user.pin);
         if (isValid) {
-            res.json({ success: true, user: { id: user.id, firstName: user.firstName, lastName: user.lastName } });
+            const token = jwt.sign(
+                { id: user.id },
+                process.env.JWT_SECRET || 'fallback_secret', // Best practice: Use env var
+                { expiresIn: '7d' }
+            );
+
+            res.json({
+                success: true,
+                user: { id: user.id, firstName: user.firstName, lastName: user.lastName },
+                token
+            });
         } else {
             res.status(401).json({ error: 'PIN incorrecto' });
         }

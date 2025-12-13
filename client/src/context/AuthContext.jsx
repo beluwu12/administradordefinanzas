@@ -12,29 +12,41 @@ export const AuthProvider = ({ children }) => {
     // Initialize: Check localStorage
     useEffect(() => {
         const storedUser = localStorage.getItem('finance_user');
-        if (storedUser) {
+        const token = localStorage.getItem('finance_token');
+
+        if (storedUser && token) {
             try {
                 const parsedUser = JSON.parse(storedUser);
                 setUser(parsedUser);
                 // Set default header
-                axios.defaults.headers.common['x-user-id'] = parsedUser.id;
+                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             } catch (e) {
                 console.error("Error parsing stored user", e);
                 localStorage.removeItem('finance_user');
+                localStorage.removeItem('finance_token');
             }
         }
         setLoading(false);
     }, []);
 
-    const login = (userData) => {
+    const login = (userData, token) => {
         setUser(userData);
         localStorage.setItem('finance_user', JSON.stringify(userData));
-        axios.defaults.headers.common['x-user-id'] = userData.id;
+
+        if (token) {
+            localStorage.setItem('finance_token', token);
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        } else {
+            // Fallback for legacy (should not happen if backend updated)
+            axios.defaults.headers.common['x-user-id'] = userData.id;
+        }
     };
 
     const logout = () => {
         setUser(null);
         localStorage.removeItem('finance_user');
+        localStorage.removeItem('finance_token');
+        delete axios.defaults.headers.common['Authorization'];
         delete axios.defaults.headers.common['x-user-id'];
     };
 
