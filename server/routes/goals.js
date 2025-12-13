@@ -1,13 +1,23 @@
+/**
+ * Goal Routes - Savings Goals with Quincena Tracking
+ * Updated with validation, ownership checks, and decimal.js for calculations
+ */
+
 const express = require('express');
 const router = express.Router();
-const prisma = require('../db'); // Singleton instance
-const requireUser = require('../middleware/auth');
+const prisma = require('../db');
+const Decimal = require('decimal.js');
+const { requireAuth, verifyOwnership } = require('../middleware/requireAuth');
+const { success, errors } = require('../utils/responseUtils');
+const { createGoalSchema, toggleMonthSchema, idParamSchema, goalIdParamSchema, validate } = require('../schemas');
 
-// Apply auth middleware to all routes
-router.use(requireUser);
+// All routes require authentication
+router.use(requireAuth);
 
-// GET /api/goals - List all goals for the user
-router.get('/', async (req, res) => {
+/**
+ * GET /api/goals - List all goals for user
+ */
+router.get('/', async (req, res, next) => {
     try {
         const goals = await prisma.goal.findMany({
             where: { userId: req.userId },
@@ -18,174 +28,161 @@ router.get('/', async (req, res) => {
             },
             orderBy: { createdAt: 'asc' }
         });
-        res.json(goals);
+        res.json(success(goals));
     } catch (error) {
-        console.error("Error fetching goals:", error);
-        res.status(500).json({ error: "Failed to fetch goals" });
+        next(error);
     }
 });
 
-// POST /api/goals - Create a new goal
-router.post('/', async (req, res) => {
-    const { title, totalCost, monthlyAmount, currency, startDate, description, tag } = req.body;
-
-    if (!title || !totalCost || !monthlyAmount) {
-        return res.status(400).json({ error: "Title, Total Cost, and Monthly Amount are required" });
-    }
-
-    // Validation
-    const parsedTotalCost = parseFloat(totalCost);
-    const parsedMonthlyAmount = parseFloat(monthlyAmount);
-
-    if (isNaN(parsedTotalCost) || parsedTotalCost <= 0) {
-        return res.status(400).json({ error: "Total Cost must be a positive number" });
-    }
-    if (isNaN(parsedMonthlyAmount) || parsedMonthlyAmount <= 0) {
-        return res.status(400).json({ error: "Monthly Amount must be a positive number" });
-    }
-    if (parsedMonthlyAmount > parsedTotalCost) {
-        return res.status(400).json({ error: "Monthly Amount cannot be greater than Total Cost" });
-    }
-    if (currency && !['USD', 'VES'].includes(currency)) {
-        return res.status(400).json({ error: "Currency must be USD or VES" });
-    }
-
+/**
+ * POST /api/goals - Create a new goal
+ */
+router.post('/', validate(createGoalSchema), async (req, res, next) => {
     try {
+        const { title, totalCost, monthlyAmount, currency, startDate, description, tag } = req.body;
+
+        const parsedTotalCost = new Decimal(totalCost);
+        const parsedMonthlyAmount = new Decimal(monthlyAmount);
+
+        const durationMonths = parsedTotalCost.dividedBy(parsedMonthlyAmount).ceil().toNumber();
+        if (durationMonths > 120) {
+            const errResponse = errors.validation('La duración del objetivo excede el máximo (120 meses)');
+            return res.status(errResponse.status).json(errResponse);
+        }
+
         const actualStartDate = startDate ? new Date(startDate) : new Date();
-        if (isNaN(actualStartDate.getTime())) {
-            return res.status(400).json({ error: "Invalid start date" });
-        }
-
-        const durationMonths = Math.ceil(parsedTotalCost / parsedMonthlyAmount);
-        if (durationMonths > 120) { // Reasonable limit
-            return res.status(400).json({ error: "Goal duration exceeds maximum (120 months)" });
-        }
-
-        // Calculate deadline
         const deadline = new Date(actualStartDate);
         deadline.setMonth(deadline.getMonth() + durationMonths);
 
-        // Generate GoalMonth entries
+        // Generate GoalMonth entries with decimal precision
         const progressData = [];
         let remaining = parsedTotalCost;
 
         for (let i = 1; i <= durationMonths; i++) {
-            const target = (remaining < parsedMonthlyAmount) ? remaining : parsedMonthlyAmount;
+            const target = Decimal.min(remaining, parsedMonthlyAmount);
             progressData.push({
                 monthIndex: i,
-                target: parseFloat(target.toFixed(2))
+                target: target.toNumber()
             });
-            remaining -= target;
+            remaining = remaining.minus(target);
         }
 
         const goal = await prisma.goal.create({
             data: {
                 userId: req.userId,
                 title: title.trim(),
-                description: description ? description.trim() : null,
-                totalCost: parsedTotalCost,
-                monthlyAmount: parsedMonthlyAmount,
+                description: description?.trim() || null,
+                totalCost: parsedTotalCost.toNumber(),
+                monthlyAmount: parsedMonthlyAmount.toNumber(),
                 currency: currency || 'USD',
                 startDate: actualStartDate,
                 deadline,
                 durationMonths,
-                tag: tag ? tag.trim() : null,
+                tag: tag?.trim() || null,
                 progress: {
                     create: progressData
                 }
             },
-            include: {
-                progress: true
+            include: { progress: true }
+        });
+
+        res.status(201).json(success(goal, 'Objetivo creado'));
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * PATCH /api/goals/:goalId/toggle-month - Toggle quincena payment
+ */
+router.patch('/:goalId/toggle-month',
+    validate(goalIdParamSchema, 'params'),
+    validate(toggleMonthSchema),
+    async (req, res, next) => {
+        try {
+            const { goalId } = req.params;
+            const { monthId, period, isPaid } = req.body;
+
+            // Verify goal ownership
+            const goal = await prisma.goal.findUnique({
+                where: { id: goalId },
+                select: { userId: true }
+            });
+
+            if (!goal) {
+                const errResponse = errors.notFound('Objetivo');
+                return res.status(errResponse.status).json(errResponse);
             }
-        });
 
-        res.status(201).json(goal);
-    } catch (error) {
-        console.error("Error creating goal:", error);
-        res.status(500).json({ error: "Failed to create goal" });
-    }
-});
+            if (!verifyOwnership(goal.userId, req.userId)) {
+                const errResponse = errors.ownershipFailed();
+                return res.status(errResponse.status).json(errResponse);
+            }
 
-// PATCH /api/goals/:goalId/toggle-month - Toggle completion of a month (Quincena)
-router.patch('/:goalId/toggle-month', async (req, res) => {
-    const { goalId } = req.params;
-    const { monthId, period, isPaid } = req.body; // period: 'q1' or 'q2'
+            // Update the specific quincena
+            const dataToUpdate = period === 'q1' ? { isQ1Paid: isPaid } : { isQ2Paid: isPaid };
 
-    if (!monthId) {
-        return res.status(400).json({ error: "monthId is required" });
-    }
-    if (!['q1', 'q2'].includes(period)) {
-        return res.status(400).json({ error: "Period must be 'q1' or 'q2'" });
-    }
-    if (typeof isPaid !== 'boolean') {
-        return res.status(400).json({ error: "isPaid must be a boolean" });
-    }
+            const updatedMonth = await prisma.goalMonth.update({
+                where: { id: monthId },
+                data: dataToUpdate
+            });
 
-    try {
-        // Verify ownership
-        const goal = await prisma.goal.findUnique({
-            where: { id: goalId },
-            select: { userId: true }
-        });
+            // Recalculate savedAmount using decimal.js
+            const allMonths = await prisma.goalMonth.findMany({
+                where: { goalId }
+            });
 
-        if (!goal || goal.userId !== req.userId) {
-            return res.status(404).json({ error: "Goal not found" });
+            const newSavedTotal = allMonths.reduce((sum, m) => {
+                const qAmount = new Decimal(m.target).dividedBy(2);
+                let monthTotal = new Decimal(0);
+                if (m.isQ1Paid) monthTotal = monthTotal.plus(qAmount);
+                if (m.isQ2Paid) monthTotal = monthTotal.plus(qAmount);
+                return sum.plus(monthTotal);
+            }, new Decimal(0));
+
+            await prisma.goal.update({
+                where: { id: goalId },
+                data: { savedAmount: newSavedTotal.toNumber() }
+            });
+
+            res.json(success(updatedMonth, 'Quincena actualizada'));
+        } catch (error) {
+            next(error);
         }
-
-        const dataToUpdate = period === 'q1' ? { isQ1Paid: isPaid } : { isQ2Paid: isPaid };
-
-        const updatedMonth = await prisma.goalMonth.update({
-            where: { id: monthId },
-            data: dataToUpdate
-        });
-
-        // Update main goal savedAmount (sum of all completed quincenas)
-        const allMonths = await prisma.goalMonth.findMany({
-            where: { goalId: goalId }
-        });
-
-        const newSavedTotal = allMonths.reduce((sum, m) => {
-            let monthTotal = 0;
-            const qAmount = m.target / 2;
-            if (m.isQ1Paid) monthTotal += qAmount;
-            if (m.isQ2Paid) monthTotal += qAmount;
-            return sum + monthTotal;
-        }, 0);
-
-        await prisma.goal.update({
-            where: { id: goalId },
-            data: { savedAmount: newSavedTotal }
-        });
-
-        res.json(updatedMonth);
-    } catch (error) {
-        console.error("Error updating goal progress:", error);
-        res.status(500).json({ error: "Failed to update progress" });
     }
-});
+);
 
-// DELETE /api/goals/:id - Delete a goal
-router.delete('/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-        // Verify ownership and delete
-        const goal = await prisma.goal.findFirst({
-            where: { id, userId: req.userId }
-        });
+/**
+ * DELETE /api/goals/:id - Delete a goal
+ */
+router.delete('/:id',
+    validate(idParamSchema, 'params'),
+    async (req, res, next) => {
+        try {
+            const { id } = req.params;
 
-        if (!goal) {
-            return res.status(404).json({ error: "Goal not found" });
+            // Check ownership
+            const goal = await prisma.goal.findUnique({
+                where: { id },
+                select: { userId: true }
+            });
+
+            if (!goal) {
+                const errResponse = errors.notFound('Objetivo');
+                return res.status(errResponse.status).json(errResponse);
+            }
+
+            if (!verifyOwnership(goal.userId, req.userId)) {
+                const errResponse = errors.ownershipFailed();
+                return res.status(errResponse.status).json(errResponse);
+            }
+
+            await prisma.goal.delete({ where: { id } });
+            res.json(success({ id }, 'Objetivo eliminado'));
+        } catch (error) {
+            next(error);
         }
-
-        await prisma.goal.delete({
-            where: { id }
-        });
-
-        res.json({ success: true });
-    } catch (error) {
-        console.error("Error deleting goal:", error);
-        res.status(500).json({ error: "Failed to delete goal" });
     }
-});
+);
 
 module.exports = router;

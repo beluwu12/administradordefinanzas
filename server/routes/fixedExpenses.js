@@ -1,160 +1,133 @@
+/**
+ * Fixed Expense Routes
+ * Updated with validation and standardized responses
+ */
+
 const express = require('express');
-const prisma = require('../db');
-const requireUser = require('../middleware/auth');
 const router = express.Router();
+const prisma = require('../db');
+const { requireAuth, verifyOwnership } = require('../middleware/requireAuth');
+const { success, errors } = require('../utils/responseUtils');
+const { createFixedExpenseSchema, idParamSchema, validate } = require('../schemas');
 
-router.use(requireUser);
+// All routes require authentication
+router.use(requireAuth);
 
-// GET /api/fixed-expenses - List
-router.get('/', async (req, res) => {
+/**
+ * GET /api/fixed-expenses - List all fixed expenses for user
+ */
+router.get('/', async (req, res, next) => {
     try {
         const expenses = await prisma.fixedExpense.findMany({
             where: { userId: req.userId },
             orderBy: { dueDay: 'asc' }
         });
-        res.json(expenses);
+        res.json(success(expenses));
     } catch (error) {
-        res.status(500).json({ error: 'Error fetching fixed expenses' });
+        next(error);
     }
 });
 
-// POST /api/fixed-expenses - Create
-router.post('/', async (req, res) => {
-    const { amount, currency, description, dueDay, startDate } = req.body;
-
+/**
+ * POST /api/fixed-expenses - Create new fixed expense
+ */
+router.post('/', validate(createFixedExpenseSchema), async (req, res, next) => {
     try {
-        let day = dueDay;
-        // If startDate is provided (YYYY-MM-DD), extract the day
-        if (startDate) {
-            const dateObj = new Date(startDate);
-            if (!isNaN(dateObj.getTime())) {
-                const dayFromDate = parseInt(startDate.split('-')[2]);
-                if (!isNaN(dayFromDate) && dayFromDate >= 1 && dayFromDate <= 31) {
-                    day = dayFromDate;
-                }
-            }
-        }
-
-        const parsedAmount = parseFloat(amount);
-        const parsedDay = parseInt(day);
-
-        // Validation
-        if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
-            return res.status(400).json({ error: 'Monto inválido (debe ser un número positivo)' });
-        }
-        if (!day || isNaN(parsedDay) || parsedDay < 1 || parsedDay > 31) {
-            return res.status(400).json({ error: 'Día inválido (debe ser entre 1 y 31)' });
-        }
-        if (!description || description.trim() === '') {
-            return res.status(400).json({ error: 'Descripción requerida' });
-        }
-        if (currency && !['USD', 'VES'].includes(currency)) {
-            return res.status(400).json({ error: 'Moneda debe ser USD o VES' });
-        }
+        const { description, amount, currency, dueDay, startDate } = req.body;
 
         const expense = await prisma.fixedExpense.create({
             data: {
-                amount: parsedAmount,
-                currency: currency || 'USD',
                 description: description.trim(),
-                dueDay: parsedDay,
-                userId: req.userId
-            }
-        });
-        res.json(expense);
-    } catch (error) {
-        console.error('SERVER ERROR creating fixed expense:', error);
-        res.status(500).json({ error: 'Error interno del servidor al crear gasto' });
-    }
-});
-
-// DELETE /api/fixed-expenses/:id
-router.delete('/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-        const count = await prisma.fixedExpense.deleteMany({
-            where: { id, userId: req.userId }
-        });
-        if (count.count === 0) return res.status(404).json({ error: 'Not found' });
-
-        res.json({ message: 'Deleted' });
-    } catch (error) {
-        res.status(500).json({ error: 'Error deleting' });
-    }
-});
-
-// GET /api/fixed-expenses/insight - Budget Analysis
-router.get('/insight', async (req, res) => {
-    try {
-        // 1. Calculate Monthly Fixed Expenses
-        const fixedExpenses = await prisma.fixedExpense.findMany({ where: { isActive: true, userId: req.userId } });
-        const totalFixed = fixedExpenses.reduce((acc, curr) => {
-            if (!curr || !curr.currency || !isFinite(curr.amount)) return acc;
-            if (!acc[curr.currency]) acc[curr.currency] = 0;
-            acc[curr.currency] += curr.amount;
-            return acc;
-        }, {});
-
-        // 2. Fetch Average Monthly Income (Simple approximation based on last 30 days)
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-        const recentIncome = await prisma.transaction.findMany({
-            where: {
-                type: 'INCOME',
-                date: { gte: thirtyDaysAgo },
+                amount: parseFloat(amount),
+                currency: currency || 'USD',
+                dueDay: parseInt(dueDay),
                 userId: req.userId
             }
         });
 
-        const totalIncome = recentIncome.reduce((acc, curr) => {
-            if (!curr || !curr.currency || !isFinite(curr.amount)) return acc;
-            if (!acc[curr.currency]) acc[curr.currency] = 0;
-            acc[curr.currency] += curr.amount;
-            return acc;
-        }, {});
-
-        // 3. Fetch "Quincena" Specific Income
-        const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-        const quincenaIncomeTransactions = await prisma.transaction.findMany({
-            where: {
-                type: 'INCOME',
-                date: { gte: startOfMonth },
-                userId: req.userId,
-                tags: {
-                    some: {
-                        name: {
-                            in: ['QUINCENA', 'Quincena', 'quincena']
-                        }
-                    }
-                }
-            }
-        });
-
-        const totalQuincena = quincenaIncomeTransactions.reduce((acc, curr) => {
-            if (!curr || !curr.currency || !isFinite(curr.amount)) return acc;
-            if (!acc[curr.currency]) acc[curr.currency] = 0;
-            acc[curr.currency] += curr.amount;
-            return acc;
-        }, {});
-
-        const responsePayload = {
-            fixedExpenses: totalFixed,
-            recentMonthlyIncome: totalIncome,
-            details: fixedExpenses,
-            quincenaFixed: {
-                targetUSD: (totalFixed.USD || 0) / 2,
-                targetVES: (totalFixed.VES || 0) / 2,
-                collectedUSD: totalQuincena.USD || 0,
-                collectedVES: totalQuincena.VES || 0
-            }
-        };
-
-        res.json(responsePayload);
+        res.status(201).json(success(expense, 'Gasto fijo creado'));
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error calculating insight' });
+        next(error);
     }
 });
+
+/**
+ * PUT /api/fixed-expenses/:id - Update fixed expense
+ */
+router.put('/:id',
+    validate(idParamSchema, 'params'),
+    async (req, res, next) => {
+        try {
+            const { id } = req.params;
+
+            // Check ownership
+            const existing = await prisma.fixedExpense.findUnique({
+                where: { id },
+                select: { userId: true }
+            });
+
+            if (!existing) {
+                const errResponse = errors.notFound('Gasto fijo');
+                return res.status(errResponse.status).json(errResponse);
+            }
+
+            if (!verifyOwnership(existing.userId, req.userId)) {
+                const errResponse = errors.ownershipFailed();
+                return res.status(errResponse.status).json(errResponse);
+            }
+
+            const { description, amount, currency, dueDay, isActive } = req.body;
+
+            const updateData = {};
+            if (description !== undefined) updateData.description = description.trim();
+            if (amount !== undefined) updateData.amount = parseFloat(amount);
+            if (currency !== undefined) updateData.currency = currency;
+            if (dueDay !== undefined) updateData.dueDay = parseInt(dueDay);
+            if (isActive !== undefined) updateData.isActive = isActive;
+
+            const updated = await prisma.fixedExpense.update({
+                where: { id },
+                data: updateData
+            });
+
+            res.json(success(updated, 'Gasto fijo actualizado'));
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+/**
+ * DELETE /api/fixed-expenses/:id - Delete fixed expense
+ */
+router.delete('/:id',
+    validate(idParamSchema, 'params'),
+    async (req, res, next) => {
+        try {
+            const { id } = req.params;
+
+            // Check ownership
+            const existing = await prisma.fixedExpense.findUnique({
+                where: { id },
+                select: { userId: true }
+            });
+
+            if (!existing) {
+                const errResponse = errors.notFound('Gasto fijo');
+                return res.status(errResponse.status).json(errResponse);
+            }
+
+            if (!verifyOwnership(existing.userId, req.userId)) {
+                const errResponse = errors.ownershipFailed();
+                return res.status(errResponse.status).json(errResponse);
+            }
+
+            await prisma.fixedExpense.delete({ where: { id } });
+            res.json(success({ id }, 'Gasto fijo eliminado'));
+        } catch (error) {
+            next(error);
+        }
+    }
+);
 
 module.exports = router;

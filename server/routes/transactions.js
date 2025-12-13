@@ -1,192 +1,230 @@
+/**
+ * Transaction Routes - Income and Expense Management
+ * Updated with validation, ownership checks, and standardized responses
+ */
+
 const express = require('express');
-const prisma = require('../db');
-const requireUser = require('../middleware/auth');
 const router = express.Router();
+const prisma = require('../db');
+const Decimal = require('decimal.js');
+const { requireAuth, verifyOwnership } = require('../middleware/requireAuth');
+const { success, errors } = require('../utils/responseUtils');
+const { createTransactionSchema, updateTransactionSchema, idParamSchema, validate } = require('../schemas');
 
-router.use(requireUser);
+// All transaction routes require authentication
+router.use(requireAuth);
 
-// GET /api/transactions - List mine
-router.get('/', async (req, res) => {
+/**
+ * GET /api/transactions - List all transactions for user
+ * Supports query params: type, limit, offset
+ */
+router.get('/', async (req, res, next) => {
+    try {
+        const { type, limit = 50, offset = 0 } = req.query;
+
+        const where = { userId: req.userId };
+        if (type && ['INCOME', 'EXPENSE'].includes(type)) {
+            where.type = type;
+        }
+
+        const transactions = await prisma.transaction.findMany({
+            where,
+            include: {
+                tags: {
+                    select: { id: true, name: true, color: true }
+                }
+            },
+            orderBy: { date: 'desc' },
+            take: parseInt(limit),
+            skip: parseInt(offset)
+        });
+
+        res.json(success(transactions));
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * GET /api/transactions/balance - Get balance summary
+ * Returns: { USD: number, VES: number }
+ */
+router.get('/balance', async (req, res, next) => {
     try {
         const transactions = await prisma.transaction.findMany({
             where: { userId: req.userId },
-            include: { tags: true },
-            orderBy: { date: 'desc' }
+            select: { amount: true, currency: true, type: true }
         });
-        res.json(transactions);
+
+        // Use decimal.js for precise calculations
+        const balance = { USD: new Decimal(0), VES: new Decimal(0) };
+
+        transactions.forEach(tx => {
+            const amount = new Decimal(tx.amount);
+            const currency = tx.currency || 'USD';
+
+            if (tx.type === 'INCOME') {
+                balance[currency] = balance[currency].plus(amount);
+            } else if (tx.type === 'EXPENSE') {
+                balance[currency] = balance[currency].minus(amount);
+            }
+        });
+
+        res.json(success({
+            USD: balance.USD.toNumber(),
+            VES: balance.VES.toNumber()
+        }));
     } catch (error) {
-        res.status(500).json({ error: 'Error fetching transactions' });
+        next(error);
     }
 });
 
-// POST /api/transactions - Create
-router.post('/', async (req, res) => {
-    const { amount, currency, type, description, source, tags, date, exchangeRate } = req.body;
-
-    // Validation
-    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-        return res.status(400).json({ error: 'Amount must be a positive number' });
-    }
-    if (!type || !['INCOME', 'EXPENSE'].includes(type)) {
-        return res.status(400).json({ error: 'Type must be INCOME or EXPENSE' });
-    }
-    if (!currency || !['USD', 'VES'].includes(currency)) {
-        return res.status(400).json({ error: 'Currency must be USD or VES' });
-    }
-    if (!description || description.trim() === '') {
-        return res.status(400).json({ error: 'Description is required' });
-    }
-
-    const parsedAmount = parseFloat(amount);
-    const parsedExchangeRate = exchangeRate ? parseFloat(exchangeRate) : null;
-
-    if (isNaN(parsedAmount)) {
-        return res.status(400).json({ error: 'Invalid amount' });
-    }
-    if (parsedExchangeRate !== null && (isNaN(parsedExchangeRate) || parsedExchangeRate <= 0)) {
-        return res.status(400).json({ error: 'Invalid exchange rate' });
-    }
-
+/**
+ * POST /api/transactions - Create new transaction
+ */
+router.post('/', validate(createTransactionSchema), async (req, res, next) => {
     try {
+        const { amount, currency, type, description, source, date, exchangeRate, tags } = req.body;
+
+        // If tags provided, verify they belong to user (deep ownership check)
+        if (tags && tags.length > 0) {
+            const userTags = await prisma.tag.findMany({
+                where: {
+                    id: { in: tags },
+                    userId: req.userId
+                },
+                select: { id: true }
+            });
+
+            if (userTags.length !== tags.length) {
+                const errResponse = errors.validation('Una o más etiquetas no existen o no te pertenecen');
+                return res.status(errResponse.status).json(errResponse);
+            }
+        }
+
         const transaction = await prisma.transaction.create({
             data: {
-                amount: parsedAmount,
-                currency,
+                amount: parseFloat(amount),
+                currency: currency || 'USD',
                 type,
                 description: description.trim(),
-                source: source ? source.trim() : null,
-                exchangeRate: parsedExchangeRate,
+                source: source?.trim() || null,
                 date: date ? new Date(date) : new Date(),
+                exchangeRate: exchangeRate || null,
                 userId: req.userId,
-                tags: tags && Array.isArray(tags) && tags.length > 0 ? {
-                    connect: tags.map(tagId => ({ id: tagId }))
-                } : undefined
+                tags: tags?.length > 0 ? { connect: tags.map(id => ({ id })) } : undefined
             },
-            include: { tags: true }
-        });
-        res.json(transaction);
-    } catch (error) {
-        console.error("[Transactions POST] Error:", error);
-        res.status(500).json({ error: `[Transactions] Error creando transacción: ${error.message}` });
-    }
-});
-
-// PUT /api/transactions/:id - Update
-router.put('/:id', async (req, res) => {
-    const { id } = req.params;
-    const { amount, currency, type, description, source, tags, date, exchangeRate } = req.body;
-
-    try {
-        // Ensure ownership
-        const existing = await prisma.transaction.findFirst({ where: { id, userId: req.userId } });
-        if (!existing) return res.status(404).json({ error: 'Transaction not found or unauthorized' });
-
-        // Validation
-        if (amount !== undefined && (isNaN(parseFloat(amount)) || parseFloat(amount) <= 0)) {
-            return res.status(400).json({ error: 'Amount must be a positive number' });
-        }
-        if (type && !['INCOME', 'EXPENSE'].includes(type)) {
-            return res.status(400).json({ error: 'Type must be INCOME or EXPENSE' });
-        }
-        if (currency && !['USD', 'VES'].includes(currency)) {
-            return res.status(400).json({ error: 'Currency must be USD or VES' });
-        }
-        if (description !== undefined && (!description || description.trim() === '')) {
-            return res.status(400).json({ error: 'Description cannot be empty' });
-        }
-
-        const parsedAmount = amount !== undefined ? parseFloat(amount) : undefined;
-        const parsedExchangeRate = exchangeRate !== undefined ? (exchangeRate ? parseFloat(exchangeRate) : null) : undefined;
-
-        if (parsedAmount !== undefined && isNaN(parsedAmount)) {
-            return res.status(400).json({ error: 'Invalid amount' });
-        }
-        if (parsedExchangeRate !== undefined && parsedExchangeRate !== null && (isNaN(parsedExchangeRate) || parsedExchangeRate <= 0)) {
-            return res.status(400).json({ error: 'Invalid exchange rate' });
-        }
-
-        const updateData = {};
-        if (parsedAmount !== undefined) updateData.amount = parsedAmount;
-        if (currency) updateData.currency = currency;
-        if (type) updateData.type = type;
-        if (description !== undefined) updateData.description = description.trim();
-        if (source !== undefined) updateData.source = source ? source.trim() : null;
-        if (parsedExchangeRate !== undefined) updateData.exchangeRate = parsedExchangeRate;
-        if (date) updateData.date = new Date(date);
-        if (tags !== undefined) {
-            updateData.tags = tags && Array.isArray(tags) ? {
-                set: tags.map(tagId => ({ id: tagId }))
-            } : { set: [] };
-        }
-
-        const transaction = await prisma.transaction.update({
-            where: { id },
-            data: updateData,
-            include: { tags: true }
-        });
-        res.json(transaction);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error updating transaction' });
-    }
-});
-
-// DELETE /api/transactions/:id
-router.delete('/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-        // Verify ownership first using deleteMany (safe way if ID unique) or findFirst
-        const count = await prisma.transaction.deleteMany({
-            where: { id, userId: req.userId }
-        });
-
-        if (count.count === 0) {
-            return res.status(404).json({ error: 'Not found or unauthorized' });
-        }
-
-        res.json({ message: 'Transaction deleted' });
-    } catch (error) {
-        res.status(500).json({ error: 'Error deleting transaction' });
-    }
-});
-
-// GET /api/transactions/balance - Calculate Balance Efficiently
-router.get('/balance', async (req, res) => {
-    try {
-        // Efficient aggregation using Prisma GroupBy
-        const aggregations = await prisma.transaction.groupBy({
-            by: ['currency', 'type'],
-            where: { userId: req.userId },
-            _sum: {
-                amount: true,
-            },
-        });
-
-        const balance = { USD: 0, VES: 0 };
-
-        aggregations.forEach(agg => {
-            const val = agg._sum.amount || 0;
-            // Ensure val is a valid number
-            if (isNaN(val) || !isFinite(val)) {
-                console.warn(`Invalid amount in aggregation: ${val}`);
-                return;
-            }
-            if (agg.currency === 'USD') {
-                balance.USD += agg.type === 'INCOME' ? val : -val;
-            } else if (agg.currency === 'VES') {
-                balance.VES += agg.type === 'INCOME' ? val : -val;
+            include: {
+                tags: { select: { id: true, name: true, color: true } }
             }
         });
 
-        // Ensure balance values are finite numbers
-        balance.USD = isFinite(balance.USD) ? balance.USD : 0;
-        balance.VES = isFinite(balance.VES) ? balance.VES : 0;
-
-        res.json(balance);
+        res.status(201).json(success(transaction, 'Transacción creada'));
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error calculating balance' });
+        next(error);
     }
 });
+
+/**
+ * PUT /api/transactions/:id - Update transaction
+ */
+router.put('/:id',
+    validate(idParamSchema, 'params'),
+    validate(updateTransactionSchema),
+    async (req, res, next) => {
+        try {
+            const { id } = req.params;
+
+            // Check ownership
+            const existing = await prisma.transaction.findUnique({
+                where: { id },
+                select: { userId: true }
+            });
+
+            if (!existing) {
+                const errResponse = errors.notFound('Transacción');
+                return res.status(errResponse.status).json(errResponse);
+            }
+
+            if (!verifyOwnership(existing.userId, req.userId)) {
+                const errResponse = errors.ownershipFailed();
+                return res.status(errResponse.status).json(errResponse);
+            }
+
+            const { amount, currency, type, description, source, date, exchangeRate, tags } = req.body;
+
+            // Build update data (only include provided fields)
+            const updateData = {};
+            if (amount !== undefined) updateData.amount = parseFloat(amount);
+            if (currency !== undefined) updateData.currency = currency;
+            if (type !== undefined) updateData.type = type;
+            if (description !== undefined) updateData.description = description.trim();
+            if (source !== undefined) updateData.source = source?.trim() || null;
+            if (date !== undefined) updateData.date = new Date(date);
+            if (exchangeRate !== undefined) updateData.exchangeRate = exchangeRate;
+
+            // Handle tags update
+            if (tags !== undefined) {
+                // Verify tag ownership
+                if (tags.length > 0) {
+                    const userTags = await prisma.tag.findMany({
+                        where: { id: { in: tags }, userId: req.userId },
+                        select: { id: true }
+                    });
+                    if (userTags.length !== tags.length) {
+                        const errResponse = errors.validation('Etiquetas inválidas');
+                        return res.status(errResponse.status).json(errResponse);
+                    }
+                }
+                updateData.tags = { set: tags.map(id => ({ id })) };
+            }
+
+            const updated = await prisma.transaction.update({
+                where: { id },
+                data: updateData,
+                include: {
+                    tags: { select: { id: true, name: true, color: true } }
+                }
+            });
+
+            res.json(success(updated, 'Transacción actualizada'));
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+/**
+ * DELETE /api/transactions/:id - Delete transaction
+ */
+router.delete('/:id',
+    validate(idParamSchema, 'params'),
+    async (req, res, next) => {
+        try {
+            const { id } = req.params;
+
+            // Check ownership
+            const existing = await prisma.transaction.findUnique({
+                where: { id },
+                select: { userId: true }
+            });
+
+            if (!existing) {
+                const errResponse = errors.notFound('Transacción');
+                return res.status(errResponse.status).json(errResponse);
+            }
+
+            if (!verifyOwnership(existing.userId, req.userId)) {
+                const errResponse = errors.ownershipFailed();
+                return res.status(errResponse.status).json(errResponse);
+            }
+
+            await prisma.transaction.delete({ where: { id } });
+            res.json(success({ id }, 'Transacción eliminada'));
+        } catch (error) {
+            next(error);
+        }
+    }
+);
 
 module.exports = router;

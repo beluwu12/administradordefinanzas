@@ -1,32 +1,46 @@
+/**
+ * Tag Routes - Category Management
+ * Updated with new auth middleware, validation, and standardized responses
+ */
+
 const express = require('express');
-const prisma = require('../db');
-const requireUser = require('../middleware/auth');
 const router = express.Router();
+const prisma = require('../db');
+const { requireAuth, verifyOwnership } = require('../middleware/requireAuth');
+const { success, errors } = require('../utils/responseUtils');
+const { createTagSchema, idParamSchema, validate } = require('../schemas');
 
-router.use(requireUser);
+// All tag routes require authentication
+router.use(requireAuth);
 
-// GET /api/tags
-router.get('/', async (req, res) => {
+/**
+ * GET /api/tags - List all tags for authenticated user
+ */
+router.get('/', async (req, res, next) => {
     try {
         const tags = await prisma.tag.findMany({
             where: { userId: req.userId },
-            include: { transactions: true }
+            include: {
+                transactions: {
+                    select: { id: true }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
         });
-        res.json(tags);
+        res.json(success(tags));
     } catch (error) {
-        res.status(500).json({ error: 'Error fetching tags' });
+        next(error);
     }
 });
 
-// POST /api/tags
-router.post('/', async (req, res) => {
-    const { name, color } = req.body;
-
-    if (!name || name.trim() === '') {
-        return res.status(400).json({ error: '[Tags] El nombre es requerido' });
-    }
-
+/**
+ * POST /api/tags - Create new tag
+ * Validates: name, color (optional)
+ */
+router.post('/', validate(createTagSchema), async (req, res, next) => {
     try {
+        const { name, color } = req.body;
+
         const tag = await prisma.tag.create({
             data: {
                 name: name.trim(),
@@ -34,48 +48,47 @@ router.post('/', async (req, res) => {
                 userId: req.userId
             }
         });
-        res.json(tag);
+
+        res.status(201).json(success(tag, 'Etiqueta creada'));
     } catch (error) {
-        console.error("[Tags POST] Error:", error);
-        // Check for unique constraint violation (Prisma error code P2002)
-        if (error.code === 'P2002') {
-            return res.status(409).json({ error: `[Tags] Ya existe una etiqueta con el nombre "${name}"` });
+        // Prisma P2002 will be caught by global handler as duplicate
+        next(error);
+    }
+});
+
+/**
+ * DELETE /api/tags/:id - Delete a tag
+ * Validates: id param is UUID
+ * Checks ownership before deletion
+ */
+router.delete('/:id',
+    validate(idParamSchema, 'params'),
+    async (req, res, next) => {
+        try {
+            const { id } = req.params;
+
+            // Check ownership
+            const tag = await prisma.tag.findUnique({
+                where: { id },
+                select: { userId: true }
+            });
+
+            if (!tag) {
+                const errResponse = errors.notFound('Etiqueta');
+                return res.status(errResponse.status).json(errResponse);
+            }
+
+            if (!verifyOwnership(tag.userId, req.userId)) {
+                const errResponse = errors.ownershipFailed();
+                return res.status(errResponse.status).json(errResponse);
+            }
+
+            await prisma.tag.delete({ where: { id } });
+            res.json(success({ id }, 'Etiqueta eliminada'));
+        } catch (error) {
+            next(error);
         }
-        res.status(500).json({ error: `[Tags] Error creando etiqueta: ${error.message}` });
     }
-});
-
-// DELETE /api/tags/:id
-router.delete('/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-        const count = await prisma.tag.deleteMany({
-            where: { id, userId: req.userId }
-        });
-        if (count.count === 0) return res.status(404).json({ error: 'Not found' });
-
-        res.json({ message: 'Tag deleted' });
-    } catch (error) {
-        res.status(500).json({ error: 'Error deleting tag' });
-    }
-});
-
-// GET /api/tags/:id/transactions
-router.get('/:id/transactions', async (req, res) => {
-    const { id } = req.params;
-    try {
-        const transactions = await prisma.transaction.findMany({
-            where: {
-                userId: req.userId,
-                tags: { some: { id } }
-            },
-            include: { tags: true },
-            orderBy: { date: 'desc' }
-        });
-        res.json(transactions);
-    } catch (error) {
-        res.status(500).json({ error: 'Error fetching transactions for tag' });
-    }
-});
+);
 
 module.exports = router;

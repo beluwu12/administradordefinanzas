@@ -1,43 +1,39 @@
+/**
+ * Exchange Rate Routes
+ * Updated with standardized responses
+ */
+
 const express = require('express');
 const router = express.Router();
-const { getLatestRate, updateExchangeRate } = require('../services/bcvScraper');
+const { getLatestRate } = require('../services/bcvScraper');
+const { success, errors } = require('../utils/responseUtils');
 
-// GET /api/exchange-rate/usd-ves
-router.get('/usd-ves', async (req, res) => {
+/**
+ * GET /api/exchange-rate/usd-ves - Get latest BCV exchange rate
+ * Public endpoint - no auth required (for transaction form)
+ */
+router.get('/usd-ves', async (req, res, next) => {
     try {
-        let rateData = await getLatestRate();
+        const latest = await getLatestRate();
 
-        // Optional: If data is too old (e.g. > 12 hours), trigger update?
-        // For now, let's just return what we have. If empty, try to fetch immediately.
-        if (!rateData) {
-            console.log("No rate in DB, fetching now...");
-            const newRate = await updateExchangeRate();
-            if (newRate) {
-                rateData = await getLatestRate();
-            }
+        if (!latest) {
+            // Return a fallback response instead of error
+            // This prevents the app from breaking if BCV is down
+            return res.json(success({
+                rate: null,
+                source: 'BCV',
+                updatedAt: null,
+                message: 'Tasa no disponible - usa tasa manual'
+            }));
         }
 
-        if (!rateData) {
-            return res.status(503).json({ error: "Service unavailable (Rate not found)" });
-        }
-
-        res.json(rateData);
+        res.json(success({
+            rate: latest.rate,
+            source: latest.source,
+            updatedAt: latest.fetchedAt
+        }));
     } catch (error) {
-        res.status(500).json({ error: "Internal Server Error" });
-    }
-});
-
-// POST /api/exchange-rate/force-update (Admin/Debug)
-router.post('/force-update', async (req, res) => {
-    try {
-        const rate = await updateExchangeRate();
-        if (rate) {
-            res.json({ success: true, rate });
-        } else {
-            res.status(500).json({ error: "Failed to fetch rate" });
-        }
-    } catch (error) {
-        res.status(500).json({ error: "Internal Server Error" });
+        next(error);
     }
 });
 
