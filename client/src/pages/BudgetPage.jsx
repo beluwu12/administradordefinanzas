@@ -3,7 +3,7 @@ import axios from 'axios';
 import { PiggyBank, Calendar, Trash2, Plus, AlertCircle, TrendingUp } from 'lucide-react';
 import { texts, formatCurrency } from '../i18n/es';
 
-const API_URL = 'http://localhost:3000/api';
+import API_URL from '../config';
 
 export default function BudgetPage() {
     const [insight, setInsight] = useState(null);
@@ -154,6 +154,18 @@ export default function BudgetPage() {
                                 placeholder={texts.transactions.descriptionPlaceholder}
                             />
                         </div>
+
+                        <div>
+                            <label className="block text-xs text-muted mb-1">Moneda</label>
+                            <select
+                                value={newItem.currency}
+                                onChange={e => setNewItem({ ...newItem, currency: e.target.value })}
+                                className="w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-text"
+                            >
+                                <option value="USD">USD</option>
+                                <option value="VES">VES</option>
+                            </select>
+                        </div>
                         <div>
                             <label className="block text-xs text-muted mb-1">{texts.transactions.amount}</label>
                             <input
@@ -215,6 +227,6 @@ export default function BudgetPage() {
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

@@ -104,7 +104,8 @@ model GoalMonth {
   
   monthIndex  Int     // 1 to 12
   target      Float
-  isCompleted Boolean @default(false)
+  isQ1Paid    Boolean @default(false)
+  isQ2Paid    Boolean @default(false)
 }
 
 model ExchangeRate {

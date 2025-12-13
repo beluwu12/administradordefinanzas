@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, Circle, Trash2, Calendar, TrendingUp } from 'lucide-react';
 import { texts, formatCurrency } from '../i18n/es';
 
-const API_URL = 'http://localhost:3000/api';
+import API_URL from '../config';
 
 export default function GoalDetailPage() {
     const { id } = useParams();
@@ -33,21 +33,24 @@ export default function GoalDetailPage() {
         }
     };
 
-    const toggleMonth = async (monthId, currentStatus) => {
+    const toggleMonth = async (monthId, period, currentStatus) => {
         try {
             setGoal(prev => ({
                 ...prev,
-                progress: prev.progress.map(m => m.id === monthId ? { ...m, isCompleted: !currentStatus } : m)
+                progress: prev.progress.map(m => {
+                    if (m.id !== monthId) return m;
+                    return period === 'q1' ? { ...m, isQ1Paid: !currentStatus } : { ...m, isQ2Paid: !currentStatus };
+                })
             })); // Optimistic update
 
             await axios.patch(`${API_URL}/goals/${id}/toggle-month`, {
                 monthId,
-                isCompleted: !currentStatus
+                period,
+                isPaid: !currentStatus
             });
             fetchGoalDetails(); // Refresh for correct totals
         } catch (error) {
             console.error("Error toggling", error);
-            // Revert on error would go here
         }
     };
 
@@ -65,8 +68,8 @@ export default function GoalDetailPage() {
     if (!goal) return <div className="p-8 text-center text-muted">Objetivo no encontrado</div>;
 
     // Prevent division by zero
-    const progressPercent = goal.totalCost > 0 
-        ? Math.min(100, (goal.savedAmount / goal.totalCost) * 100) 
+    const progressPercent = goal.totalCost > 0
+        ? Math.min(100, (goal.savedAmount / goal.totalCost) * 100)
         : 0;
 
     return (
@@ -133,31 +136,34 @@ export default function GoalDetailPage() {
                         {goal.progress.map((month) => (
                             <div
                                 key={month.id}
-                                onClick={() => toggleMonth(month.id, month.isCompleted)}
-                                className={`p-4 flex items-center justify-between cursor-pointer transition-colors ${month.isCompleted ? 'bg-primary/5' : 'hover:bg-background/50'
-                                    }`}
+                                className={`p-4 flex flex-col sm:flex-row items-center justify-between transition-colors hover:bg-background/50`}
                             >
-                                <div className="flex items-center gap-4">
-                                    <div className={`
-                                        w-10 h-10 rounded-full flex items-center justify-center transition-all
-                                        ${month.isCompleted ? 'bg-primary text-white' : 'bg-background border-2 border-border text-muted'}
-                                    `}>
-                                        <span className="font-bold">{month.monthIndex}</span>
+                                <div className="flex items-center gap-4 mb-3 sm:mb-0">
+                                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-background border-2 border-border text-muted font-bold">
+                                        {month.monthIndex}
                                     </div>
                                     <div>
-                                        <p className={`font-bold ${month.isCompleted ? 'text-text' : 'text-textSecondary'}`}>
-                                            Mes {month.monthIndex}
-                                        </p>
+                                        <p className="font-bold text-text">Mes {month.monthIndex}</p>
                                         <p className="text-xs text-muted">Meta: {formatCurrency(month.target, goal.currency)}</p>
                                     </div>
                                 </div>
 
-                                <div>
-                                    {month.isCompleted ? (
-                                        <CheckCircle className="text-primary" size={24} />
-                                    ) : (
-                                        <Circle className="text-border" size={24} />
-                                    )}
+                                <div className="flex gap-4">
+                                    <button
+                                        onClick={() => toggleMonth(month.id, 'q1', month.isQ1Paid)}
+                                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${month.isQ1Paid ? 'bg-primary/20 border-primary text-primary' : 'bg-background border-border text-muted hover:border-text'}`}
+                                    >
+                                        {month.isQ1Paid ? <CheckCircle size={18} /> : <Circle size={18} />}
+                                        <span className="text-sm font-medium">1ra Quicena</span>
+                                    </button>
+
+                                    <button
+                                        onClick={() => toggleMonth(month.id, 'q2', month.isQ2Paid)}
+                                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${month.isQ2Paid ? 'bg-primary/20 border-primary text-primary' : 'bg-background border-border text-muted hover:border-text'}`}
+                                    >
+                                        {month.isQ2Paid ? <CheckCircle size={18} /> : <Circle size={18} />}
+                                        <span className="text-sm font-medium">2da Quicena</span>
+                                    </button>
                                 </div>
                             </div>
                         ))}

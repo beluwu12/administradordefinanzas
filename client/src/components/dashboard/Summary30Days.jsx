@@ -3,7 +3,7 @@ import axios from 'axios';
 import { TrendingUp, TrendingDown, Wallet, AlertCircle } from 'lucide-react';
 import { texts, formatCurrency } from '../../i18n/es';
 
-const API_URL = 'http://localhost:3000/api';
+import API_URL from '../../config';
 
 const Summary30Days = () => {
     const [summary, setSummary] = useState(null);

@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 
-const API_URL = 'http://localhost:3000/api';
+import API_URL from '../../config';
 
 const CreateUserPage = () => {
     const [formData, setFormData] = useState({ firstName: '', lastName: '', pin: '' });

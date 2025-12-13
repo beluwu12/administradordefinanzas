@@ -4,7 +4,18 @@ import { X, Tag } from 'lucide-react';
 import TransactionItem from './TransactionItem';
 import { texts } from '../i18n/es';
 
-const API_URL = 'http://localhost:3000/api';
+import API_URL from '../config';
+
+const COLOR_STYLES = {
+    blue: 'bg-blue-500/20 text-blue-500',
+    red: 'bg-red-500/20 text-red-500',
+    green: 'bg-green-500/20 text-green-500',
+    yellow: 'bg-yellow-500/20 text-yellow-500',
+    purple: 'bg-purple-500/20 text-purple-500',
+    pink: 'bg-pink-500/20 text-pink-500',
+    indigo: 'bg-indigo-500/20 text-indigo-500',
+    gray: 'bg-gray-500/20 text-gray-500',
+};
 
 export default function TransactionsModal({ tag, onClose }) {
     const [transactions, setTransactions] = useState([]);
@@ -31,6 +42,8 @@ export default function TransactionsModal({ tag, onClose }) {
 
     if (!tag) return null;
 
+    const colorClass = COLOR_STYLES[tag.color] || COLOR_STYLES['blue'];
+
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
             <div className="bg-surface border border-border rounded-xl w-full max-w-lg max-h-[80vh] flex flex-col shadow-2xl animate-in zoom-in-95">
@@ -38,7 +51,7 @@ export default function TransactionsModal({ tag, onClose }) {
                 {/* Header */}
                 <div className="p-6 border-b border-border flex justify-between items-center bg-background/50 rounded-t-xl">
                     <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-${tag.color}-500/20 text-${tag.color}-500`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${colorClass}`}>
                             <Tag size={16} />
                         </div>
                         <div>

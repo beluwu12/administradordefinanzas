@@ -5,7 +5,7 @@ import TransactionItem from '../components/TransactionItem';
 import { useLocation } from 'react-router-dom';
 import { texts } from '../i18n/es';
 
-const API_URL = 'http://localhost:3000/api';
+import API_URL from '../config';
 
 export default function TransactionsPage() {
     const [transactions, setTransactions] = useState([]);

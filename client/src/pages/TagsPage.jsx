@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Tag as IconTag, Plus, Trash2, X } from 'lucide-react';
 
-const API_URL = 'http://localhost:3000/api';
+import API_URL from '../config';
 
 const COLORS = [
     { name: 'Blue', value: 'blue' },

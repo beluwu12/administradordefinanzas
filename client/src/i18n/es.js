@@ -17,7 +17,7 @@ export const texts = {
         balance: "Balance Total",
         recentTransactions: "Movimientos Recientes",
         viewAll: "Ver todos",
-        quickAdd: "Agregar Rápido",
+        quickAdd: "Agregar transacción",
         summary30Days: "Resumen 30 Días",
         income: "Ingresos",
         expense: "Gastos",

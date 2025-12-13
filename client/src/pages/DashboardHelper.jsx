@@ -7,7 +7,7 @@ import SummaryCard from '../components/SummaryCard';
 import Summary30Days from '../components/dashboard/Summary30Days';
 import { texts } from '../i18n/es';
 
-const API_URL = 'http://localhost:3000/api';
+import API_URL from '../config';
 
 const DashboardHelper = () => {
     const [balance, setBalance] = useState({ USD: 0, VES: 0 });
@@ -16,14 +16,20 @@ const DashboardHelper = () => {
     const [selectedTag, setSelectedTag] = useState(null);
     const navigate = useNavigate();
 
+    const [rate, setRate] = useState(null);
+
     const fetchData = async () => {
         try {
-            const [balanceRes, transactionsRes] = await Promise.all([
+            const [balanceRes, transactionsRes, rateRes] = await Promise.all([
                 axios.get(`${API_URL}/transactions/balance`),
-                axios.get(`${API_URL}/transactions`)
+                axios.get(`${API_URL}/transactions`),
+                axios.get(`${API_URL}/exchange-rate/usd-ves`)
             ]);
             setBalance(balanceRes.data);
-            setTransactions(transactionsRes.data.slice(0, 5)); // Only show recent 5
+            setTransactions(transactionsRes.data.slice(0, 5));
+            if (rateRes.data && rateRes.data.rate) {
+                setRate(rateRes.data.rate);
+            }
         } catch (error) {
             console.error("Error loading dashboard data", error);
         } finally {
@@ -34,6 +40,8 @@ const DashboardHelper = () => {
     useEffect(() => {
         fetchData();
     }, []);
+
+    const totalInVES = rate ? (balance.VES + (balance.USD * rate)) : balance.VES;
 
     const handleTransactionClick = () => {
         navigate('/transactions');

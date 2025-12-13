@@ -106,16 +106,19 @@ router.post('/', async (req, res) => {
     }
 });
 
-// PATCH /api/goals/:goalId/toggle-month - Toggle completion of a month
+// PATCH /api/goals/:goalId/toggle-month - Toggle completion of a month (Quincena)
 router.patch('/:goalId/toggle-month', async (req, res) => {
     const { goalId } = req.params;
-    const { monthId, isCompleted } = req.body;
+    const { monthId, period, isPaid } = req.body; // period: 'q1' or 'q2'
 
     if (!monthId) {
         return res.status(400).json({ error: "monthId is required" });
     }
-    if (typeof isCompleted !== 'boolean') {
-        return res.status(400).json({ error: "isCompleted must be a boolean" });
+    if (!['q1', 'q2'].includes(period)) {
+        return res.status(400).json({ error: "Period must be 'q1' or 'q2'" });
+    }
+    if (typeof isPaid !== 'boolean') {
+        return res.status(400).json({ error: "isPaid must be a boolean" });
     }
 
     try {
@@ -129,26 +132,25 @@ router.patch('/:goalId/toggle-month', async (req, res) => {
             return res.status(404).json({ error: "Goal not found" });
         }
 
-        // Verify month belongs to goal
-        const month = await prisma.goalMonth.findFirst({
-            where: { id: monthId, goalId: goalId }
-        });
-
-        if (!month) {
-            return res.status(404).json({ error: "Month not found for this goal" });
-        }
+        const dataToUpdate = period === 'q1' ? { isQ1Paid: isPaid } : { isQ2Paid: isPaid };
 
         const updatedMonth = await prisma.goalMonth.update({
             where: { id: monthId },
-            data: { isCompleted }
+            data: dataToUpdate
         });
 
-        // Update main goal savedAmount (sum of all completed months)
+        // Update main goal savedAmount (sum of all completed quincenas)
         const allMonths = await prisma.goalMonth.findMany({
-            where: { goalId: goalId, isCompleted: true }
+            where: { goalId: goalId }
         });
 
-        const newSavedTotal = allMonths.reduce((sum, m) => sum + m.target, 0);
+        const newSavedTotal = allMonths.reduce((sum, m) => {
+            let monthTotal = 0;
+            const qAmount = m.target / 2;
+            if (m.isQ1Paid) monthTotal += qAmount;
+            if (m.isQ2Paid) monthTotal += qAmount;
+            return sum + monthTotal;
+        }, 0);
 
         await prisma.goal.update({
             where: { id: goalId },

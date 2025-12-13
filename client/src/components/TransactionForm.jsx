@@ -4,7 +4,7 @@ import { X, Plus } from 'lucide-react';
 import { useTransactionDate } from '../utils/useTransactionDate';
 import { texts } from '../i18n/es';
 
-const API_URL = 'http://localhost:3000/api';
+import API_URL from '../config';
 
 export default function TransactionForm({ onClose, onSuccess, initialData = null }) {
     // 1. SAFE STATE INITIALIZATION

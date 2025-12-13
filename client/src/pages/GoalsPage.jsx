@@ -12,7 +12,7 @@ export default function GoalsPage() {
     const [newGoal, setNewGoal] = useState({
         title: '',
         totalCost: '',
-        monthlyAmount: '',
+        months: '', // Changed from monthlyAmount
         currency: 'USD',
         description: '',
         startDate: new Date().toISOString().slice(0, 10)
@@ -35,13 +35,27 @@ export default function GoalsPage() {
 
     const handleCreate = async (e) => {
         e.preventDefault();
+        const cost = parseFloat(newGoal.totalCost);
+        const months = parseInt(newGoal.months);
+
+        if (!cost || !months || months <= 0) {
+            alert("Por favor ingresa un costo y cantidad de meses válidos.");
+            return;
+        }
+
+        const monthlyAmount = cost / months; // Auto-calculate
+
         try {
-            await axios.post(`${API_URL}/goals`, newGoal);
+            await axios.post(`${API_URL}/goals`, {
+                ...newGoal,
+                monthlyAmount,
+                // Remove 'months' from payload if strict, but let's just send everything, backend ignores extra
+            });
             setShowForm(false);
             setNewGoal({
                 title: '',
                 totalCost: '',
-                monthlyAmount: '',
+                months: '',
                 currency: 'USD',
                 description: '',
                 startDate: new Date().toISOString().slice(0, 10)
@@ -95,13 +109,13 @@ export default function GoalsPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-muted mb-1">Ahorro Mensual</label>
+                                <label className="block text-xs font-medium text-muted mb-1">Meses para alcanzar meta</label>
                                 <input
                                     type="number" required
-                                    value={newGoal.monthlyAmount}
-                                    onChange={e => setNewGoal({ ...newGoal, monthlyAmount: e.target.value })}
+                                    value={newGoal.months}
+                                    onChange={e => setNewGoal({ ...newGoal, months: e.target.value })}
                                     className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text"
-                                    placeholder="200"
+                                    placeholder="Ej. 12"
                                 />
                             </div>
                             <div>
@@ -130,8 +144,8 @@ export default function GoalsPage() {
                     </div>
                 ) : (
                     goals.map(goal => {
-                        const progressPercent = goal.totalCost > 0 
-                            ? Math.min(100, (goal.savedAmount / goal.totalCost) * 100) 
+                        const progressPercent = goal.totalCost > 0
+                            ? Math.min(100, (goal.savedAmount / goal.totalCost) * 100)
                             : 0;
                         return (
                             <Link to={`/goals/${goal.id}`} key={goal.id} className="group">
