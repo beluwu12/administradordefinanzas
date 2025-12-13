@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { X, Tag } from 'lucide-react';
 import TransactionItem from './TransactionItem';
 import { texts } from '../i18n/es';
-
-import API_URL from '../config';
 
 const COLOR_STYLES = {
     blue: 'bg-blue-500/20 text-blue-500',
@@ -24,8 +22,8 @@ export default function TransactionsModal({ tag, onClose }) {
     const fetchTransactions = async () => {
         if (!tag?.id) return;
         try {
-            const res = await axios.get(`${API_URL}/tags/${tag.id}/transactions`);
-            setTransactions(res.data);
+            const res = await api.get(`/tags/${tag.id}/transactions`);
+            setTransactions(res.data || []);
         } catch (error) {
             console.error(error);
         } finally {

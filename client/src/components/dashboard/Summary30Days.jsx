@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../../api';
 import { TrendingUp, TrendingDown, Wallet, AlertCircle } from 'lucide-react';
 import { texts, formatCurrency } from '../../i18n/es';
-
-import API_URL from '../../config';
 
 const Summary30Days = () => {
     const [summary, setSummary] = useState(null);
@@ -12,7 +10,7 @@ const Summary30Days = () => {
     useEffect(() => {
         const fetchSummary = async () => {
             try {
-                const res = await axios.get(`${API_URL}/insight/summary`);
+                const res = await api.get('/insight/summary');
                 setSummary(res.data);
             } catch (error) {
                 console.error("Error loading summary", error);

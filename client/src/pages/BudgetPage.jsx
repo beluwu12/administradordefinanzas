@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { PiggyBank, Calendar, Trash2, Plus, AlertCircle, TrendingUp } from 'lucide-react';
 import { texts, formatCurrency } from '../i18n/es';
-
-import API_URL from '../config';
 
 export default function BudgetPage() {
     const [insight, setInsight] = useState(null);
@@ -31,11 +29,11 @@ export default function BudgetPage() {
     const fetchData = async () => {
         try {
             const [insightRes, listRes] = await Promise.all([
-                axios.get(`${API_URL}/fixed-expenses/insight`),
-                axios.get(`${API_URL}/fixed-expenses`)
+                api.get('/fixed-expenses/insight').catch(() => ({ data: null })),
+                api.get('/fixed-expenses')
             ]);
             setInsight(insightRes.data);
-            setFixedExpenses(listRes.data);
+            setFixedExpenses(listRes.data || []);
         } catch (error) {
             console.error("Error loading budget data", error);
         } finally {
@@ -46,7 +44,7 @@ export default function BudgetPage() {
     const handleAddExpense = async (e) => {
         e.preventDefault();
         try {
-            await axios.post(`${API_URL}/fixed-expenses`, newItem);
+            await api.post('/fixed-expenses', newItem);
             // Reset and reload
             setNewItem({
                 description: '',
@@ -63,14 +61,14 @@ export default function BudgetPage() {
             fetchData();
         } catch (error) {
             console.error("FULL ERROR:", error);
-            alert(`${texts.common.error}: ${error.message}`);
+            alert(error.message || texts.common.error);
         }
     };
 
     const handleDelete = async (id) => {
-        if (!confirm('¿Eliminar este gasto fijo?')) return;
+        if (!window.confirm('¿Eliminar este gasto fijo?')) return;
         try {
-            await axios.delete(`${API_URL}/fixed-expenses/${id}`);
+            await api.delete(`/fixed-expenses/${id}`);
             fetchData();
         } catch (error) {
             console.error(error);

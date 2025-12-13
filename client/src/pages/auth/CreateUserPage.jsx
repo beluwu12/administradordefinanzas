@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../../api';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
-
-import API_URL from '../../config';
 
 const CreateUserPage = () => {
     const [formData, setFormData] = useState({ firstName: '', lastName: '', pin: '' });
@@ -26,10 +24,10 @@ const CreateUserPage = () => {
         }
 
         try {
-            await axios.post(`${API_URL}/users`, formData);
-            navigate('/'); // Back to selection
+            await api.post('/users', formData);
+            navigate('/login'); // Back to selection
         } catch (err) {
-            setError(err.response?.data?.error || 'Error al crear usuario');
+            setError(err.message || 'Error al crear usuario');
         }
     };
 

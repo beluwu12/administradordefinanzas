@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { ChevronLeft, Delete } from 'lucide-react';
-import API_URL from '../../config';
 
 const PinEntryPage = () => {
     const [pin, setPin] = useState('');
@@ -37,13 +36,18 @@ const PinEntryPage = () => {
 
     const handleSubmit = async (fullPin) => {
         try {
-            const res = await axios.post(`${API_URL}/users/verify`, { userId, pin: fullPin });
-            if (res.data.success) {
-                login(res.data.user, res.data.token);
+            const res = await api.post('/users/verify', { userId, pin: fullPin });
+            // Response is already unwrapped by axios interceptor
+            const data = res.data || res;
+            if (data && data.user) {
+                login(data.user, data.token);
                 navigate('/'); // Go to Dashboard
+            } else {
+                setError('Respuesta inválida del servidor');
+                setPin('');
             }
-        } catch {
-            setError('PIN incorrecto');
+        } catch (err) {
+            setError(err.message || 'PIN incorrecto');
             setPin('');
         }
     };

@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { Tag as IconTag, Plus, X } from 'lucide-react';
 import TransactionsModal from '../components/TransactionsModal';
-
-import API_URL from '../config';
 
 const COLORS = [
     { name: 'Blue', value: 'blue' },
@@ -40,8 +38,8 @@ export default function TagsPage() {
 
     const fetchTags = async () => {
         try {
-            const res = await axios.get(`${API_URL}/tags`);
-            setTags(res.data);
+            const res = await api.get('/tags');
+            setTags(res.data || []);
         } catch (error) {
             console.error("Error fetching tags", error);
         } finally {
@@ -54,24 +52,24 @@ export default function TagsPage() {
         if (!newTag.name.trim()) return;
 
         try {
-            await axios.post(`${API_URL}/tags`, newTag);
+            await api.post('/tags', newTag);
             setNewTag({ name: '', color: 'blue' });
             setShowForm(false);
             fetchTags();
         } catch (error) {
             console.error(error);
-            alert('Error creando etiqueta (quizás ya existe)');
+            alert(error.message || 'Error creando etiqueta');
         }
     };
 
     const handleDelete = async (id) => {
-        if (!confirm('¿Eliminar etiqueta? Se desvinculará de las transacciones.')) return;
+        if (!window.confirm('¿Eliminar etiqueta? Se desvinculará de las transacciones.')) return;
         try {
-            await axios.delete(`${API_URL}/tags/${id}`);
+            await api.delete(`/tags/${id}`);
             fetchTags();
         } catch (error) {
             console.error(error);
-            alert('Error eliminando etiqueta');
+            alert(error.message || 'Error eliminando etiqueta');
         }
     };
 

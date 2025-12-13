@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 import TransactionForm from '../components/TransactionForm';
 import TransactionItem from '../components/TransactionItem';
 import { useLocation } from 'react-router-dom';
 import { texts } from '../i18n/es';
-
-import API_URL from '../config';
 
 export default function TransactionsPage() {
     const [transactions, setTransactions] = useState([]);
@@ -23,8 +21,8 @@ export default function TransactionsPage() {
 
     const fetchTransactions = async () => {
         try {
-            const res = await axios.get(`${API_URL}/transactions`);
-            setTransactions(res.data);
+            const res = await api.get('/transactions');
+            setTransactions(res.data || []);
         } catch (error) {
             console.error("Error fetching transactions", error);
         } finally {
@@ -33,12 +31,12 @@ export default function TransactionsPage() {
     };
 
     const handleDelete = async (id) => {
-        if (!confirm(texts.transactions.confirmDelete)) return;
+        if (!window.confirm(texts.transactions.confirmDelete)) return;
         try {
-            await axios.delete(`${API_URL}/transactions/${id}`);
+            await api.delete(`/transactions/${id}`);
             fetchTransactions();
-        } catch {
-            alert(texts.common.error);
+        } catch (err) {
+            alert(err.message || texts.common.error);
         }
     };
 

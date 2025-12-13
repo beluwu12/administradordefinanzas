@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { Plus } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import TransactionItem from '../components/TransactionItem';
@@ -7,8 +7,6 @@ import SummaryCard from '../components/SummaryCard';
 import Summary30Days from '../components/dashboard/Summary30Days';
 import TransactionsModal from '../components/TransactionsModal';
 import { texts, formatCurrency } from '../i18n/es';
-
-import API_URL from '../config';
 
 const DashboardHelper = () => {
     const [balance, setBalance] = useState({ USD: 0, VES: 0 });
@@ -22,14 +20,16 @@ const DashboardHelper = () => {
     const fetchData = async () => {
         try {
             const [balanceRes, transactionsRes, rateRes] = await Promise.all([
-                axios.get(`${API_URL}/transactions/balance`),
-                axios.get(`${API_URL}/transactions`),
-                axios.get(`${API_URL}/exchange-rate/usd-ves`)
+                api.get('/transactions/balance'),
+                api.get('/transactions'),
+                api.get('/exchange-rate/usd-ves')
             ]);
-            setBalance(balanceRes.data);
-            setTransactions(transactionsRes.data.slice(0, 5));
-            if (rateRes.data && rateRes.data.rate) {
-                setRate(rateRes.data.rate);
+            setBalance(balanceRes.data || { USD: 0, VES: 0 });
+            const txData = transactionsRes.data || [];
+            setTransactions(txData.slice(0, 5));
+            const rateData = rateRes.data;
+            if (rateData && rateData.rate) {
+                setRate(rateData.rate);
             }
         } catch (error) {
             console.error("Error loading dashboard data", error);

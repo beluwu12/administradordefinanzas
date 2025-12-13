@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { X, Plus } from 'lucide-react';
 import { useTransactionDate } from '../utils/useTransactionDate';
 import { texts } from '../i18n/es';
-
-import API_URL from '../config';
 
 export default function TransactionForm({ onClose, onSuccess, initialData = null }) {
     // 1. SAFE STATE INITIALIZATION
@@ -50,9 +48,10 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
 
     const fetchTags = async () => {
         try {
-            const res = await axios.get(`${API_URL}/tags`);
-            if (Array.isArray(res.data)) {
-                setAvailableTags(res.data);
+            const res = await api.get('/tags');
+            const data = res.data || [];
+            if (Array.isArray(data)) {
+                setAvailableTags(data);
             } else {
                 setAvailableTags([]);
             }
@@ -71,9 +70,10 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
         const fetchRate = async () => {
             if (formData.currency === 'VES' && !formData.exchangeRate) {
                 try {
-                    const res = await axios.get(`${API_URL}/exchange-rate/usd-ves`);
-                    if (res.data && res.data.rate) {
-                        setFormData(prev => ({ ...prev, exchangeRate: res.data.rate }));
+                    const res = await api.get('/exchange-rate/usd-ves');
+                    const rateData = res.data;
+                    if (rateData && rateData.rate) {
+                        setFormData(prev => ({ ...prev, exchangeRate: rateData.rate }));
                     }
                 } catch (e) {
                     console.error("Could not fetch automatic rate", e);
@@ -95,24 +95,25 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
             };
 
             if (initialData) {
-                await axios.put(`${API_URL}/transactions/${initialData.id}`, payload);
+                await api.put(`/transactions/${initialData.id}`, payload);
             } else {
-                await axios.post(`${API_URL}/transactions`, payload);
+                await api.post('/transactions', payload);
             }
             onSuccess();
             onClose();
         } catch (error) {
             console.error(error);
-            setError(texts.common.error);
+            setError(error.message || texts.common.error);
         }
     };
 
     const handleCreateTag = async () => {
         if (!newTag.trim()) return;
         try {
-            const res = await axios.post(`${API_URL}/tags`, { name: newTag, color: 'blue' });
-            setAvailableTags(prev => [...prev, res.data]);
-            setFormData(prev => ({ ...prev, tags: [...prev.tags, res.data.id] }));
+            const res = await api.post('/tags', { name: newTag, color: 'blue' });
+            const newTagData = res.data;
+            setAvailableTags(prev => [...prev, newTagData]);
+            setFormData(prev => ({ ...prev, tags: [...prev.tags, newTagData.id] }));
             setNewTag('');
             setShowTagInput(false);
         } catch (error) {

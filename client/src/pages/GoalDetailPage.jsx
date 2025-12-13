@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, Circle, Trash2, Calendar, TrendingUp } from 'lucide-react';
 import { texts, formatCurrency } from '../i18n/es';
-
-import API_URL from '../config';
 
 export default function GoalDetailPage() {
     const { id } = useParams();
@@ -19,12 +17,9 @@ export default function GoalDetailPage() {
 
     const fetchGoalDetails = async () => {
         try {
-            // Re-use list endpoint and filter (not ideal for prod but fine for now, or create GET /goals/:id)
-            // Actually, best to create GET /goals/:id in backend or just filter client side if list is small.
-            // Let's rely on list for now to avoid editing backend again immediately. 
-            // Wait, I didn't create GET /goals/:id in backend.
-            const res = await axios.get(`${API_URL}/goals`);
-            const found = res.data.find(g => g.id === id);
+            const res = await api.get('/goals');
+            const data = res.data || [];
+            const found = data.find(g => g.id === id);
             setGoal(found);
         } catch (error) {
             console.error("Error fetching goal", error);
@@ -43,7 +38,7 @@ export default function GoalDetailPage() {
                 })
             })); // Optimistic update
 
-            await axios.patch(`${API_URL}/goals/${id}/toggle-month`, {
+            await api.patch(`/goals/${id}/toggle-month`, {
                 monthId,
                 period,
                 isPaid: !currentStatus
@@ -57,11 +52,11 @@ export default function GoalDetailPage() {
     const handleDelete = async () => {
         if (!window.confirm('¿Eliminar este objetivo?')) return;
         try {
-            await axios.delete(`${API_URL}/goals/${id}`);
+            await api.delete(`/goals/${id}`);
             navigate('/goals');
         } catch (error) {
             console.error('[GoalDetail] Error eliminando objetivo:', error);
-            alert('Error eliminando objetivo: ' + (error.response?.data?.error || error.message));
+            alert(error.message || 'Error eliminando objetivo');
         }
     };
 

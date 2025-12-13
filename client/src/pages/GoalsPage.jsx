@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { Target, Plus, TrendingUp, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { texts, formatCurrency } from '../i18n/es';
-import API_URL from '../config';
 
 export default function GoalsPage() {
     const [goals, setGoals] = useState([]);
@@ -24,8 +23,8 @@ export default function GoalsPage() {
 
     const fetchGoals = async () => {
         try {
-            const res = await axios.get(`${API_URL}/goals`);
-            setGoals(res.data);
+            const res = await api.get('/goals');
+            setGoals(res.data || []);
         } catch (error) {
             console.error("Error fetching goals", error);
         } finally {
@@ -46,10 +45,9 @@ export default function GoalsPage() {
         const monthlyAmount = cost / months; // Auto-calculate
 
         try {
-            await axios.post(`${API_URL}/goals`, {
+            await api.post('/goals', {
                 ...newGoal,
                 monthlyAmount,
-                // Remove 'months' from payload if strict, but let's just send everything, backend ignores extra
             });
             setShowForm(false);
             setNewGoal({
@@ -61,8 +59,8 @@ export default function GoalsPage() {
                 startDate: new Date().toISOString().slice(0, 10)
             });
             fetchGoals();
-        } catch {
-            alert(texts.common.error);
+        } catch (err) {
+            alert(err.message || texts.common.error);
         }
     };
 
