@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  # ══════════════════════════════════════════════════════════════
+  # BACKEND - Express + Prisma + SQLite
+  # ══════════════════════════════════════════════════════════════
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: finance-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=file:./data/finance.db
+      - JWT_SECRET=${JWT_SECRET:-change-this-secret-in-production}
+      - FRONTEND_URL=http://localhost:5173
+      - CRON_ENABLED=true
+    volumes:
+      - backend-data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ══════════════════════════════════════════════════════════════
+  # FRONTEND - React + Vite (Production Build)
+  # ══════════════════════════════════════════════════════════════
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://localhost:3000/api
+    container_name: finance-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend-data:
+    driver: local
+
+# ══════════════════════════════════════════════════════════════
+# USAGE:
+# ══════════════════════════════════════════════════════════════
+# 
+# Quick start:
+#   docker-compose up -d
+#
+# View logs:
+#   docker-compose logs -f
+#
+# Stop:
+#   docker-compose down
+#
+# Rebuild:
+#   docker-compose up -d --build
+#
+# Access:
+#   Frontend: http://localhost:5173
+#   Backend:  http://localhost:3000/api/health
+# ══════════════════════════════════════════════════════════════
