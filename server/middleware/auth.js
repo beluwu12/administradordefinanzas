@@ -1,7 +1,10 @@
 const prisma = require('../db');
+const jwt = require('jsonwebtoken');
 
 const requireUser = async (req, res, next) => {
-    const userId = req.headers['x-user-id'];
+    // 1. Check for Authorization header (Bearer <token>)
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
 
     if (!userId || typeof userId !== 'string' || userId.trim() === '') {
         return res.status(401).json({ error: 'Autorización requerida (Usuario no identificado)' });
@@ -16,10 +19,10 @@ const requireUser = async (req, res, next) => {
 
         req.userId = userId.trim();
         next();
-    } catch (error) {
-        console.error("Auth Middleware Error:", error);
-        res.status(500).json({ error: 'Error de servidor en autenticación' });
+        return;
     }
+
+    return res.status(401).json({ error: 'Autorización requerida' });
 };
 
 module.exports = requireUser;

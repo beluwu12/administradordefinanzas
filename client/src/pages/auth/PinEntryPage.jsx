@@ -3,8 +3,7 @@ import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { ChevronLeft, Delete } from 'lucide-react';
-
-const API_URL = 'http://localhost:3000/api';
+import API_URL from '../../config';
 
 const PinEntryPage = () => {
     const [pin, setPin] = useState('');
@@ -40,7 +39,7 @@ const PinEntryPage = () => {
         try {
             const res = await axios.post(`${API_URL}/users/verify`, { userId, pin: fullPin });
             if (res.data.success) {
-                login(res.data.user);
+                login(res.data.user, res.data.token);
                 navigate('/'); // Go to Dashboard
             }
         } catch {

@@ -13,6 +13,7 @@ const DashboardHelper = () => {
     const [balance, setBalance] = useState({ USD: 0, VES: 0 });
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedTag, setSelectedTag] = useState(null);
     const navigate = useNavigate();
 
     const fetchData = async () => {
@@ -99,6 +100,7 @@ const DashboardHelper = () => {
                                     key={tx.id}
                                     transaction={tx}
                                     onClick={() => handleTransactionClick(tx)}
+                                    onTagClick={setSelectedTag}
                                     simpleView={true}
                                 />
                             ))}
@@ -106,6 +108,14 @@ const DashboardHelper = () => {
                     )}
                 </div>
             </section>
+
+            {/* Transaction Modal by Tag */}
+            {selectedTag && (
+                <TransactionsModal
+                    tag={selectedTag}
+                    onClose={() => setSelectedTag(null)}
+                />
+            )}
         </div>
     );
 };

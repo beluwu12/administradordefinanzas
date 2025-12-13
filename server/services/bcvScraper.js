@@ -23,10 +23,14 @@ async function fetchBCVRate() {
         let rateText = $('#dolar strong').text().trim();
 
         if (!rateText) {
-            // Fallback or retry logic if selector fails
-            // console.warn("Primary selector failed, trying generic search...");
-            // Sometimes it's inside #dolar .field-content
+            // Fallback: Sometimes it's inside #dolar .field-content
             rateText = $('#dolar .field-content').text().trim();
+        }
+
+        // Additional fallback: Search for "USD" text container
+        if (!rateText) {
+             const usdContainer = $('span:contains("USD")').closest('div');
+             rateText = usdContainer.find('strong').text().trim();
         }
 
         if (!rateText) {
