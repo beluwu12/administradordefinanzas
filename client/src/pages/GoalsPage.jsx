@@ -85,12 +85,6 @@ export default function GoalsPage() {
                     <h2 className="text-2xl font-bold text-text">{texts.nav.goals || "Objetivos"}</h2>
                     <p className="text-muted">Metas de ahorro y compras futuras.</p>
                 </div>
-                <button
-                    onClick={() => setShowForm(!showForm)}
-                    className="bg-primary text-background px-4 py-2 rounded-lg font-bold shadow-md hover:opacity-90 transition-opacity flex items-center gap-2"
-                >
-                    <Plus size={18} /> Nuevo Objetivo
-                </button>
             </div>
 
             {showForm && (

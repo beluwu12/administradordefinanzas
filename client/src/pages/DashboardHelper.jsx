@@ -68,10 +68,12 @@ const DashboardHelper = () => {
             <section className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
 
                 {/* Visual Chart */}
-                <div className="bg-surface p-6 rounded-2xl border border-border shadow-lg flex flex-col items-center justify-center min-h-[280px]">
-                    <h3 className="text-lg font-bold text-text mb-6 w-full text-left">Distribución de Balance</h3>
+                <div className="bg-surface p-6 rounded-2xl border border-border shadow-lg flex flex-col min-h-[280px]">
+                    <h3 className="text-lg font-bold text-text mb-6">Distribución de Balance</h3>
                     {pieData.length > 0 ? (
-                        <SimplePieChart data={pieData} size={160} />
+                        <div className="flex-1 flex items-center justify-center">
+                            <SimplePieChart data={pieData} size={160} />
+                        </div>
                     ) : (
                         <div className="text-muted text-sm">No hay fondos para mostrar gráfico</div>
                     )}

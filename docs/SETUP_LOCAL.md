@@ -1,6 +1,6 @@
-# 🖥️ Guía de Instalación Local (Windows)
+# 🖥️ Guía de Instalación Local
 
-Esta guía te llevará paso a paso para ejecutar la aplicación de finanzas en tu PC con Windows.
+Esta guía te ayudará a ejecutar la aplicación de finanzas en tu PC local para desarrollo.
 
 ---
 
@@ -8,7 +8,7 @@ Esta guía te llevará paso a paso para ejecutar la aplicación de finanzas en t
 
 | Software | Versión Mínima | Descarga |
 |----------|----------------|----------|
-| Node.js | 18+ | [nodejs.org](https://nodejs.org/) |
+| Node.js | 20+ | [nodejs.org](https://nodejs.org/) |
 | Git | 2.0+ | [git-scm.com](https://git-scm.com/) |
 | Docker Desktop (opcional) | 4.0+ | [docker.com](https://www.docker.com/products/docker-desktop/) |
 
@@ -17,14 +17,14 @@ Esta guía te llevará paso a paso para ejecutar la aplicación de finanzas en t
 ## 🚀 Instalación Rápida
 
 ### 1. Clonar el Repositorio
+
 ```powershell
-git clone https://github.com/tu-usuario/personal-finance-app.git
+git clone https://github.com/Gillardo/personal-finance-app.git
 cd personal-finance-app
 ```
 
 ### 2. Configurar Variables de Entorno
 
-**Backend (server/.env):**
 ```powershell
 cd server
 copy .env.example .env
@@ -33,11 +33,16 @@ copy .env.example .env
 Edita `server/.env`:
 ```env
 DATABASE_URL="file:./dev.db"
-JWT_SECRET=tu_clave_secreta_aqui
+JWT_SECRET=genera_una_clave_secreta_aqui
 CRON_ENABLED=true
+NODE_ENV=development
+PORT=3000
 ```
 
+> 💡 **Tip**: Genera un JWT_SECRET seguro con: `openssl rand -hex 32`
+
 ### 3. Instalar Dependencias
+
 ```powershell
 # Backend
 cd server
@@ -49,6 +54,7 @@ npm install
 ```
 
 ### 4. Inicializar Base de Datos
+
 ```powershell
 cd server
 npx prisma db push
@@ -56,7 +62,7 @@ npx prisma db push
 
 ### 5. Ejecutar la Aplicación
 
-**Opción A - Scripts automáticos:**
+**Opción A - Scripts automáticos (Windows):**
 ```powershell
 # Desde la raíz del proyecto
 .\start.bat
@@ -74,17 +80,24 @@ npm run dev
 ```
 
 ### 6. Acceder a la Aplicación
-- **Frontend:** http://localhost:5173
-- **Backend API:** http://localhost:3000/api/health
+
+| Servicio | URL |
+|----------|-----|
+| Frontend | http://localhost:5173 |
+| Backend API | http://localhost:3000 |
+| Health Check | http://localhost:3000/api/health |
 
 ---
 
-## 🐳 Instalación con Docker (Alternativa)
+## 🐳 Instalación con Docker
 
 Si prefieres usar Docker para un entorno más aislado:
 
 ```powershell
-# Iniciar contenedores
+# Copiar variables de entorno
+copy .env.example .env
+
+# Iniciar contenedores (PostgreSQL + Backend + Frontend)
 docker compose up -d
 
 # Ver logs
@@ -94,37 +107,55 @@ docker compose logs -f
 docker compose down
 ```
 
-**Acceso:**
-- Frontend: http://localhost
-- Backend: http://localhost:3000
+**Acceso con Docker:**
+| Servicio | URL |
+|----------|-----|
+| Frontend | http://localhost |
+| Backend | http://localhost:3000 |
 
 ---
 
 ## 🔧 Solución de Problemas
 
 ### Error: "EACCES permission denied"
+
 ```powershell
 # Ejecutar PowerShell como Administrador
 Set-ExecutionPolicy RemoteSigned
 ```
 
 ### Error: "Prisma Client not generated"
+
 ```powershell
 cd server
 npx prisma generate
 ```
 
 ### Puerto 3000 ocupado
+
 ```powershell
+# Encontrar proceso
 netstat -ano | findstr :3000
+
+# Terminar proceso
 taskkill /PID <PID> /F
 ```
 
 ### Base de datos corrupta
+
 ```powershell
 cd server
 del prisma\dev.db
 npx prisma db push
+```
+
+### Error: "Cannot find module"
+
+```powershell
+# Reinstalar dependencias
+cd server
+rm -rf node_modules
+npm install
 ```
 
 ---
@@ -153,8 +184,18 @@ npm run dev -- --host
 |------------|-----|-------------------|
 | API Health | http://localhost:3000/api/health | `{"success": true}` |
 | Frontend | http://localhost:5173 | Página de Login |
-| PWA | Chrome DevTools > Application | Manifest detectado |
 
 ---
 
-**¿Problemas?** Abre un issue en el repositorio o revisa los logs del servidor.
+## 🔄 Scripts Disponibles
+
+| Comando | Descripción |
+|---------|-------------|
+| `npm run dev` | Inicia servidor en modo desarrollo |
+| `npm start` | Inicia servidor en modo producción |
+| `npx prisma studio` | Abre interfaz visual de la base de datos |
+| `npx prisma db push` | Sincroniza schema con la base de datos |
+
+---
+
+**¿Problemas?** Abre un [issue](https://github.com/Gillardo/personal-finance-app/issues) en el repositorio.

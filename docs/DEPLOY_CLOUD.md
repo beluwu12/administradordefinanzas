@@ -1,177 +1,187 @@
 # ☁️ Guía de Despliegue en la Nube
 
-Esta guía cubre el despliegue de la aplicación en servicios de contenedores como **Azure Container Apps** y **Google Cloud Run**.
+Esta guía cubre el despliegue de la aplicación en **Azure Container Apps** con PostgreSQL.
 
 ---
 
 ## 📋 Requisitos Previos
 
-- Cuenta en Azure o Google Cloud
-- Docker instalado localmente
-- CLI del proveedor instalado (`az` o `gcloud`)
-- Dominio configurado (opcional para HTTPS)
+| Software | Versión | Descarga |
+|----------|---------|----------|
+| Azure CLI | 2.50+ | [Instalar](https://docs.microsoft.com/cli/azure/install-azure-cli) |
+| Docker Desktop | 4.0+ | [Descargar](https://www.docker.com/products/docker-desktop/) |
+| PowerShell | 7+ (Windows) | Incluido en Windows |
+
+Además necesitas:
+- ✅ Cuenta de Azure activa
+- ✅ Suscripción con créditos disponibles
 
 ---
 
-## 🔷 Opción 1: Microsoft Azure Container Apps
+## 🔷 Despliegue en Azure Container Apps
 
-### Paso 1: Configurar Azure CLI
-```bash
-# Instalar Azure CLI (Windows)
-winget install -e --id Microsoft.AzureCLI
+### Arquitectura
 
-# Iniciar sesión
-az login
-
-# Crear grupo de recursos
-az group create --name finanzas-rg --location eastus
+```
+┌─────────────────────────────────────────────────────────┐
+│                 Azure Container Apps                     │
+│                                                         │
+│  ┌──────────────┐         ┌──────────────┐             │
+│  │   Frontend   │────────▶│   Backend    │             │
+│  │   (Nginx)    │         │  (Node.js)   │             │
+│  └──────────────┘         └──────┬───────┘             │
+│                                  │                      │
+└──────────────────────────────────┼──────────────────────┘
+                                   │
+                    ┌──────────────▼───────────────┐
+                    │  Azure PostgreSQL Flexible   │
+                    │        (Managed DB)          │
+                    └──────────────────────────────┘
 ```
 
-### Paso 2: Crear Azure Container Registry
-```bash
-az acr create --resource-group finanzas-rg \
-  --name finanzasregistry --sku Basic
+---
 
-az acr login --name finanzasregistry
+### Paso 1: Configurar Variables de Entorno
+
+```powershell
+cd deploy
+copy .env.azure.example .env.azure
 ```
+
+Edita `.env.azure` con tus valores:
+
+```bash
+# Recursos Azure
+AZURE_RESOURCE_GROUP="finanzas-app"
+AZURE_LOCATION="eastus"
+AZURE_REGISTRY_NAME="mifinanzasregistry"  # ¡Debe ser único globalmente!
+
+# PostgreSQL
+POSTGRES_SERVER_NAME="finanzas-postgres"
+POSTGRES_ADMIN_USER="finanzas"
+POSTGRES_ADMIN_PASSWORD="MiPassword$egur0123!"  # Mínimo: 8 caracteres, mayúsculas, números, símbolos
+POSTGRES_DB="finanzas"
+
+# Container Apps
+CONTAINER_ENV_NAME="finanzas-env"
+
+# Secrets de la App
+JWT_SECRET="genera-esto-con-openssl-rand-hex-32"
+```
+
+> ⚠️ **Importante**: El nombre del registry (`AZURE_REGISTRY_NAME`) debe ser único en todo Azure.
+
+---
+
+### Paso 2: Ejecutar Setup Azure
+
+Este script verifica y crea los recursos base:
+
+```powershell
+cd deploy
+.\setup-azure.ps1
+```
+
+**¿Qué hace este script?**
+1. ✅ Verifica Azure CLI instalado
+2. ✅ Inicia sesión en Azure (si es necesario)
+3. ✅ Verifica Docker instalado
+4. ✅ Crea Resource Group (si no existe)
+5. ✅ Crea Container Registry (si no existe)
+6. ✅ Hace login al registry
+
+---
 
 ### Paso 3: Construir y Subir Imágenes
-```bash
-# Backend
-docker build -t finanzasregistry.azurecr.io/backend:latest ./server
-docker push finanzasregistry.azurecr.io/backend:latest
 
-# Frontend
-docker build -t finanzasregistry.azurecr.io/frontend:latest -f client/Dockerfile .
-docker push finanzasregistry.azurecr.io/frontend:latest
+```powershell
+.\build-and-push.ps1
 ```
 
-### Paso 4: Crear Azure Database for PostgreSQL
-```bash
-az postgres flexible-server create \
-  --resource-group finanzas-rg \
-  --name finanzas-db \
-  --admin-user finanzas \
-  --admin-password TU_PASSWORD_SEGURA \
-  --sku-name Standard_B1ms \
-  --tier Burstable
+**¿Qué hace este script?**
+1. 🔐 Login al Container Registry
+2. 🐳 Construye imagen del backend (`./server`)
+3. 🐳 Construye imagen del frontend (`./client`)
+4. ⬆️ Sube ambas imágenes al registry
+
+---
+
+### Paso 4: Desplegar Aplicaciones
+
+```powershell
+.\deploy-apps.ps1
 ```
 
-### Paso 5: Crear Container App Environment
-```bash
-az containerapp env create \
-  --name finanzas-env \
-  --resource-group finanzas-rg \
-  --location eastus
-```
+**¿Qué hace este script?**
+1. 🗄️ Crea PostgreSQL Flexible Server (~3-5 minutos)
+2. 🌐 Crea Container App Environment
+3. 🔧 Configura acceso al registry
+4. 🚀 Despliega Backend con variables de entorno
+5. 🚀 Despliega Frontend
 
-### Paso 6: Desplegar Backend
-```bash
-az containerapp create \
-  --name finanzas-backend \
-  --resource-group finanzas-rg \
-  --environment finanzas-env \
-  --image finanzasregistry.azurecr.io/backend:latest \
-  --target-port 3000 \
-  --ingress external \
-  --registry-server finanzasregistry.azurecr.io \
-  --env-vars \
-    DATABASE_URL="postgresql://finanzas:PASSWORD@finanzas-db.postgres.database.azure.com:5432/finanzas" \
-    JWT_SECRET="TU_SECRET" \
-    NODE_ENV="production"
+Al finalizar, obtendrás las URLs de acceso:
 ```
-
-### Paso 7: Desplegar Frontend
-```bash
-az containerapp create \
-  --name finanzas-frontend \
-  --resource-group finanzas-rg \
-  --environment finanzas-env \
-  --image finanzasregistry.azurecr.io/frontend:latest \
-  --target-port 80 \
-  --ingress external \
-  --registry-server finanzasregistry.azurecr.io
+Frontend: https://finanzas-frontend.xxxxx.azurecontainerapps.io
+Backend:  https://finanzas-backend.xxxxx.azurecontainerapps.io
 ```
 
 ---
 
-## 🟢 Opción 2: Google Cloud Run
+## 🔄 Actualizaciones de la Aplicación
 
-### Paso 1: Configurar Google Cloud CLI
-```bash
-# Instalar gcloud SDK
-# https://cloud.google.com/sdk/docs/install
+Para actualizar después de cambios en el código:
 
-# Iniciar sesión
-gcloud auth login
-gcloud config set project TU_PROJECT_ID
+```powershell
+cd deploy
 
-# Habilitar APIs
-gcloud services enable run.googleapis.com
-gcloud services enable containerregistry.googleapis.com
-gcloud services enable sqladmin.googleapis.com
+# Reconstruir y subir nuevas imágenes
+.\build-and-push.ps1
+
+# Actualizar los containers
+.\deploy-apps.ps1
 ```
 
-### Paso 2: Crear Cloud SQL (PostgreSQL)
-```bash
-gcloud sql instances create finanzas-db \
-  --database-version=POSTGRES_15 \
-  --tier=db-f1-micro \
-  --region=us-central1
-
-gcloud sql users set-password postgres \
-  --instance=finanzas-db \
-  --password=TU_PASSWORD
-```
-
-### Paso 3: Construir con Cloud Build
-```bash
-# Backend
-gcloud builds submit --tag gcr.io/TU_PROJECT_ID/backend ./server
-
-# Frontend
-gcloud builds submit --tag gcr.io/TU_PROJECT_ID/frontend -f client/Dockerfile .
-```
-
-### Paso 4: Desplegar Backend
-```bash
-gcloud run deploy finanzas-backend \
-  --image gcr.io/TU_PROJECT_ID/backend \
-  --platform managed \
-  --region us-central1 \
-  --allow-unauthenticated \
-  --set-env-vars="DATABASE_URL=postgresql://postgres:PASSWORD@/finanzas?host=/cloudsql/TU_PROJECT_ID:us-central1:finanzas-db" \
-  --set-env-vars="JWT_SECRET=TU_SECRET" \
-  --add-cloudsql-instances=TU_PROJECT_ID:us-central1:finanzas-db
-```
-
-### Paso 5: Desplegar Frontend
-```bash
-gcloud run deploy finanzas-frontend \
-  --image gcr.io/TU_PROJECT_ID/frontend \
-  --platform managed \
-  --region us-central1 \
-  --allow-unauthenticated
-```
+Los containers existentes se actualizarán automáticamente con las nuevas imágenes.
 
 ---
 
-## 🔐 Configurar Dominio Personalizado
+## 🔧 Configuración del Frontend
 
-### Azure
-```bash
-az containerapp hostname add \
-  --hostname finanzas.tudominio.com \
-  --resource-group finanzas-rg \
-  --name finanzas-frontend
+El frontend detecta automáticamente si está en Azure usando `client/src/config.js`:
+
+```javascript
+const hostname = window.location.hostname;
+
+const isProduction = hostname.includes('azurecontainerapps.io') || 
+                     !hostname.includes('localhost');
+
+const API_URL = isProduction 
+    ? 'https://TU-BACKEND-URL.azurecontainerapps.io/api'
+    : `http://${hostname}:3000/api`;
 ```
 
-### Google Cloud
-```bash
-gcloud run domain-mappings create \
-  --service finanzas-frontend \
-  --domain finanzas.tudominio.com \
-  --region us-central1
+> **Nota**: Después del primer despliegue, debes actualizar la URL del backend en `config.js` y volver a ejecutar `build-and-push.ps1` + `deploy-apps.ps1`.
+
+---
+
+## 💾 Backups de Base de Datos
+
+### Backup Manual
+
+```powershell
+.\backup.ps1
+```
+
+Esto crea un archivo SQL en la carpeta `backups/`.
+
+### Restaurar Backup
+
+```powershell
+# Conectar a PostgreSQL
+psql -h tu-servidor.postgres.database.azure.com -U finanzas -d finanzas
+
+# Restaurar
+\i backups/backup_2024-01-15.sql
 ```
 
 ---
@@ -180,49 +190,90 @@ gcloud run domain-mappings create \
 
 | Variable | Descripción | Ejemplo |
 |----------|-------------|---------|
-| `DATABASE_URL` | Conexión PostgreSQL | `postgresql://user:pass@host:5432/db` |
-| `JWT_SECRET` | Clave para tokens | `openssl rand -hex 32` |
-| `NODE_ENV` | Entorno | `production` |
-| `VAPID_PUBLIC_KEY` | Push notifications | Ver `.env.example` |
-| `VAPID_PRIVATE_KEY` | Push notifications | Ver `.env.example` |
+| `DATABASE_URL` | Conexión PostgreSQL | `postgresql://user:pass@host:5432/db?sslmode=require` |
+| `JWT_SECRET` | Clave para tokens JWT | Generar con `openssl rand -hex 32` |
+| `NODE_ENV` | Entorno de ejecución | `production` |
+| `CRON_ENABLED` | Habilitar tareas programadas | `true` |
+| `VAPID_PUBLIC_KEY` | Push notifications (opcional) | Ver `.env.example` |
+| `VAPID_PRIVATE_KEY` | Push notifications (opcional) | Ver `.env.example` |
 
 ---
 
-## 💰 Costos Estimados
+## 💰 Costos Estimados (Azure)
 
-| Servicio | Azure | Google Cloud |
-|----------|-------|--------------|
-| Container Apps/Run | ~$10-30/mes | ~$5-20/mes |
-| PostgreSQL | ~$15-50/mes | ~$10-30/mes |
-| **Total Estimado** | **~$25-80/mes** | **~$15-50/mes** |
+| Recurso | SKU | Costo Mensual |
+|---------|-----|---------------|
+| Container Apps (Backend) | 0.5 vCPU, 1GB RAM | ~$10-20 |
+| Container Apps (Frontend) | 0.25 vCPU, 0.5GB RAM | ~$5-10 |
+| PostgreSQL Flexible | B1ms (Burstable) | ~$15-25 |
+| Container Registry | Basic | ~$5 |
+| **Total Estimado** | | **~$35-60/mes** |
 
-*Ambos proveedores ofrecen créditos gratuitos para nuevos usuarios.*
+> 💡 **Tip**: Configura `min-replicas: 0` para reducir costos cuando no hay tráfico.
 
 ---
 
-## 🔄 CI/CD (Opcional)
+## 🛠️ Solución de Problemas
 
-Configura GitHub Actions para despliegue automático:
+### Error: "The subscription is not registered to use namespace 'Microsoft.App'"
 
-```yaml
-# .github/workflows/deploy.yml
-name: Deploy to Cloud
-on:
-  push:
-    branches: [main]
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Login to Registry
-        run: echo ${{ secrets.REGISTRY_PASSWORD }} | docker login ...
-      - name: Build and Push
-        run: docker build -t ... && docker push ...
+```powershell
+az provider register --namespace Microsoft.App
+az provider register --namespace Microsoft.OperationalInsights
+```
+
+### Error: Container App no inicia
+
+```powershell
+# Ver logs del container
+az containerapp logs show --name finanzas-backend --resource-group finanzas-app --follow
+```
+
+### Error: "Connection refused" a PostgreSQL
+
+1. Verifica que el firewall permite todas las IPs:
+```powershell
+az postgres flexible-server firewall-rule create \
+    --resource-group finanzas-app \
+    --name finanzas-postgres \
+    --rule-name AllowAll \
+    --start-ip-address 0.0.0.0 \
+    --end-ip-address 255.255.255.255
+```
+
+2. Verifica SSL mode en la URL de conexión: `?sslmode=require`
+
+### Ver recursos desplegados
+
+```powershell
+# Listar todos los recursos
+az resource list --resource-group finanzas-app --output table
+
+# Ver estado de Container Apps
+az containerapp list --resource-group finanzas-app --output table
 ```
 
 ---
 
-**¿Necesitas ayuda?** Consulta la documentación oficial:
-- [Azure Container Apps](https://learn.microsoft.com/azure/container-apps/)
-- [Google Cloud Run](https://cloud.google.com/run/docs)
+## 🗑️ Eliminar Recursos
+
+Para eliminar todos los recursos de Azure:
+
+```powershell
+# ⚠️ CUIDADO: Esto elimina TODO incluyendo la base de datos
+az group delete --name finanzas-app --yes --no-wait
+```
+
+---
+
+## 🟢 Alternativa: Google Cloud Run
+
+Si prefieres Google Cloud, consulta la documentación oficial:
+- [Cloud Run](https://cloud.google.com/run/docs)
+- [Cloud SQL for PostgreSQL](https://cloud.google.com/sql/docs/postgres)
+
+---
+
+**¿Necesitas ayuda?**
+- [Azure Container Apps Docs](https://learn.microsoft.com/azure/container-apps/)
+- [Azure PostgreSQL Docs](https://learn.microsoft.com/azure/postgresql/)
