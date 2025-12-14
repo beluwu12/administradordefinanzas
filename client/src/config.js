@@ -1,6 +1,17 @@
-// Automatically detect the host. If running on localhost, use localhost. 
-// If running on local network IP (e.g. 192.168.x.x), use that IP.
+// API URL Configuration
+// In production: Use the Azure backend URL
+// In development: Auto-detect localhost/network IP
+
 const hostname = window.location.hostname;
-const API_URL = `http://${hostname}:3000/api`;
+
+// Check if we're in production (Azure Container Apps)
+const isProduction = hostname.includes('azurecontainerapps.io') || 
+                     hostname.includes('orangeflower') ||
+                     !hostname.includes('localhost') && !hostname.startsWith('192.168');
+
+const API_URL = isProduction 
+    ? 'https://finanzas-backend.orangeflower-43ff1781.eastus.azurecontainerapps.io/api'
+    : `http://${hostname}:3000/api`;
 
 export default API_URL;
+

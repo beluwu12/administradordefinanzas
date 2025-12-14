@@ -13,8 +13,11 @@ Write-Host "========================================`n" -ForegroundColor Cyan
 # Cargar variables
 if (Test-Path ".\.env.azure") {
     Get-Content ".\.env.azure" | ForEach-Object {
-        if ($_ -match "^([^=]+)=(.*)$") {
-            [Environment]::SetEnvironmentVariable($matches[1], $matches[2])
+        $line = $_ -replace "^export\s+", ""
+        if ($line -match "^([A-Za-z_][A-Za-z0-9_]*)=(.*)$") {
+            $varName = $matches[1]
+            $varValue = $matches[2] -replace '^"(.*)"$', '$1'
+            [Environment]::SetEnvironmentVariable($varName, $varValue)
         }
     }
 }
@@ -36,11 +39,19 @@ $JWT_SECRET = $env:JWT_SECRET
 
 # 1. Crear PostgreSQL Flexible Server
 Write-Host "[1/5] Verificando PostgreSQL Server..." -ForegroundColor Yellow
-$pgExists = az postgres flexible-server show --resource-group $RESOURCE_GROUP --name $POSTGRES_SERVER 2>$null
-if ($pgExists) {
-    Write-Host "      PostgreSQL ya existe" -ForegroundColor Green
+try {
+    $pgExists = az postgres flexible-server show --resource-group $RESOURCE_GROUP --name $POSTGRES_SERVER 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "      PostgreSQL ya existe" -ForegroundColor Green
+    }
+    else {
+        $pgExists = $null
+    }
 }
-else {
+catch {
+    $pgExists = $null
+}
+if (-not $pgExists) {
     Write-Host "      Creando PostgreSQL Flexible Server (esto toma ~3-5 minutos)..." -ForegroundColor Yellow
     az postgres flexible-server create `
         --resource-group $RESOURCE_GROUP `
@@ -64,7 +75,11 @@ Write-Host "      Host: $pgHost" -ForegroundColor Gray
 
 # 2. Crear Container App Environment
 Write-Host "`n[2/5] Verificando Container App Environment..." -ForegroundColor Yellow
-$envExists = az containerapp env show --resource-group $RESOURCE_GROUP --name $CONTAINER_ENV 2>$null
+try {
+    $envExists = az containerapp env show --resource-group $RESOURCE_GROUP --name $CONTAINER_ENV 2>&1
+    if ($LASTEXITCODE -ne 0) { $envExists = $null }
+}
+catch { $envExists = $null }
 if ($envExists) {
     Write-Host "      Environment ya existe" -ForegroundColor Green
 }
@@ -85,7 +100,11 @@ Write-Host "      Acceso configurado" -ForegroundColor Green
 
 # 4. Desplegar Backend
 Write-Host "`n[4/5] Desplegando BACKEND..." -ForegroundColor Yellow
-$backendExists = az containerapp show --resource-group $RESOURCE_GROUP --name finanzas-backend 2>$null
+try {
+    $backendExists = az containerapp show --resource-group $RESOURCE_GROUP --name finanzas-backend 2>&1
+    if ($LASTEXITCODE -ne 0) { $backendExists = $null }
+}
+catch { $backendExists = $null }
 if ($backendExists) {
     Write-Host "      Actualizando backend..." -ForegroundColor Yellow
     az containerapp update `
@@ -115,7 +134,11 @@ Write-Host "      Backend desplegado: https://$BACKEND_URL" -ForegroundColor Gre
 
 # 5. Desplegar Frontend
 Write-Host "`n[5/5] Desplegando FRONTEND..." -ForegroundColor Yellow
-$frontendExists = az containerapp show --resource-group $RESOURCE_GROUP --name finanzas-frontend 2>$null
+try {
+    $frontendExists = az containerapp show --resource-group $RESOURCE_GROUP --name finanzas-frontend 2>&1
+    if ($LASTEXITCODE -ne 0) { $frontendExists = $null }
+}
+catch { $frontendExists = $null }
 if ($frontendExists) {
     Write-Host "      Actualizando frontend..." -ForegroundColor Yellow
     az containerapp update `

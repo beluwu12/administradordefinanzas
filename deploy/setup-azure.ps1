@@ -13,12 +13,17 @@ Write-Host "========================================`n" -ForegroundColor Cyan
 # Cargar variables de entorno
 if (Test-Path ".\.env.azure") {
     Get-Content ".\.env.azure" | ForEach-Object {
-        if ($_ -match "^([^=]+)=(.*)$") {
-            [Environment]::SetEnvironmentVariable($matches[1], $matches[2])
+        # Handle bash-style: export VAR="value" or VAR=value
+        $line = $_ -replace "^export\s+", ""  # Remove 'export ' prefix
+        if ($line -match "^([A-Za-z_][A-Za-z0-9_]*)=(.*)$") {
+            $varName = $matches[1]
+            $varValue = $matches[2] -replace '^"(.*)"$', '$1'  # Remove quotes
+            [Environment]::SetEnvironmentVariable($varName, $varValue)
         }
     }
     Write-Host "[OK] Variables cargadas de .env.azure" -ForegroundColor Green
-} else {
+}
+else {
     Write-Host "[!] Copia .env.azure.example a .env.azure y configura los valores" -ForegroundColor Red
     exit 1
 }
@@ -37,7 +42,8 @@ Write-Host "`n[1/5] Verificando Azure CLI..." -ForegroundColor Yellow
 try {
     $azVersion = az version --output json | ConvertFrom-Json
     Write-Host "      Azure CLI v$($azVersion.'azure-cli')" -ForegroundColor Green
-} catch {
+}
+catch {
     Write-Host "[ERROR] Azure CLI no encontrado. Instala con: winget install Microsoft.AzureCLI" -ForegroundColor Red
     exit 1
 }
@@ -58,7 +64,8 @@ Write-Host "`n[3/5] Verificando Docker..." -ForegroundColor Yellow
 try {
     $dockerVersion = docker --version
     Write-Host "      $dockerVersion" -ForegroundColor Green
-} catch {
+}
+catch {
     Write-Host "[ERROR] Docker no encontrado" -ForegroundColor Red
     exit 1
 }
@@ -68,7 +75,8 @@ Write-Host "`n[4/5] Verificando Resource Group '$RESOURCE_GROUP'..." -Foreground
 $rgExists = az group exists --name $RESOURCE_GROUP
 if ($rgExists -eq "true") {
     Write-Host "      Resource Group existe" -ForegroundColor Green
-} else {
+}
+else {
     Write-Host "      Creando Resource Group..." -ForegroundColor Yellow
     az group create --name $RESOURCE_GROUP --location $LOCATION
     Write-Host "      Resource Group creado" -ForegroundColor Green
@@ -83,7 +91,8 @@ if ($acrExists) {
     Write-Host "      Iniciando sesion en el registry..." -ForegroundColor Yellow
     az acr login --name $REGISTRY_NAME
     Write-Host "      Login exitoso" -ForegroundColor Green
-} else {
+}
+else {
     Write-Host "      Creando Container Registry..." -ForegroundColor Yellow
     az acr create --resource-group $RESOURCE_GROUP --name $REGISTRY_NAME --sku Basic
     az acr login --name $REGISTRY_NAME

@@ -20,16 +20,19 @@ export default function LoginPage() {
 
         try {
             const res = await api.post('/auth/login', { email, password });
-            if (res.data.success) {
-                login(res.data.data.user || res.data.data, res.data.data.token);
+            // api.js interceptor unwraps successful responses, so res.data IS the data object
+            const data = res.data;
+            if (data && data.token) {
+                login(data, data.token);
                 navigate('/');
             }
         } catch (err) {
-            setError(err.response?.data?.error || 'Error al iniciar sesión');
+            setError(err.message || 'Error al iniciar sesión');
         } finally {
             setLoading(false);
         }
     };
+
 
     return (
         <div className="min-h-screen bg-background flex items-center justify-center p-4">

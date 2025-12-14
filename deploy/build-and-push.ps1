@@ -13,11 +13,15 @@ Write-Host "========================================`n" -ForegroundColor Cyan
 # Cargar variables
 if (Test-Path ".\.env.azure") {
     Get-Content ".\.env.azure" | ForEach-Object {
-        if ($_ -match "^([^=]+)=(.*)$") {
-            [Environment]::SetEnvironmentVariable($matches[1], $matches[2])
+        $line = $_ -replace "^export\s+", ""
+        if ($line -match "^([A-Za-z_][A-Za-z0-9_]*)=(.*)$") {
+            $varName = $matches[1]
+            $varValue = $matches[2] -replace '^"(.*)"$', '$1'
+            [Environment]::SetEnvironmentVariable($varName, $varValue)
         }
     }
-} else {
+}
+else {
     Write-Host "[ERROR] .env.azure no encontrado" -ForegroundColor Red
     exit 1
 }

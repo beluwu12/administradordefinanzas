@@ -28,16 +28,19 @@ export default function RegisterPage() {
 
         try {
             const res = await api.post('/auth/register', formData);
-            if (res.data.success) {
-                login(res.data.data.user || res.data.data, res.data.data.token);
+            // api.js interceptor unwraps successful responses, so res.data IS the data object
+            const data = res.data;
+            if (data && data.token) {
+                login(data, data.token);
                 navigate('/');
             }
         } catch (err) {
-            setError(err.response?.data?.error || 'Error al registrarse');
+            setError(err.message || 'Error al registrarse');
         } finally {
             setLoading(false);
         }
     };
+
 
     return (
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
