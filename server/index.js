@@ -25,8 +25,29 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false
 }));
 
-// CORS: Allow cross-origin requests
-app.use(cors());
+// CORS: Restrictive configuration for production
+const allowedOrigins = [
+  'https://finanzas-frontend.orangeflower-43ff1781.eastus.azurecontainerapps.io',
+  'http://localhost:5173',  // Vite dev server
+  'http://localhost:4173',  // Vite preview
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id']
+}));
 
 // Body parser
 app.use(express.json({ limit: '10mb' }));
