@@ -30,6 +30,9 @@ const allowedOrigins = [
   'https://finanzas-frontend.orangeflower-43ff1781.eastus.azurecontainerapps.io',
   'http://localhost:5173',  // Vite dev server
   'http://localhost:4173',  // Vite preview
+  'http://localhost',       // Docker nginx (port 80)
+  'http://localhost:80',    // Docker nginx explicit
+  'http://127.0.0.1',       // Localhost IP
 ];
 
 app.use(cors({

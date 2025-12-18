@@ -10,23 +10,49 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String   // bcrypt
-  firstName String
-  lastName  String
-  verified  Boolean  @default(false)
-  createdAt DateTime @default(now())
+// ═══════════════════════════════════════════════════════════════
+// ENUMS
+// ═══════════════════════════════════════════════════════════════
 
-  transactions  Transaction[]
-  fixedExpenses FixedExpense[]
-  tags          Tag[]
-  goals         Goal[]
+enum Country {
+  VE  // Venezuela - Dual currency (USD + VES)
+  CO  // Colombia - COP only
+  CL  // Chile - CLP only
+  MX  // Mexico - MXN only
+  AR  // Argentina - ARS only
+  US  // USA - USD only
+}
+
+// ═══════════════════════════════════════════════════════════════
+// USER MODEL
+// ═══════════════════════════════════════════════════════════════
+
+model User {
+  id              String   @id @default(uuid())
+  email           String   @unique
+  password        String   // bcrypt
+  firstName       String
+  lastName        String
+  verified        Boolean  @default(false)
   
-  notifications Notification[]
+  // Multi-country support
+  country         Country  @default(VE)
+  defaultCurrency String   @default("USD")
+  timezone        String   @default("America/Caracas")
+  
+  createdAt       DateTime @default(now())
+
+  transactions      Transaction[]
+  fixedExpenses     FixedExpense[]
+  tags              Tag[]
+  goals             Goal[]
+  notifications     Notification[]
   pushSubscriptions PushSubscription[]
 }
+
+// ═══════════════════════════════════════════════════════════════
+// TAG MODEL
+// ═══════════════════════════════════════════════════════════════
 
 model Tag {
   id           String        @id @default(uuid())
@@ -39,43 +65,70 @@ model Tag {
   
   createdAt    DateTime      @default(now())
 
-  @@unique([name, userId]) // Tags are unique per user
+  @@unique([name, userId])
 }
 
+// ═══════════════════════════════════════════════════════════════
+// TRANSACTION MODEL
+// ═══════════════════════════════════════════════════════════════
+
 model Transaction {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   amount       Float
-  currency     String   @default("USD") // 'USD' or 'VES'
-  exchangeRate Float?   // Value of 1 USD in VES
-  type         String   // 'INCOME' or 'EXPENSE'
+  currency     String    @default("USD") // USD, VES, COP, CLP, MXN, ARS
+  exchangeRate Float?    // Value of 1 USD in local currency (VE only)
+  type         String    // 'INCOME' or 'EXPENSE'
   description  String
   source       String?
-  date         DateTime @default(now())
+  date         DateTime  @default(now())
+  
+  // Soft delete
+  deletedAt    DateTime?
   
   tags         Tag[]
   
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId       String
 
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
 
-  @@index([userId, date]) // Optimize dashboard queries
-  @@index([userId, type]) // Optimize balance calculation
+  @@index([userId, date])
+  @@index([userId, type])
+  @@index([userId, deletedAt])
 }
+
+// ═══════════════════════════════════════════════════════════════
+// FIXED EXPENSE MODEL
+// ═══════════════════════════════════════════════════════════════
 
 model FixedExpense {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   amount      Float
-  currency    String   @default("USD")
+  currency    String    @default("USD")
   description String
-  dueDay      Int      // 1-31
-  isActive    Boolean  @default(true)
+  dueDay      Int       // 1-31
+  isActive    Boolean   @default(true)
   
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Soft delete
+  deletedAt   DateTime?
+  
+  // Notification tracking (to avoid duplicates)
+  lastNotified5d DateTime?
+  lastNotified3d DateTime?
+  lastNotified1d DateTime?
+  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String
 
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
+  
+  @@index([userId, dueDay])
+  @@index([userId, deletedAt])
 }
+
+// ═══════════════════════════════════════════════════════════════
+// GOAL MODEL
+// ═══════════════════════════════════════════════════════════════
 
 model Goal {
   id             String      @id @default(uuid())
@@ -87,12 +140,15 @@ model Goal {
   // Logic & Calculations
   durationMonths Int
   monthlyAmount  Float
-  deadline       DateTime?   // Calculated
+  deadline       DateTime?
   
   // Progress Tracking
   startDate      DateTime    @default(now())
   savedAmount    Float       @default(0)
-  tag            String?     // Optional tag to link Income transactions automatically
+  tag            String?
+  
+  // Soft delete
+  deletedAt      DateTime?
   
   user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId         String
@@ -100,7 +156,13 @@ model Goal {
   progress       GoalMonth[]
   
   createdAt      DateTime    @default(now())
+  
+  @@index([userId, deletedAt])
 }
+
+// ═══════════════════════════════════════════════════════════════
+// GOAL MONTH MODEL
+// ═══════════════════════════════════════════════════════════════
 
 model GoalMonth {
   id          String  @id @default(uuid())
@@ -113,6 +175,10 @@ model GoalMonth {
   isQ2Paid    Boolean @default(false)
 }
 
+// ═══════════════════════════════════════════════════════════════
+// EXCHANGE RATE MODEL
+// ═══════════════════════════════════════════════════════════════
+
 model ExchangeRate {
   id        String   @id @default(uuid())
   source    String   // e.g. "BCV"
@@ -120,22 +186,33 @@ model ExchangeRate {
   rate      Float
   fetchedAt DateTime @default(now())
 
-  @@index([fetchedAt]) // Optimize finding latest rate
+  @@index([fetchedAt])
+  @@index([pair, fetchedAt])
 }
+
+// ═══════════════════════════════════════════════════════════════
+// NOTIFICATION MODEL
+// ═══════════════════════════════════════════════════════════════
 
 model Notification {
   id        String   @id @default(uuid())
   title     String
   body      String
-  type      String   // 'quincena_reminder', 'goal_warning', 'system'
+  type      String   // 'quincena_reminder', 'goal_warning', 'fixed_expense', 'system'
   isRead    Boolean  @default(false)
-  link      String?  // Optional deep link
+  link      String?
   
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
   
   createdAt DateTime @default(now())
+  
+  @@index([userId, isRead])
 }
+
+// ═══════════════════════════════════════════════════════════════
+// PUSH SUBSCRIPTION MODEL
+// ═══════════════════════════════════════════════════════════════
 
 model PushSubscription {
   id        String   @id @default(uuid())
@@ -150,3 +227,4 @@ model PushSubscription {
   
   @@unique([endpoint, userId])
 }
+

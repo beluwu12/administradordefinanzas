@@ -1,8 +1,10 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const prisma = require('../db');
+const { getOrFetch, invalidate } = require('./cacheService');
 
 const BCV_URL = 'http://www.bcv.org.ve/';
+const CACHE_KEY = 'bcv-rate-usd-ves';
 
 async function fetchBCVRate() {
     try {
@@ -29,8 +31,8 @@ async function fetchBCVRate() {
 
         // Additional fallback: Search for "USD" text container
         if (!rateText) {
-             const usdContainer = $('span:contains("USD")').closest('div');
-             rateText = usdContainer.find('strong').text().trim();
+            const usdContainer = $('span:contains("USD")').closest('div');
+            rateText = usdContainer.find('strong').text().trim();
         }
 
         if (!rateText) {
@@ -67,6 +69,8 @@ async function updateExchangeRate() {
                 }
             });
             console.log("Exchange Rate updated in DB.");
+            // Invalidate cache so next request gets fresh data
+            invalidate(CACHE_KEY);
             return rate;
         } catch (dbError) {
             console.error("DB Error saving rate:", dbError);
@@ -75,8 +79,10 @@ async function updateExchangeRate() {
     return null;
 }
 
-async function getLatestRate() {
-    // Return latest from DB
+/**
+ * Get latest rate from DB (no cache)
+ */
+async function getLatestRateFromDB() {
     const latest = await prisma.exchangeRate.findFirst({
         where: { pair: 'USD-VES' },
         orderBy: { fetchedAt: 'desc' }
@@ -84,7 +90,21 @@ async function getLatestRate() {
     return latest;
 }
 
+/**
+ * Get latest rate WITH CACHE (1 hour TTL)
+ * This is the main function to use in API endpoints
+ */
+async function getLatestRate() {
+    return getOrFetch(CACHE_KEY, async () => {
+        const latest = await getLatestRateFromDB();
+        return latest;
+    }, 3600); // 1 hour cache
+}
+
 module.exports = {
     updateExchangeRate,
-    getLatestRate
+    getLatestRate,
+    getLatestRateFromDB,
+    invalidateRateCache: () => invalidate(CACHE_KEY)
 };
+

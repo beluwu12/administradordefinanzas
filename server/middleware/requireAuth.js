@@ -36,7 +36,7 @@ const requireAuth = async (req, res, next) => {
                 console.warn('[Auth] Using legacy x-user-id header - please migrate to JWT');
                 const user = await prisma.user.findUnique({
                     where: { id: legacyUserId },
-                    select: { id: true, firstName: true, lastName: true }
+                    select: { id: true, firstName: true, lastName: true, country: true, defaultCurrency: true, timezone: true }
                 });
                 if (user) {
                     req.user = user;
@@ -64,7 +64,7 @@ const requireAuth = async (req, res, next) => {
         // Fetch user from database
         const user = await prisma.user.findUnique({
             where: { id: decoded.id },
-            select: { id: true, firstName: true, lastName: true }
+            select: { id: true, firstName: true, lastName: true, country: true, defaultCurrency: true, timezone: true }
         });
 
         if (!user) {

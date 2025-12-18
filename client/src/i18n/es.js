@@ -9,7 +9,7 @@ export const texts = {
         dashboard: "Inicio",
         transactions: "Movimientos",
         budget: "Presupuesto",
-        goals: "Objetivos", // Future use
+        goals: "Objetivos",
         tags: "Categorías",
         profile: "Perfil"
     },
@@ -74,17 +74,57 @@ export const texts = {
     common: {
         error: "Ha ocurrido un error",
         success: "Operación exitosa",
+        seeAll: "Ver todos",
         usd: "USD",
         ves: "VES"
     }
 };
 
-export const formatCurrency = (amount, currency) => {
-    // Return absolute value formatted, no signs
-    const absAmount = Math.abs(amount);
-    const formatted = absAmount.toLocaleString('es-VE', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
-    return `${currency} ${formatted}`;
+// Locale mapping for Intl.NumberFormat
+const CURRENCY_LOCALES = {
+    USD: 'en-US',
+    VES: 'es-VE',
+    COP: 'es-CO',
+    CLP: 'es-CL',
+    MXN: 'es-MX',
+    ARS: 'es-AR'
 };
+
+/**
+ * Format currency using Intl.NumberFormat
+ * Handles locale-specific formatting (e.g., CLP has no decimals)
+ */
+export const formatCurrency = (amount, currency = 'USD', customLocale = null) => {
+    const absAmount = Math.abs(amount || 0);
+    const locale = customLocale || CURRENCY_LOCALES[currency] || 'es-VE';
+
+    // CLP and COP typically don't use decimal places
+    const noDecimalCurrencies = ['CLP'];
+    const fractionDigits = noDecimalCurrencies.includes(currency) ? 0 : 2;
+
+    try {
+        return new Intl.NumberFormat(locale, {
+            style: 'currency',
+            currency: currency,
+            minimumFractionDigits: fractionDigits,
+            maximumFractionDigits: fractionDigits
+        }).format(absAmount);
+    } catch (e) {
+        // Fallback for unsupported currencies
+        return `${currency} ${absAmount.toLocaleString('es-VE', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        })}`;
+    }
+};
+
+/**
+ * Format number without currency symbol
+ */
+export const formatNumber = (amount, decimals = 2) => {
+    return Math.abs(amount || 0).toLocaleString('es-VE', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+    });
+};
+

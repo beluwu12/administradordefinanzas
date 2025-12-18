@@ -9,8 +9,13 @@ import Summary30Days from '../components/dashboard/Summary30Days';
 import SimplePieChart from '../components/common/SimplePieChart';
 import TransactionsModal from '../components/TransactionsModal';
 import { texts, formatCurrency } from '../i18n/es';
+import { useAuth } from '../context/AuthContext';
+import { isDualCurrency } from '../config/countries';
 
 const DashboardHelper = () => {
+    const { user } = useAuth();
+    const isDual = isDualCurrency(user?.country || 'VE');
+
     const [balance, setBalance] = useState({ USD: 0, VES: 0 });
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -52,6 +57,28 @@ const DashboardHelper = () => {
         { label: 'Bolívares', value: balance.VES, color: '#16a34a' } // green-600
     ].filter(d => d.value > 0);
 
+    const pieDataDual = pieData; // Alias for code compatibility
+
+    // Prepare Tag Chart Data
+    // Count transactions by tag (only those with tags)
+    const tagCounts = {};
+    transactions.forEach(tx => {
+        if (tx.tags && tx.tags.length > 0) {
+            tx.tags.forEach(tag => {
+                tagCounts[tag.name] = (tagCounts[tag.name] || 0) + 1;
+            });
+        }
+    });
+
+    const tagColors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
+    const tagChartData = Object.entries(tagCounts)
+        .map(([name, count], index) => ({
+            label: name,
+            value: count,
+            color: tagColors[index % tagColors.length]
+        }))
+        .sort((a, b) => b.value - a.value);
+
     const handleTransactionClick = () => {
         navigate('/transactions');
     };
@@ -66,18 +93,43 @@ const DashboardHelper = () => {
         <div className="space-y-8 animate-fadeIn pb-24 md:pb-0">
             {/* Balance Cards & Chart Section */}
             <section className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-
-                {/* Visual Chart */}
-                <div className="bg-surface p-6 rounded-2xl border border-border shadow-lg flex flex-col min-h-[280px]">
-                    <h3 className="text-lg font-bold text-text mb-6">Distribución de Balance</h3>
-                    {pieData.length > 0 ? (
-                        <div className="flex-1 flex items-center justify-center">
-                            <SimplePieChart data={pieData} size={160} />
+                {/* Visual Chart - Dual currency: balance distribution AND tags, Single: transaction by tags */}
+                {isDual ? (
+                    <div className="flex flex-col gap-4">
+                        <div className="bg-surface p-6 rounded-2xl border border-border shadow-lg flex flex-col min-h-[280px]">
+                            <h3 className="text-lg font-bold text-text mb-6">Distribución de Balance</h3>
+                            {pieDataDual.length > 0 ? (
+                                <div className="flex-1 flex items-center justify-center">
+                                    <SimplePieChart data={pieDataDual} size={160} />
+                                </div>
+                            ) : (
+                                <div className="text-muted text-sm flex-1 flex items-center justify-center">No hay fondos para mostrar gráfico</div>
+                            )}
                         </div>
-                    ) : (
-                        <div className="text-muted text-sm">No hay fondos para mostrar gráfico</div>
-                    )}
-                </div>
+
+                        <div className="bg-surface p-6 rounded-2xl border border-border shadow-lg flex flex-col min-h-[280px]">
+                            <h3 className="text-lg font-bold text-text mb-6">Gastos por Etiqueta</h3>
+                            {tagChartData.length > 0 ? (
+                                <div className="flex-1 flex items-center justify-center">
+                                    <SimplePieChart data={tagChartData} size={160} />
+                                </div>
+                            ) : (
+                                <div className="text-muted text-sm flex-1 flex items-center justify-center">Sin transacciones con etiquetas</div>
+                            )}
+                        </div>
+                    </div>
+                ) : (
+                    <div className="bg-surface p-6 rounded-2xl border border-border shadow-lg flex flex-col min-h-[280px]">
+                        <h3 className="text-lg font-bold text-text mb-6">Distribución de Balance</h3>
+                        {pieDataDual.length > 0 ? (
+                            <div className="flex-1 flex items-center justify-center">
+                                <SimplePieChart data={pieDataDual} size={160} />
+                            </div>
+                        ) : (
+                            <div className="text-muted text-sm">No hay fondos para mostrar gráfico</div>
+                        )}
+                    </div>
+                )}
 
                 {/* Balance Lists */}
                 <div className="space-y-4">

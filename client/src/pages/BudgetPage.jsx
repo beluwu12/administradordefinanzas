@@ -6,6 +6,7 @@ import { texts, formatCurrency } from '../i18n/es';
 export default function BudgetPage() {
     const [insight, setInsight] = useState(null);
     const [fixedExpenses, setFixedExpenses] = useState([]);
+    const [exchangeRate, setExchangeRate] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
 
@@ -28,9 +29,10 @@ export default function BudgetPage() {
 
     const fetchData = async () => {
         try {
-            const [summaryRes, listRes] = await Promise.all([
+            const [summaryRes, listRes, balanceRes] = await Promise.all([
                 api.get('/insight/summary').catch(() => ({ data: null })),
-                api.get('/fixed-expenses')
+                api.get('/fixed-expenses'),
+                api.get('/transactions/balance')
             ]);
 
             // Build insight from summary data
@@ -41,6 +43,7 @@ export default function BudgetPage() {
                 });
             }
             setFixedExpenses(listRes.data || []);
+            setExchangeRate(balanceRes.data?.exchangeRate || null);
         } catch (error) {
             console.error("Error loading budget data", error);
         } finally {
@@ -103,7 +106,10 @@ export default function BudgetPage() {
     const fixedCostUSD = fixedExpenses.filter(e => e.currency === 'USD').reduce((sum, e) => sum + e.amount, 0);
     const fixedCostVES = fixedExpenses.filter(e => e.currency === 'VES').reduce((sum, e) => sum + e.amount, 0);
 
-    const disposableUSD = monthlyIncomeUSD - fixedCostUSD;
+    // Calculate total fixed cost in USD (converting VES if needed)
+    const fixedCostTotalUSD = fixedCostUSD + (exchangeRate ? fixedCostVES / exchangeRate : 0);
+
+    const disposableUSD = monthlyIncomeUSD - fixedCostTotalUSD;
     const savingsTarget = disposableUSD * 0.2; // Example 20% savings rule
 
     return (

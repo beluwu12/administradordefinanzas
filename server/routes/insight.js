@@ -1,6 +1,6 @@
 /**
  * Insight Routes - Financial Summaries and Analytics
- * Updated with standardized responses
+ * Updated with multi-currency support
  */
 
 const express = require('express');
@@ -10,39 +10,55 @@ const Decimal = require('decimal.js');
 const { subDays } = require('date-fns');
 const { requireAuth } = require('../middleware/requireAuth');
 const { success } = require('../utils/responseUtils');
+const { getCountryConfig, isDualCurrency } = require('../config/countries');
 
 router.use(requireAuth);
 
 /**
  * GET /api/insight/summary - 30 Day financial summary
+ * Returns totals in user's default currency (and VES for VE users)
  */
 router.get('/summary', async (req, res, next) => {
     try {
         const thirtyDaysAgo = subDays(new Date(), 30);
+        const userCountry = req.user?.country || 'VE';
+        const countryConfig = getCountryConfig(userCountry);
+        const userIsDual = isDualCurrency(userCountry);
+        const defaultCurrency = countryConfig.defaultCurrency;
 
         const transactions = await prisma.transaction.findMany({
             where: {
                 userId: req.userId,
-                date: { gte: thirtyDaysAgo }
+                date: { gte: thirtyDaysAgo },
+                deletedAt: null // Respect soft delete
             },
             include: { tags: true }
         });
 
-        // Use decimal.js for precise calculations
+        // Initialize summary with user's currency (and VES for VE users)
         const summary = {
-            totalIncome: { USD: new Decimal(0), VES: new Decimal(0) },
-            totalExpense: { USD: new Decimal(0), VES: new Decimal(0) },
-            netSavings: { USD: new Decimal(0), VES: new Decimal(0) },
+            totalIncome: {},
+            totalExpense: {},
+            netSavings: {},
             topExpenseTags: []
         };
+
+        // Initialize currencies based on country
+        const currencies = userIsDual ? [defaultCurrency, 'VES'] : [defaultCurrency];
+        currencies.forEach(curr => {
+            summary.totalIncome[curr] = new Decimal(0);
+            summary.totalExpense[curr] = new Decimal(0);
+            summary.netSavings[curr] = new Decimal(0);
+        });
 
         const tagMap = {};
 
         transactions.forEach(tx => {
             const amount = new Decimal(tx.amount);
-            const currency = tx.currency || 'USD';
+            const currency = tx.currency || defaultCurrency;
 
-            if (!['USD', 'VES'].includes(currency)) return;
+            // Only process currencies relevant to this user
+            if (!currencies.includes(currency)) return;
 
             if (tx.type === 'INCOME') {
                 summary.totalIncome[currency] = summary.totalIncome[currency].plus(amount);
@@ -56,12 +72,11 @@ router.get('/summary', async (req, res, next) => {
                             if (!tagMap[tag.name]) {
                                 tagMap[tag.name] = {
                                     name: tag.name,
-                                    totalUSD: new Decimal(0),
-                                    totalVES: new Decimal(0),
+                                    total: new Decimal(0),
                                     count: 0
                                 };
                             }
-                            tagMap[tag.name][`total${currency}`] = tagMap[tag.name][`total${currency}`].plus(amount);
+                            tagMap[tag.name].total = tagMap[tag.name].total.plus(amount);
                             tagMap[tag.name].count += 1;
                         }
                     });
@@ -69,35 +84,39 @@ router.get('/summary', async (req, res, next) => {
             }
         });
 
-        // Calculate net savings
-        summary.netSavings.USD = summary.totalIncome.USD.minus(summary.totalExpense.USD);
-        summary.netSavings.VES = summary.totalIncome.VES.minus(summary.totalExpense.VES);
+        // Calculate net savings for each currency
+        currencies.forEach(curr => {
+            summary.netSavings[curr] = summary.totalIncome[curr].minus(summary.totalExpense[curr]);
+        });
 
-        // Convert to regular numbers and sort top expense tags
+        // Convert to regular numbers
+        const result = {
+            totalIncome: {},
+            totalExpense: {},
+            netSavings: {}
+        };
+
+        currencies.forEach(curr => {
+            result.totalIncome[curr] = summary.totalIncome[curr].toNumber();
+            result.totalExpense[curr] = summary.totalExpense[curr].toNumber();
+            result.netSavings[curr] = summary.netSavings[curr].toNumber();
+        });
+
+        // Sort top expense tags
         const topExpenseTags = Object.values(tagMap)
             .map(t => ({
                 name: t.name,
-                totalUSD: t.totalUSD.toNumber(),
-                totalVES: t.totalVES.toNumber(),
+                total: t.total.toNumber(),
                 count: t.count
             }))
-            .sort((a, b) => b.totalUSD - a.totalUSD)
+            .sort((a, b) => b.total - a.total)
             .slice(0, 3);
 
         res.json(success({
-            totalIncome: {
-                USD: summary.totalIncome.USD.toNumber(),
-                VES: summary.totalIncome.VES.toNumber()
-            },
-            totalExpense: {
-                USD: summary.totalExpense.USD.toNumber(),
-                VES: summary.totalExpense.VES.toNumber()
-            },
-            netSavings: {
-                USD: summary.netSavings.USD.toNumber(),
-                VES: summary.netSavings.VES.toNumber()
-            },
-            topExpenseTags
+            ...result,
+            topExpenseTags,
+            userCurrency: defaultCurrency,
+            isDual: userIsDual
         }));
     } catch (error) {
         next(error);
@@ -105,3 +124,4 @@ router.get('/summary', async (req, res, next) => {
 });
 
 module.exports = router;
+

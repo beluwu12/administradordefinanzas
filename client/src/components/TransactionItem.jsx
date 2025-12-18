@@ -54,7 +54,7 @@ export default function TransactionItem({ transaction, onEdit, onDelete, onTagCl
                 className={`relative flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-surface rounded-xl border border-border transition-transform duration-150 ease-out ${swiped ? '-translate-x-20' : 'translate-x-0'}`}
             >
                 <div className="flex items-center space-x-4">
-                    <div className={`p-3 rounded-full ${isIncome ? 'bg-secondary/10 text-secondary' : 'bg-danger/10 text-danger'}`}>
+                    <div className={`p-3 rounded-full ${isIncome ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
                         {simpleView ? (
                             isIncome ? <ArrowUpRight size={20} /> : <ArrowDownRight size={20} />
                         ) : (
@@ -98,7 +98,7 @@ export default function TransactionItem({ transaction, onEdit, onDelete, onTagCl
 
                 <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto">
                     <div className="text-right">
-                        <p className={`font-bold ${isIncome ? 'text-secondary' : 'text-text'}`}>
+                        <p className={`font-bold ${isIncome ? 'text-emerald-600' : 'text-slate-900'}`}>
                             {isIncome ? '+' : '-'} {formatCurrency(transaction.amount, transaction.currency)}
                         </p>
                         {transaction.currency === 'VES' && transaction.exchangeRate && (

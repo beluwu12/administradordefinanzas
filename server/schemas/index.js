@@ -5,16 +5,35 @@
 
 const { z } = require('zod');
 
-// Common validations
+// ═══════════════════════════════════════════════════════════════
+// COMMON VALIDATIONS
+// ═══════════════════════════════════════════════════════════════
+
 const uuid = z.string().uuid('ID debe ser un UUID válido');
 const positiveNumber = z.number().positive('Debe ser un número positivo');
-const currency = z.enum(['USD', 'VES'], { message: 'Moneda debe ser USD o VES' });
-const transactionType = z.enum(['INCOME', 'EXPENSE'], { message: 'Tipo debe ser INCOME o EXPENSE' });
+
+// Multi-currency support
+const currency = z.enum(['USD', 'VES', 'COP', 'CLP', 'MXN', 'ARS'], {
+    message: 'Moneda debe ser USD, VES, COP, CLP, MXN o ARS'
+});
+
+const transactionType = z.enum(['INCOME', 'EXPENSE'], {
+    message: 'Tipo debe ser INCOME o EXPENSE'
+});
+
+// Country enum
+const country = z.enum(['VE', 'CO', 'CL', 'MX', 'AR', 'US'], {
+    message: 'País debe ser VE, CO, CL, MX, AR o US'
+});
+
+// Timezone validation (IANA format)
+const timezone = z.string().min(1).max(50).default('America/Caracas');
 
 // ═══════════════════════════════════════════════════════════════
 // USER SCHEMAS
 // ═══════════════════════════════════════════════════════════════
 
+// Legacy PIN-based auth (deprecated but maintained for compatibility)
 const createUserSchema = z.object({
     firstName: z.string().min(1, 'Nombre es requerido').max(50, 'Nombre muy largo'),
     lastName: z.string().min(1, 'Apellido es requerido').max(50, 'Apellido muy largo'),
@@ -24,6 +43,20 @@ const createUserSchema = z.object({
 const verifyPinSchema = z.object({
     userId: uuid,
     pin: z.string().length(4, 'PIN debe ser de 4 dígitos')
+});
+
+// Email/password auth with multi-country support
+const registerSchema = z.object({
+    email: z.string().email('Email inválido'),
+    password: z.string().min(6, 'Contraseña debe tener al menos 6 caracteres'),
+    firstName: z.string().min(1, 'Nombre es requerido').max(50, 'Nombre muy largo'),
+    lastName: z.string().min(1, 'Apellido es requerido').max(50, 'Apellido muy largo'),
+    country: country.optional().default('VE')
+});
+
+const loginSchema = z.object({
+    email: z.string().email('Email inválido'),
+    password: z.string().min(1, 'Contraseña es requerida')
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -102,6 +135,17 @@ const goalIdParamSchema = z.object({
 });
 
 // ═══════════════════════════════════════════════════════════════
+// PAGINATION & QUERY SCHEMAS
+// ═══════════════════════════════════════════════════════════════
+
+const paginationQuerySchema = z.object({
+    page: z.string().transform(val => Math.max(1, parseInt(val) || 1)).default('1'),
+    limit: z.string().transform(val => Math.min(100, Math.max(1, parseInt(val) || 20))).default('20'),
+    type: transactionType.optional(),
+    search: z.string().max(100).optional()
+});
+
+// ═══════════════════════════════════════════════════════════════
 // VALIDATION MIDDLEWARE FACTORY
 // ═══════════════════════════════════════════════════════════════
 
@@ -127,6 +171,8 @@ module.exports = {
     // User
     createUserSchema,
     verifyPinSchema,
+    registerSchema,
+    loginSchema,
 
     // Transaction
     createTransactionSchema,
@@ -142,10 +188,17 @@ module.exports = {
     createGoalSchema,
     toggleMonthSchema,
 
-    // Params
+    // Params & Queries
     idParamSchema,
     goalIdParamSchema,
+    paginationQuerySchema,
+
+    // Common
+    country,
+    currency,
+    timezone,
 
     // Middleware
     validate
 };
+

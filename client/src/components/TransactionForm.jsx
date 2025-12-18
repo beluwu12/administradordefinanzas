@@ -3,8 +3,14 @@ import api from '../api';
 import { X, Plus } from 'lucide-react';
 import { useTransactionDate } from '../utils/useTransactionDate';
 import { texts } from '../i18n/es';
+import { useAuth } from '../context/AuthContext';
+import { getCountryConfig, isDualCurrency } from '../config/countries';
 
 export default function TransactionForm({ onClose, onSuccess, initialData = null }) {
+    const { user } = useAuth();
+    const countryConfig = getCountryConfig(user?.country || 'VE');
+    const userIsDual = isDualCurrency(user?.country || 'VE');
+
     // 1. SAFE STATE INITIALIZATION
     const [formData, setFormData] = useState(() => {
         const now = new Date();
@@ -14,7 +20,6 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
         let initialDate = defaultDate;
         if (initialData?.date) {
             try {
-                // Try to keep the date, but ensure local ISO string
                 const d = new Date(initialData.date);
                 if (!isNaN(d.getTime())) {
                     d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
@@ -26,7 +31,7 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
         return {
             type: initialData?.type || 'EXPENSE',
             amount: initialData?.amount || '',
-            currency: initialData?.currency || 'USD',
+            currency: initialData?.currency || user?.defaultCurrency || countryConfig.defaultCurrency,
             exchangeRate: initialData?.exchangeRate || '',
             description: initialData?.description || '',
             source: initialData?.source || '',
@@ -179,20 +184,29 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-muted mb-1">Moneda</label>
-                            <select
-                                value={formData.currency}
-                                onChange={e => setFormData({ ...formData, currency: e.target.value })}
-                                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text focus:outline-none focus:ring-2 focus:ring-primary/50"
-                            >
-                                <option value="USD">USD ($)</option>
-                                <option value="VES">VES (Bs.)</option>
-                            </select>
+                            {userIsDual ? (
+                                <select
+                                    value={formData.currency}
+                                    onChange={e => setFormData({ ...formData, currency: e.target.value })}
+                                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                >
+                                    {countryConfig.currencies.map(curr => (
+                                        <option key={curr} value={curr}>
+                                            {curr === 'VES' ? 'VES (Bs.)' : `${curr} ($)`}
+                                        </option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <div className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text">
+                                    {countryConfig.defaultCurrency}
+                                </div>
+                            )}
                         </div>
                     </div>
 
 
 
-                    {formData.currency === 'VES' && (
+                    {userIsDual && formData.currency === 'VES' && (
                         <div>
                             <label className="block text-xs font-medium text-muted mb-1">{texts.transactions.exchangeRate}</label>
                             <input

@@ -1,6 +1,6 @@
 /**
  * Transaction Routes - Income and Expense Management
- * Updated with validation, ownership checks, and standardized responses
+ * Updated with pagination, multi-country balance, and soft delete
  */
 
 const express = require('express');
@@ -8,72 +8,119 @@ const router = express.Router();
 const prisma = require('../db');
 const Decimal = require('decimal.js');
 const { requireAuth, verifyOwnership } = require('../middleware/requireAuth');
+const { enforceCurrency } = require('../middleware/currencyEnforcer');
 const { success, errors } = require('../utils/responseUtils');
-const { createTransactionSchema, updateTransactionSchema, idParamSchema, validate } = require('../schemas');
+const { paginate, withSoftDelete, softDelete } = require('../utils/pagination');
+const { createTransactionSchema, updateTransactionSchema, idParamSchema, paginationQuerySchema, validate } = require('../schemas');
+const { isDualCurrency } = require('../config/countries');
+const { getLatestRate } = require('../services/bcvScraper');
 
 // All transaction routes require authentication
 router.use(requireAuth);
 
 /**
- * GET /api/transactions - List all transactions for user
- * Supports query params: type, limit, offset
+ * GET /api/transactions - List all transactions with pagination
+ * Query params: page, limit, type, search
  */
-router.get('/', async (req, res, next) => {
+router.get('/', validate(paginationQuerySchema, 'query'), async (req, res, next) => {
     try {
-        const { type, limit = 50, offset = 0 } = req.query;
+        const { page, limit, type, search } = req.query;
 
-        const where = { userId: req.userId };
-        if (type && ['INCOME', 'EXPENSE'].includes(type)) {
+        // Build where clause with soft delete filter
+        const where = withSoftDelete({ userId: req.userId });
+
+        if (type) {
             where.type = type;
         }
 
-        const transactions = await prisma.transaction.findMany({
-            where,
-            include: {
-                tags: {
-                    select: { id: true, name: true, color: true }
-                }
-            },
+        if (search) {
+            where.description = { contains: search, mode: 'insensitive' };
+        }
+
+        const result = await paginate(prisma.transaction, where, {
+            page,
+            limit,
             orderBy: { date: 'desc' },
-            take: parseInt(limit),
-            skip: parseInt(offset)
+            include: {
+                tags: { select: { id: true, name: true, color: true } }
+            }
         });
 
-        res.json(success(transactions));
+        res.json({
+            success: true,
+            data: result.data,
+            pagination: result.pagination
+        });
     } catch (error) {
         next(error);
     }
 });
 
 /**
- * GET /api/transactions/balance - Get balance summary
- * Returns: { USD: number, VES: number }
+ * GET /api/transactions/balance - Get balance summary (polymorphic)
+ * VE users: { isDual: true, primary: USD, secondary: VES, exchangeRate }
+ * Other users: { isDual: false, primary: localCurrency }
  */
 router.get('/balance', async (req, res, next) => {
     try {
+        const user = req.user;
+        const userIsDual = isDualCurrency(user.country);
+
         const transactions = await prisma.transaction.findMany({
-            where: { userId: req.userId },
+            where: withSoftDelete({ userId: req.userId }),
             select: { amount: true, currency: true, type: true }
         });
 
-        // Use decimal.js for precise calculations
-        const balance = { USD: new Decimal(0), VES: new Decimal(0) };
+        // Calculate balance per currency
+        const balances = {};
 
         transactions.forEach(tx => {
             const amount = new Decimal(tx.amount);
-            const currency = tx.currency || 'USD';
+            const currency = tx.currency || user.defaultCurrency;
+
+            if (!balances[currency]) {
+                balances[currency] = new Decimal(0);
+            }
 
             if (tx.type === 'INCOME') {
-                balance[currency] = balance[currency].plus(amount);
+                balances[currency] = balances[currency].plus(amount);
             } else if (tx.type === 'EXPENSE') {
-                balance[currency] = balance[currency].minus(amount);
+                balances[currency] = balances[currency].minus(amount);
             }
         });
 
-        res.json(success({
-            USD: balance.USD.toNumber(),
-            VES: balance.VES.toNumber()
-        }));
+        // Format response based on country
+        if (userIsDual) {
+            // Venezuela: Dual currency response
+            const rateData = await getLatestRate();
+            const exchangeRate = rateData?.rate || null;
+
+            res.json(success({
+                isDual: true,
+                primary: {
+                    currency: 'USD',
+                    amount: (balances['USD'] || new Decimal(0)).toNumber()
+                },
+                secondary: {
+                    currency: 'VES',
+                    amount: (balances['VES'] || new Decimal(0)).toNumber()
+                },
+                exchangeRate
+            }));
+        } else {
+            // International: Single currency response
+            const primaryCurrency = user.defaultCurrency;
+
+            res.json(success({
+                isDual: false,
+                primary: {
+                    currency: primaryCurrency,
+                    amount: (balances[primaryCurrency] || new Decimal(0)).toNumber()
+                },
+                secondary: null,
+                exchangeRate: null
+            }));
+        }
     } catch (error) {
         next(error);
     }
@@ -82,48 +129,49 @@ router.get('/balance', async (req, res, next) => {
 /**
  * POST /api/transactions - Create new transaction
  */
-router.post('/', validate(createTransactionSchema), async (req, res, next) => {
-    try {
-        const { amount, currency, type, description, source, date, exchangeRate, tags } = req.body;
+router.post('/',
+    validate(createTransactionSchema),
+    enforceCurrency,
+    async (req, res, next) => {
+        try {
+            const { amount, currency, type, description, source, date, exchangeRate, tags } = req.body;
 
-        // If tags provided, verify they belong to user (deep ownership check)
-        if (tags && tags.length > 0) {
-            const userTags = await prisma.tag.findMany({
-                where: {
-                    id: { in: tags },
-                    userId: req.userId
+            // If tags provided, verify they belong to user
+            if (tags && tags.length > 0) {
+                const userTags = await prisma.tag.findMany({
+                    where: { id: { in: tags }, userId: req.userId },
+                    select: { id: true }
+                });
+
+                if (userTags.length !== tags.length) {
+                    const errResponse = errors.validation('Una o más etiquetas no existen o no te pertenecen');
+                    return res.status(errResponse.status).json(errResponse);
+                }
+            }
+
+            const transaction = await prisma.transaction.create({
+                data: {
+                    amount: parseFloat(amount),
+                    currency: currency || req.user.defaultCurrency,
+                    type,
+                    description: description.trim(),
+                    source: source?.trim() || null,
+                    date: date ? new Date(date) : new Date(),
+                    exchangeRate: exchangeRate || null,
+                    userId: req.userId,
+                    tags: tags?.length > 0 ? { connect: tags.map(id => ({ id })) } : undefined
                 },
-                select: { id: true }
+                include: {
+                    tags: { select: { id: true, name: true, color: true } }
+                }
             });
 
-            if (userTags.length !== tags.length) {
-                const errResponse = errors.validation('Una o más etiquetas no existen o no te pertenecen');
-                return res.status(errResponse.status).json(errResponse);
-            }
+            res.status(201).json(success(transaction, 'Transacción creada'));
+        } catch (error) {
+            next(error);
         }
-
-        const transaction = await prisma.transaction.create({
-            data: {
-                amount: parseFloat(amount),
-                currency: currency || 'USD',
-                type,
-                description: description.trim(),
-                source: source?.trim() || null,
-                date: date ? new Date(date) : new Date(),
-                exchangeRate: exchangeRate || null,
-                userId: req.userId,
-                tags: tags?.length > 0 ? { connect: tags.map(id => ({ id })) } : undefined
-            },
-            include: {
-                tags: { select: { id: true, name: true, color: true } }
-            }
-        });
-
-        res.status(201).json(success(transaction, 'Transacción creada'));
-    } catch (error) {
-        next(error);
     }
-});
+);
 
 /**
  * PUT /api/transactions/:id - Update transaction
@@ -131,17 +179,18 @@ router.post('/', validate(createTransactionSchema), async (req, res, next) => {
 router.put('/:id',
     validate(idParamSchema, 'params'),
     validate(updateTransactionSchema),
+    enforceCurrency,
     async (req, res, next) => {
         try {
             const { id } = req.params;
 
-            // Check ownership
+            // Check ownership (include soft-deleted check)
             const existing = await prisma.transaction.findUnique({
                 where: { id },
-                select: { userId: true }
+                select: { userId: true, deletedAt: true }
             });
 
-            if (!existing) {
+            if (!existing || existing.deletedAt) {
                 const errResponse = errors.notFound('Transacción');
                 return res.status(errResponse.status).json(errResponse);
             }
@@ -153,7 +202,6 @@ router.put('/:id',
 
             const { amount, currency, type, description, source, date, exchangeRate, tags } = req.body;
 
-            // Build update data (only include provided fields)
             const updateData = {};
             if (amount !== undefined) updateData.amount = parseFloat(amount);
             if (currency !== undefined) updateData.currency = currency;
@@ -163,9 +211,7 @@ router.put('/:id',
             if (date !== undefined) updateData.date = new Date(date);
             if (exchangeRate !== undefined) updateData.exchangeRate = exchangeRate;
 
-            // Handle tags update
             if (tags !== undefined) {
-                // Verify tag ownership
                 if (tags.length > 0) {
                     const userTags = await prisma.tag.findMany({
                         where: { id: { in: tags }, userId: req.userId },
@@ -195,7 +241,7 @@ router.put('/:id',
 );
 
 /**
- * DELETE /api/transactions/:id - Delete transaction
+ * DELETE /api/transactions/:id - Soft delete transaction
  */
 router.delete('/:id',
     validate(idParamSchema, 'params'),
@@ -203,13 +249,12 @@ router.delete('/:id',
         try {
             const { id } = req.params;
 
-            // Check ownership
             const existing = await prisma.transaction.findUnique({
                 where: { id },
-                select: { userId: true }
+                select: { userId: true, deletedAt: true }
             });
 
-            if (!existing) {
+            if (!existing || existing.deletedAt) {
                 const errResponse = errors.notFound('Transacción');
                 return res.status(errResponse.status).json(errResponse);
             }
@@ -219,7 +264,9 @@ router.delete('/:id',
                 return res.status(errResponse.status).json(errResponse);
             }
 
-            await prisma.transaction.delete({ where: { id } });
+            // Soft delete instead of hard delete
+            await softDelete(prisma.transaction, id);
+
             res.json(success({ id }, 'Transacción eliminada'));
         } catch (error) {
             next(error);
@@ -228,3 +275,4 @@ router.delete('/:id',
 );
 
 module.exports = router;
+

@@ -100,11 +100,6 @@
     @apply bg-blue-50 text-primary border-l-4 border-primary;
   }
 
-  /* Legacy compatibility */
-  .bg-surface {
-    @apply bg-card;
-  }
-
   /* Buttons - Solid Classic Blue */
   .btn-primary-draft {
     @apply bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium;

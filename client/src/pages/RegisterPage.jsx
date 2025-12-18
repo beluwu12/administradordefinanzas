@@ -2,15 +2,18 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
-import { UserPlus, Mail, Lock, User, ArrowRight } from 'lucide-react';
-import { texts } from '../i18n/es';
+import { UserPlus, Mail, Lock, User, ArrowRight, Globe } from 'lucide-react';
+import { getCountryOptions } from '../config/countries';
 
 export default function RegisterPage() {
+    const countryOptions = getCountryOptions();
+
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
         email: '',
-        password: ''
+        password: '',
+        country: 'VE' // Default to Venezuela
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -28,7 +31,6 @@ export default function RegisterPage() {
 
         try {
             const res = await api.post('/auth/register', formData);
-            // api.js interceptor unwraps successful responses, so res.data IS the data object
             const data = res.data;
             if (data && data.token) {
                 login(data, data.token);
@@ -40,7 +42,6 @@ export default function RegisterPage() {
             setLoading(false);
         }
     };
-
 
     return (
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -62,7 +63,7 @@ export default function RegisterPage() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-textSecondary ml-1">Nombre</label>
+                            <label className="text-sm font-medium text-muted ml-1">Nombre</label>
                             <div className="relative">
                                 <User className="absolute left-4 top-3.5 text-muted" size={20} />
                                 <input
@@ -76,7 +77,7 @@ export default function RegisterPage() {
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-textSecondary ml-1">Apellido</label>
+                            <label className="text-sm font-medium text-muted ml-1">Apellido</label>
                             <div className="relative">
                                 <input
                                     name="lastName"
@@ -90,8 +91,32 @@ export default function RegisterPage() {
                         </div>
                     </div>
 
+                    {/* Country Selector */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-textSecondary ml-1">Email</label>
+                        <label className="text-sm font-medium text-muted ml-1">País</label>
+                        <div className="relative">
+                            <Globe className="absolute left-4 top-3.5 text-muted" size={20} />
+                            <select
+                                name="country"
+                                value={formData.country}
+                                onChange={handleChange}
+                                className="w-full bg-background border border-border rounded-xl py-3 pl-12 pr-4 text-text focus:outline-none focus:border-primary transition-colors appearance-none cursor-pointer"
+                                required
+                            >
+                                {countryOptions.map(({ value, label }) => (
+                                    <option key={value} value={value}>{label}</option>
+                                ))}
+                            </select>
+                            <div className="absolute right-4 top-3.5 pointer-events-none">
+                                <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-muted ml-1">Email</label>
                         <div className="relative">
                             <Mail className="absolute left-4 top-3.5 text-muted" size={20} />
                             <input
@@ -107,7 +132,7 @@ export default function RegisterPage() {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-textSecondary ml-1">Contraseña</label>
+                        <label className="text-sm font-medium text-muted ml-1">Contraseña</label>
                         <div className="relative">
                             <Lock className="absolute left-4 top-3.5 text-muted" size={20} />
                             <input
@@ -145,3 +170,4 @@ export default function RegisterPage() {
         </div>
     );
 }
+

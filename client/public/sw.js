@@ -25,6 +25,8 @@ self.addEventListener('fetch', (event) => {
     }
 
     // Configuración "Stale-While-Revalidate" para assets estáticos
+    if (!event.request.url.startsWith('http')) return;
+
     event.respondWith(
         caches.match(event.request)
             .then((cached) => {
