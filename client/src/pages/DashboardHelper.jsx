@@ -62,12 +62,12 @@ const DashboardHelper = () => {
         fetchData();
     }, []);
 
-    const totalInVES = rate ? (balance.VES + (balance.USD * rate)) : balance.VES;
+    const totalInVES = rate ? ((balance.VES || 0) + ((balance.USD || 0) * rate)) : (balance.VES || 0);
 
     // Prepare Pie Chart Data
     const pieData = [
-        { label: 'USD', value: rate ? balance.USD * rate : 0, color: '#2563eb' }, // blue-600
-        { label: 'Bolívares', value: balance.VES, color: '#16a34a' } // green-600
+        { label: 'USD', value: rate ? (balance.USD || 0) * rate : 0, color: '#2563eb' }, // blue-600
+        { label: 'Bolívares', value: balance.VES || 0, color: '#16a34a' } // green-600
     ].filter(d => d.value > 0);
 
     const pieDataDual = pieData; // Alias for code compatibility
