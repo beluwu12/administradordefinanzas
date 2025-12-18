@@ -2,11 +2,14 @@ import React, { useEffect, useState } from 'react';
 import api from '../api';
 import TransactionForm from '../components/TransactionForm';
 import TransactionItem from '../components/TransactionItem';
+import Pagination from '../components/common/Pagination';
 import { useLocation } from 'react-router-dom';
 import { texts } from '../i18n/es';
 
 export default function TransactionsPage() {
     const [transactions, setTransactions] = useState([]);
+    const [pagination, setPagination] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
     const [loading, setLoading] = useState(true);
     const [editingTx, setEditingTx] = useState(null);
     const [showForm, setShowForm] = useState(false);
@@ -16,13 +19,18 @@ export default function TransactionsPage() {
         if (location.state?.openForm) {
             setShowForm(true);
         }
-        fetchTransactions();
     }, [location.state]);
 
-    const fetchTransactions = async () => {
+    useEffect(() => {
+        fetchTransactions(currentPage);
+    }, [currentPage]);
+
+    const fetchTransactions = async (page = 1) => {
+        setLoading(true);
         try {
-            const res = await api.get('/transactions');
+            const res = await api.get(`/transactions?page=${page}&limit=10`);
             setTransactions(res.data || []);
+            setPagination(res.pagination || null);
         } catch (error) {
             console.error("Error fetching transactions", error);
         } finally {
@@ -30,11 +38,15 @@ export default function TransactionsPage() {
         }
     };
 
+    const handlePageChange = (newPage) => {
+        setCurrentPage(newPage);
+    };
+
     const handleDelete = async (id) => {
         if (!window.confirm(texts.transactions.confirmDelete)) return;
         try {
             await api.delete(`/transactions/${id}`);
-            fetchTransactions();
+            fetchTransactions(currentPage);
         } catch (err) {
             alert(err.message || texts.common.error);
         }
@@ -82,13 +94,20 @@ export default function TransactionsPage() {
                 )}
             </div>
 
+            {pagination && (
+                <Pagination
+                    pagination={pagination}
+                    onPageChange={handlePageChange}
+                />
+            )}
+
             {showForm && (
                 <TransactionForm
                     initialData={editingTx}
                     onClose={handleFormClose}
                     onSuccess={() => {
                         handleFormClose();
-                        fetchTransactions();
+                        fetchTransactions(currentPage);
                     }}
                 />
             )}

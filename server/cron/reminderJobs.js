@@ -87,6 +87,66 @@ const initCronJobs = () => {
             }
         }
     });
+
+    // 3. Fixed Expense Reminders (Daily at 09:00 AM)
+    // Sends reminders 5, 3, and 1 day before due date
+    cron.schedule('0 9 * * *', async () => {
+        console.log('Running Fixed Expense Reminder Job');
+        const today = new Date();
+        const currentDay = today.getDate();
+
+        // Get all users with fixed expenses
+        const users = await prisma.user.findMany({
+            include: {
+                fixedExpenses: {
+                    where: { isActive: true }
+                }
+            }
+        });
+
+        for (const user of users) {
+            for (const expense of user.fixedExpenses) {
+                const dueDay = expense.dueDay;
+
+                // Calculate days until due
+                let daysUntilDue;
+                if (dueDay >= currentDay) {
+                    daysUntilDue = dueDay - currentDay;
+                } else {
+                    // Due day is next month
+                    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+                    daysUntilDue = (daysInMonth - currentDay) + dueDay;
+                }
+
+                // Check if we should notify (5, 3, or 1 day before)
+                const remindDays = [5, 3, 1];
+                if (remindDays.includes(daysUntilDue)) {
+                    // Check if we already sent this notification today
+                    const existingNotification = await prisma.notification.findFirst({
+                        where: {
+                            userId: user.id,
+                            title: { contains: expense.description },
+                            createdAt: {
+                                gte: new Date(today.setHours(0, 0, 0, 0))
+                            }
+                        }
+                    });
+
+                    if (!existingNotification) {
+                        const urgency = daysUntilDue === 1 ? '🔴' : daysUntilDue === 3 ? '🟡' : '🔵';
+                        const dayText = daysUntilDue === 1 ? 'mañana' : `en ${daysUntilDue} días`;
+
+                        await sendPushToUser(
+                            user.id,
+                            `${urgency} Recordatorio: ${expense.description}`,
+                            `Vence ${dayText}. Monto: ${expense.amount} ${expense.currency}`,
+                            "/budget"
+                        );
+                    }
+                }
+            }
+        }
+    });
 };
 
 module.exports = { initCronJobs };
