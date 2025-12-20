@@ -3,6 +3,11 @@ const router = express.Router();
 const prisma = require('../db');
 const webpush = require('web-push');
 const z = require('zod');
+const rateLimit = require('express-rate-limit');
+const { requireAuth } = require('../middleware/requireAuth');
+
+// Apply requireAuth to ALL routes in this file
+router.use(requireAuth);
 
 // Configure web-push
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
@@ -13,20 +18,28 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
     );
 }
 
-// Validation schemas
+// Rate limiting for subscription endpoint (prevent spam)
+const subscribeLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // Max 5 subscriptions per 15 min
+    message: { success: false, error: 'Too many subscription attempts. Try again later.' }
+});
+
+// Validation schemas with stricter endpoint validation
 const subscribeSchema = z.object({
-    endpoint: z.string(),
+    endpoint: z.string().url().refine(url => url.startsWith('https://'), {
+        message: 'Endpoint must use HTTPS'
+    }),
     keys: z.object({
-        p256dh: z.string(),
-        auth: z.string()
+        p256dh: z.string().min(1),
+        auth: z.string().min(1)
     })
 });
 
 // GET /api/notifications - List user notifications
 router.get('/', async (req, res) => {
     try {
-        const userId = req.headers['x-user-id']; // Middleware should set this, but using header for now if not authenticated properly yet
-        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+        const userId = req.userId; // From requireAuth middleware
 
         const notifications = await prisma.notification.findMany({
             where: { userId },
@@ -44,7 +57,7 @@ router.get('/', async (req, res) => {
 // PATCH /api/notifications/:id/read - Mark as read
 router.patch('/:id/read', async (req, res) => {
     try {
-        const userId = req.headers['x-user-id'];
+        const userId = req.userId;
         const { id } = req.params;
 
         await prisma.notification.updateMany({
@@ -58,15 +71,18 @@ router.patch('/:id/read', async (req, res) => {
     }
 });
 
-// POST /api/notifications/subscribe - Subscribe to push
-router.post('/subscribe', async (req, res) => {
+// POST /api/notifications/subscribe - Subscribe to push (with rate limiting)
+router.post('/subscribe', subscribeLimiter, async (req, res) => {
     try {
-        const userId = req.headers['x-user-id'];
-        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+        const userId = req.userId;
 
         const validation = subscribeSchema.safeParse(req.body);
         if (!validation.success) {
-            return res.status(400).json({ error: validation.error.errors });
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid subscription data',
+                details: validation.error.errors
+            });
         }
 
         const { endpoint, keys } = validation.data;
@@ -99,8 +115,7 @@ router.post('/subscribe', async (req, res) => {
 
 // TEST ENDPOINT: Send push to self
 router.post('/test', async (req, res) => {
-    const userId = req.headers['x-user-id'];
-    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    const userId = req.userId;
 
     try {
         // Create notification in DB
@@ -146,3 +161,4 @@ router.post('/test', async (req, res) => {
 });
 
 module.exports = router;
+

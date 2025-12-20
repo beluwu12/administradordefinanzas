@@ -40,10 +40,11 @@ const initCronJobs = () => {
     // 1. Quincena Reminder (1st and 15th at 08:00 AM)
     // "0 8 1,15 * *"
     cron.schedule('0 8 1,15 * *', async () => {
-        console.log('Running Quincena Reminder Job');
+        console.log('[Cron] Running Quincena Reminder Job');
         const users = await prisma.user.findMany({ include: { goals: true } });
 
         for (const user of users) {
+            console.log(`[Cron] Processing quincena reminder for user ${user.id}`);
             const monthlyGoal = user.goals.find(g => g.title === "Meta Mensual" || g.description?.includes("mensual"));
             let message = "¡Hoy es día de quincena! Recuerda registrar tus ingresos y ahorros.";
 

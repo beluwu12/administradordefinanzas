@@ -15,16 +15,12 @@ export const AuthProvider = ({ children }) => {
         const storedUser = localStorage.getItem('finance_user');
         const token = localStorage.getItem('finance_token');
 
-        if (storedUser) {
+        if (storedUser && token) {
             try {
                 const parsedUser = JSON.parse(storedUser);
                 setUser(parsedUser);
-                // Always set x-user-id for backend auth
-                axios.defaults.headers.common['x-user-id'] = parsedUser.id;
-                // Also set token if available
-                if (token) {
-                    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-                }
+                // Set JWT authorization header
+                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             } catch (e) {
                 console.error("Error parsing stored user", e);
                 localStorage.removeItem('finance_user');
@@ -38,11 +34,9 @@ export const AuthProvider = ({ children }) => {
         setUser(userData);
         localStorage.setItem('finance_user', JSON.stringify(userData));
 
-        // Always set x-user-id header (required by backend)
-        axios.defaults.headers.common['x-user-id'] = userData.id;
-
         if (token) {
             localStorage.setItem('finance_token', token);
+            // Set JWT authorization header
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         }
     };
@@ -52,7 +46,6 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('finance_user');
         localStorage.removeItem('finance_token');
         delete axios.defaults.headers.common['Authorization'];
-        delete axios.defaults.headers.common['x-user-id'];
     };
 
     const value = {
@@ -68,3 +61,4 @@ export const AuthProvider = ({ children }) => {
         </AuthContext.Provider>
     );
 };
+

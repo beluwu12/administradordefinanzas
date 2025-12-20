@@ -30,23 +30,23 @@
 
     --muted: 210 40% 96%;
     /* slate-100 background */
-    --muted-foreground: 215 19% 35%;
-    /* slate-600: #475569 - readable gray */
+    --muted-foreground: 215 25% 30%;
+    /* Improved contrast: darker gray for WCAG AA compliance */
 
     --accent: 207 90% 28%;
     /* Classic Blue */
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
-    /* Red for danger */
+    --destructive: 0 72% 51%;
+    /* Slightly darker red for better contrast */
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 76% 36%;
-    /* Green for income */
+    --success: 142 76% 32%;
+    /* Slightly darker green for better contrast */
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
-    /* Amber for warnings */
+    --warning: 38 92% 45%;
+    /* Slightly darker amber for better contrast */
     --warning-foreground: 0 0% 0%;
 
     --border: 214 32% 91%;
@@ -60,6 +60,12 @@
 
     --radius: 0.5rem;
     /* rounded-lg */
+    
+    /* Safe area insets for iOS */
+    --safe-area-inset-top: env(safe-area-inset-top, 0px);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-inset-left: env(safe-area-inset-left, 0px);
+    --safe-area-inset-right: env(safe-area-inset-right, 0px);
   }
 
   * {
@@ -68,6 +74,16 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    padding-bottom: var(--safe-area-inset-bottom);
+  }
+  
+  /* Improved focus states for accessibility */
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  a:focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
   }
 }
 

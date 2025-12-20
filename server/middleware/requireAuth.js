@@ -30,21 +30,6 @@ const requireAuth = async (req, res, next) => {
         // Extract token from header
         const authHeader = req.headers['authorization'];
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            // Fallback: Check for legacy x-user-id header (for backward compatibility during transition)
-            const legacyUserId = req.headers['x-user-id'];
-            if (legacyUserId) {
-                console.warn('[Auth] Using legacy x-user-id header - please migrate to JWT');
-                const user = await prisma.user.findUnique({
-                    where: { id: legacyUserId },
-                    select: { id: true, firstName: true, lastName: true, country: true, defaultCurrency: true, timezone: true }
-                });
-                if (user) {
-                    req.user = user;
-                    req.userId = user.id;
-                    return next();
-                }
-            }
-
             const errResponse = errors.missingToken();
             return res.status(errResponse.status).json(errResponse);
         }

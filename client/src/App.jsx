@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { TagsProvider } from './context/TagsContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import MainLayout from './components/layout/MainLayout';
 import DashboardHelper from './pages/DashboardHelper';
@@ -25,32 +26,35 @@ function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <Router>
-          <Routes>
-            {/* Public Auth Routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
+        <TagsProvider>
+          <Router>
+            <Routes>
+              {/* Public Auth Routes */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
 
-            {/* Protected App Routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route element={<MainLayout><Outlet /></MainLayout>}>
-                <Route path="/" element={<DashboardHelper />} />
-                <Route path="/transactions" element={<TransactionsPage />} />
-                <Route path="/tags" element={<TagsPage />} />
-                <Route path="/budget" element={<BudgetPage />} />
-                <Route path="/goals" element={<GoalsPage />} />
-                <Route path="/goals/:id" element={<GoalDetailPage />} />
+              {/* Protected App Routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route element={<MainLayout><Outlet /></MainLayout>}>
+                  <Route path="/" element={<DashboardHelper />} />
+                  <Route path="/transactions" element={<TransactionsPage />} />
+                  <Route path="/tags" element={<TagsPage />} />
+                  <Route path="/budget" element={<BudgetPage />} />
+                  <Route path="/goals" element={<GoalsPage />} />
+                  <Route path="/goals/:id" element={<GoalDetailPage />} />
+                </Route>
               </Route>
-            </Route>
 
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </Router>
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          </Router>
+        </TagsProvider>
       </AuthProvider>
     </ErrorBoundary>
   );
 }
 
 export default App;
+
 

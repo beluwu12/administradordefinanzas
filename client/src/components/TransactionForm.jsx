@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Loader2 } from 'lucide-react';
 import { useTransactionDate } from '../utils/useTransactionDate';
 import { texts } from '../i18n/es';
 import { useAuth } from '../context/AuthContext';
+import { useTags } from '../context/TagsContext';
 import { getCountryConfig, isDualCurrency } from '../config/countries';
 
 export default function TransactionForm({ onClose, onSuccess, initialData = null }) {
     const { user } = useAuth();
+    const { tags: availableTags, addTag } = useTags(); // Use cached tags from context
     const countryConfig = getCountryConfig(user?.country || 'VE');
     const userIsDual = isDualCurrency(user?.country || 'VE');
+
+    // Loading state for form submission
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // 1. SAFE STATE INITIALIZATION
     const [formData, setFormData] = useState(() => {
@@ -40,7 +45,6 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
         };
     });
 
-    const [availableTags, setAvailableTags] = useState([]);
     const [newTag, setNewTag] = useState('');
     const [showTagInput, setShowTagInput] = useState(false);
     const [error, setError] = useState(null);
@@ -50,25 +54,6 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
         formData.date,
         (newDate) => setFormData(prev => ({ ...prev, date: newDate }))
     );
-
-    const fetchTags = async () => {
-        try {
-            const res = await api.get('/tags');
-            const data = res.data || [];
-            if (Array.isArray(data)) {
-                setAvailableTags(data);
-            } else {
-                setAvailableTags([]);
-            }
-        } catch (error) {
-            console.error('Error fetching tags', error);
-            setAvailableTags([]);
-        }
-    };
-
-    useEffect(() => {
-        fetchTags();
-    }, []);
 
     // Auto-fetch Rate Effect
     useEffect(() => {
@@ -91,7 +76,11 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
+
         setError(null);
+        setIsSubmitting(true);
+
         try {
             const payload = {
                 ...formData,
@@ -109,6 +98,8 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
         } catch (error) {
             console.error(error);
             setError(error.message || texts.common.error);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -117,7 +108,7 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
         try {
             const res = await api.post('/tags', { name: newTag, color: 'blue' });
             const newTagData = res.data;
-            setAvailableTags(prev => [...prev, newTagData]);
+            addTag(newTagData); // Update cached tags in context
             setFormData(prev => ({ ...prev, tags: [...prev.tags, newTagData.id] }));
             setNewTag('');
             setShowTagInput(false);
@@ -137,24 +128,41 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
     };
 
     return (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-surface border border-border w-full max-w-lg rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+        <div
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="transaction-form-title"
+        >
+            <div className="bg-surface border border-border w-full max-w-sm sm:max-w-md md:max-w-lg rounded-2xl shadow-2xl flex flex-col max-h-[95vh] sm:max-h-[90vh]">
                 {/* Header */}
-                <div className="p-6 border-b border-border flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-text">{initialData ? texts.transactions.editTitle : texts.transactions.addTitle}</h2>
-                    <button onClick={onClose} className="text-muted hover:text-text transition-colors">
+                <div className="p-4 sm:p-6 border-b border-border flex justify-between items-center">
+                    <h2 id="transaction-form-title" className="text-lg sm:text-xl font-bold text-text">
+                        {initialData ? texts.transactions.editTitle : texts.transactions.addTitle}
+                    </h2>
+                    <button
+                        onClick={onClose}
+                        className="text-muted hover:text-text transition-colors p-1"
+                        aria-label="Cerrar formulario"
+                    >
                         <X size={24} />
                     </button>
                 </div>
 
                 {/* Body */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
-                    {error && <div className="bg-danger/10 text-danger p-3 rounded text-sm">{error}</div>}
+                <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto">
+                    {error && (
+                        <div className="bg-danger/10 text-danger p-3 rounded text-sm" role="alert">
+                            {error}
+                        </div>
+                    )}
 
                     {/* Type Toggle */}
-                    <div className="grid grid-cols-2 gap-2 bg-background p-1 rounded-lg border border-border">
+                    <div className="grid grid-cols-2 gap-2 bg-background p-1 rounded-lg border border-border" role="radiogroup" aria-label="Tipo de transacción">
                         <button
                             type="button"
+                            role="radio"
+                            aria-checked={formData.type === 'INCOME'}
                             onClick={() => setFormData({ ...formData, type: 'INCOME' })}
                             className={`py-2 rounded-md text-sm font-medium transition-all ${formData.type === 'INCOME' ? 'bg-secondary/20 text-secondary' : 'text-muted hover:text-text'
                                 }`}
@@ -163,6 +171,8 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
                         </button>
                         <button
                             type="button"
+                            role="radio"
+                            aria-checked={formData.type === 'EXPENSE'}
                             onClick={() => setFormData({ ...formData, type: 'EXPENSE' })}
                             className={`py-2 rounded-md text-sm font-medium transition-all ${formData.type === 'EXPENSE' ? 'bg-danger/20 text-danger' : 'text-muted hover:text-text'
                                 }`}
@@ -171,11 +181,17 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
                         </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-xs font-medium text-muted mb-1">{texts.transactions.amount}</label>
+                            <label htmlFor="amount" className="block text-xs font-medium text-muted mb-1">
+                                {texts.transactions.amount}
+                            </label>
                             <input
-                                type="number" step="0.01" required
+                                id="amount"
+                                type="number"
+                                step="0.01"
+                                required
+                                aria-required="true"
                                 value={formData.amount}
                                 onChange={e => setFormData({ ...formData, amount: e.target.value })}
                                 className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -183,9 +199,10 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-muted mb-1">Moneda</label>
+                            <label htmlFor="currency" className="block text-xs font-medium text-muted mb-1">Moneda</label>
                             {userIsDual ? (
                                 <select
+                                    id="currency"
                                     value={formData.currency}
                                     onChange={e => setFormData({ ...formData, currency: e.target.value })}
                                     className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -204,13 +221,15 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
                         </div>
                     </div>
 
-
-
                     {userIsDual && formData.currency === 'VES' && (
                         <div>
-                            <label className="block text-xs font-medium text-muted mb-1">{texts.transactions.exchangeRate}</label>
+                            <label htmlFor="exchangeRate" className="block text-xs font-medium text-muted mb-1">
+                                {texts.transactions.exchangeRate}
+                            </label>
                             <input
-                                type="number" step="0.01"
+                                id="exchangeRate"
+                                type="number"
+                                step="0.01"
                                 value={formData.exchangeRate}
                                 onChange={e => setFormData({ ...formData, exchangeRate: e.target.value })}
                                 className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -220,9 +239,14 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
                     )}
 
                     <div>
-                        <label className="block text-xs font-medium text-muted mb-1">{texts.transactions.description}</label>
+                        <label htmlFor="description" className="block text-xs font-medium text-muted mb-1">
+                            {texts.transactions.description}
+                        </label>
                         <input
-                            type="text" required
+                            id="description"
+                            type="text"
+                            required
+                            aria-required="true"
                             value={formData.description}
                             onChange={e => setFormData({ ...formData, description: e.target.value })}
                             className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -231,8 +255,11 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
                     </div>
 
                     <div>
-                        <label className="block text-xs font-medium text-muted mb-1">{texts.transactions.source}</label>
+                        <label htmlFor="source" className="block text-xs font-medium text-muted mb-1">
+                            {texts.transactions.source}
+                        </label>
                         <input
+                            id="source"
                             type="text"
                             value={formData.source}
                             onChange={e => setFormData({ ...formData, source: e.target.value })}
@@ -242,46 +269,55 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
                     </div>
 
                     <div>
-                        <label className="block text-xs font-medium text-muted mb-1">{texts.transactions.date}</label>
+                        <label htmlFor="date" className="block text-xs font-medium text-muted mb-1">
+                            {texts.transactions.date}
+                        </label>
                         <div className="bg-background border border-border rounded-lg p-3">
                             <div className="flex flex-col gap-2">
                                 <div className="flex-1">
                                     <input
+                                        id="date"
                                         type="date"
                                         value={datePart}
                                         onChange={e => setDatePart(e.target.value)}
                                         className="w-full bg-surface border border-border rounded-md px-2 py-1.5 text-sm text-text"
+                                        aria-label="Fecha de la transacción"
                                     />
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 flex-wrap">
                                     <div className="flex items-center bg-surface border border-border rounded-md">
                                         <input
                                             type="number" min="1" max="12"
                                             value={hours12}
                                             onChange={e => updateTime('hour', e.target.value)}
-                                            className="w-12 bg-transparent text-center py-1.5 text-sm text-text focus:outline-none"
+                                            className="w-10 sm:w-12 bg-transparent text-center py-1.5 text-sm text-text focus:outline-none"
                                             placeholder="HH"
+                                            aria-label="Hora"
                                         />
                                         <span className="text-muted">:</span>
                                         <input
                                             type="number" min="0" max="59"
                                             value={minutes}
                                             onChange={e => updateTime('minute', e.target.value)}
-                                            className="w-12 bg-transparent text-center py-1.5 text-sm text-text focus:outline-none"
+                                            className="w-10 sm:w-12 bg-transparent text-center py-1.5 text-sm text-text focus:outline-none"
                                             placeholder="MM"
+                                            aria-label="Minutos"
                                         />
                                         <span className="text-muted">:</span>
                                         <input
                                             type="number" min="0" max="59"
                                             value={seconds}
                                             onChange={e => updateTime('second', e.target.value)}
-                                            className="w-12 bg-transparent text-center py-1.5 text-sm text-text focus:outline-none"
+                                            className="w-10 sm:w-12 bg-transparent text-center py-1.5 text-sm text-text focus:outline-none"
                                             placeholder="SS"
+                                            aria-label="Segundos"
                                         />
                                     </div>
-                                    <div className="flex bg-surface border border-border rounded-md overflow-hidden shrink-0">
+                                    <div className="flex bg-surface border border-border rounded-md overflow-hidden shrink-0" role="radiogroup" aria-label="AM/PM">
                                         <button
                                             type="button"
+                                            role="radio"
+                                            aria-checked={ampm === 'AM'}
                                             onClick={() => updateTime('ampm', 'AM')}
                                             className={`px-3 py-1.5 text-xs font-bold transition-colors ${ampm === 'AM' ? 'bg-primary text-white' : 'text-muted hover:text-text'}`}
                                         >
@@ -289,6 +325,8 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
                                         </button>
                                         <button
                                             type="button"
+                                            role="radio"
+                                            aria-checked={ampm === 'PM'}
                                             onClick={() => updateTime('ampm', 'PM')}
                                             className={`px-3 py-1.5 text-xs font-bold transition-colors ${ampm === 'PM' ? 'bg-primary text-white' : 'text-muted hover:text-text'}`}
                                         >
@@ -307,6 +345,7 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
                                 type="button"
                                 onClick={() => setShowTagInput(!showTagInput)}
                                 className="text-xs text-primary hover:underline flex items-center gap-1"
+                                aria-expanded={showTagInput}
                             >
                                 <Plus size={12} /> {texts.tags.addTitle}
                             </button>
@@ -320,6 +359,7 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
                                     onChange={e => setNewTag(e.target.value)}
                                     className="flex-1 bg-background border border-border rounded-lg px-3 py-1 text-sm"
                                     placeholder={texts.tags.name}
+                                    aria-label="Nombre de la nueva etiqueta"
                                 />
                                 <button
                                     type="button"
@@ -331,12 +371,13 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
                             </div>
                         )}
 
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2" role="group" aria-label="Etiquetas disponibles">
                             {Array.isArray(availableTags) && availableTags.map(tag => (
                                 <button
                                     key={tag.id}
                                     type="button"
                                     onClick={() => toggleTag(tag.id)}
+                                    aria-pressed={formData.tags.includes(tag.id)}
                                     className={`px-3 py-1 rounded-full text-xs transition-colors border ${formData.tags.includes(tag.id)
                                         ? 'bg-primary text-white border-primary'
                                         : 'bg-transparent text-muted border-border hover:border-text'
@@ -350,12 +391,22 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
 
                     <button
                         type="submit"
-                        className="w-full bg-primary text-white font-bold py-3 rounded-xl hover:bg-blue-600 transition-colors mt-6"
+                        disabled={isSubmitting}
+                        aria-busy={isSubmitting}
+                        className="w-full bg-primary text-white font-bold py-3 rounded-xl hover:bg-blue-600 transition-colors mt-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                        {initialData ? texts.transactions.save : texts.transactions.save}
+                        {isSubmitting ? (
+                            <>
+                                <Loader2 size={20} className="animate-spin" />
+                                Guardando...
+                            </>
+                        ) : (
+                            texts.transactions.save
+                        )}
                     </button>
                 </form>
             </div>
         </div>
     );
 }
+
