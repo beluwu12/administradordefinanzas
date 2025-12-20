@@ -25,7 +25,7 @@
 
 | Característica | Descripción |
 |----------------|-------------|
-| 👥 **Multiusuario** | Perfiles con PIN de 4 dígitos y JWT |
+| 👥 **Multiusuario** | Perfiles con email/contraseña y JWT |
 | 💵 **Multi-moneda** | USD y VES con tasa BCV automática |
 | 🏷️ **Etiquetas** | Categoriza transacciones con colores |
 | 🎯 **Metas de Ahorro** | Sistema de quincenas (2 pagos/mes) |
@@ -216,9 +216,9 @@ VAPID_PRIVATE_KEY="..."
 
 | Método | Ruta | Descripción |
 |--------|------|-------------|
-| `GET` | `/api/users` | Listar usuarios |
-| `POST` | `/api/users` | Crear usuario |
-| `POST` | `/api/users/verify` | Login → JWT |
+| `POST` | `/api/auth/register` | Crear usuario (email+contraseña) |
+| `POST` | `/api/auth/login` | Login → JWT |
+| `GET` | `/api/auth/me` | Usuario actual |
 
 ### Transacciones (🔒 Requiere JWT)
 
@@ -289,7 +289,7 @@ personal-finance-app/
 - ✅ Rate Limiting (login)
 - ✅ Zod Validation (inputs)
 - ✅ Ownership Checks (recursos)
-- ✅ bcrypt (hashing PINs)
+- ✅ bcrypt (hashing passwords)
 - ✅ Error Sanitization
 - ✅ SSL/TLS en producción
 
@@ -311,8 +311,8 @@ User ──┬──► Transaction
 
 ## 📱 Uso
 
-1. **Seleccionar usuario** o crear uno nuevo
-2. **Ingresar PIN** de 4 dígitos
+1. **Registrarse** con email y contraseña
+2. **Iniciar sesión** con credenciales
 3. **Dashboard**: Ver balance y transacciones
 4. **Agregar transacciones** con el botón "+"
 5. **Crear metas** de ahorro con quincenas

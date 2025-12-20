@@ -22,10 +22,78 @@ const test = (name, fn) => {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// SCHEMA VALIDATION TESTS
+// AUTHENTICATION SCHEMA TESTS
 // ═══════════════════════════════════════════════════════════════
 
-const { createTransactionSchema, updateTransactionSchema } = require('./schemas');
+const { createTransactionSchema, updateTransactionSchema, registerSchema, loginSchema } = require('./schemas');
+
+test('registerSchema - valid registration', () => {
+    const valid = {
+        email: 'test@example.com',
+        password: 'secure123',
+        firstName: 'John',
+        lastName: 'Doe',
+        country: 'CO'
+    };
+    const result = registerSchema.safeParse(valid);
+    assert.strictEqual(result.success, true);
+});
+
+test('registerSchema - password too short rejected', () => {
+    const invalid = {
+        email: 'test@example.com',
+        password: '123', // Less than 6 chars
+        firstName: 'John',
+        lastName: 'Doe'
+    };
+    const result = registerSchema.safeParse(invalid);
+    assert.strictEqual(result.success, false);
+});
+
+test('registerSchema - invalid email rejected', () => {
+    const invalid = {
+        email: 'not-an-email',
+        password: 'secure123',
+        firstName: 'John',
+        lastName: 'Doe'
+    };
+    const result = registerSchema.safeParse(invalid);
+    assert.strictEqual(result.success, false);
+});
+
+test('registerSchema - defaults country to VE', () => {
+    const valid = {
+        email: 'test@example.com',
+        password: 'secure123',
+        firstName: 'John',
+        lastName: 'Doe'
+    };
+    const result = registerSchema.safeParse(valid);
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.data.country, 'VE');
+});
+
+test('loginSchema - valid login', () => {
+    const valid = {
+        email: 'test@example.com',
+        password: 'mypassword'
+    };
+    const result = loginSchema.safeParse(valid);
+    assert.strictEqual(result.success, true);
+});
+
+test('loginSchema - empty password rejected', () => {
+    const invalid = {
+        email: 'test@example.com',
+        password: ''
+    };
+    const result = loginSchema.safeParse(invalid);
+    assert.strictEqual(result.success, false);
+});
+
+// ═══════════════════════════════════════════════════════════════
+// TRANSACTION SCHEMA VALIDATION TESTS
+// ═══════════════════════════════════════════════════════════════
 
 test('createTransactionSchema - valid income transaction', () => {
     const valid = {
