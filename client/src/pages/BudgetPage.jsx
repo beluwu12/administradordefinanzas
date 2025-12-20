@@ -2,8 +2,14 @@ import React, { useEffect, useState } from 'react';
 import api from '../api';
 import { PiggyBank, Calendar, Trash2, Plus, AlertCircle, TrendingUp } from 'lucide-react';
 import { texts, formatCurrency } from '../i18n/es';
+import { useAuth } from '../context/AuthContext';
+import { getCountryConfig, isDualCurrency } from '../config/countries';
 
 export default function BudgetPage() {
+    const { user } = useAuth();
+    const countryConfig = getCountryConfig(user?.country || 'VE');
+    const isDual = isDualCurrency(user?.country || 'VE');
+
     const [insight, setInsight] = useState(null);
     const [fixedExpenses, setFixedExpenses] = useState([]);
     const [exchangeRate, setExchangeRate] = useState(null);
@@ -14,13 +20,13 @@ export default function BudgetPage() {
     const [newItem, setNewItem] = useState({
         description: '',
         amount: '',
-        currency: 'USD',
+        currency: countryConfig.defaultCurrency, // Use user's default currency
         startDate: (() => {
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             return now.toISOString().slice(0, 10);
         })(),
-        dueDay: '' // Fallback/Optional if we wanted manual override
+        dueDay: ''
     });
 
     useEffect(() => {
@@ -98,19 +104,32 @@ export default function BudgetPage() {
 
     if (loading) return <div className="p-8 text-center text-muted">{texts.app.loading}</div>;
 
-    // Calculate insight for both currencies
-    const monthlyIncomeUSD = insight?.recentMonthlyIncome?.USD || 0;
-    const monthlyIncomeVES = insight?.recentMonthlyIncome?.VES || 0;
+    // Calculate insight based on country
+    const primaryCurrency = countryConfig.defaultCurrency;
 
-    // Calculate fixed costs from the list if insight is not available
-    const fixedCostUSD = fixedExpenses.filter(e => e.currency === 'USD').reduce((sum, e) => sum + e.amount, 0);
-    const fixedCostVES = fixedExpenses.filter(e => e.currency === 'VES').reduce((sum, e) => sum + e.amount, 0);
+    // For dual currency (Venezuela): use USD + VES
+    // For single currency: use the country's currency
+    const monthlyIncome = isDual
+        ? (insight?.recentMonthlyIncome?.USD || 0)
+        : (insight?.recentMonthlyIncome?.[primaryCurrency] || insight?.recentMonthlyIncome?.USD || 0);
 
-    // Calculate total fixed cost in USD (converting VES if needed)
-    const fixedCostTotalUSD = fixedCostUSD + (exchangeRate ? fixedCostVES / exchangeRate : 0);
+    // Calculate fixed costs from the list
+    const fixedCostPrimary = fixedExpenses
+        .filter(e => e.currency === primaryCurrency)
+        .reduce((sum, e) => sum + e.amount, 0);
 
-    const disposableUSD = monthlyIncomeUSD - fixedCostTotalUSD;
-    const savingsTarget = disposableUSD * 0.2; // Example 20% savings rule
+    // For dual currency, also calculate VES costs
+    const fixedCostVES = isDual
+        ? fixedExpenses.filter(e => e.currency === 'VES').reduce((sum, e) => sum + e.amount, 0)
+        : 0;
+
+    // Calculate total fixed cost (converting VES if needed for dual currency)
+    const fixedCostTotal = isDual
+        ? fixedCostPrimary + (exchangeRate ? fixedCostVES / exchangeRate : 0)
+        : fixedCostPrimary;
+
+    const disposable = monthlyIncome - fixedCostTotal;
+    const savingsTarget = disposable * 0.2;
 
     return (
         <div className="space-y-8 animate-fadeIn">
@@ -119,44 +138,50 @@ export default function BudgetPage() {
                 <p className="text-muted">{texts.budget.insightTitle}</p>
             </div>
 
-            {/* Insight Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            {/* Insight Section - Country Aware */}
+            <div className={`grid grid-cols-1 md:grid-cols-2 ${isDual ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4`}>
                 <div className="bg-surface p-4 rounded-lg border border-border">
                     <h3 className="text-muted text-xs font-bold uppercase mb-2">{texts.budget.incomeAvg}</h3>
-                    <p className="text-xl font-bold text-text truncate">{formatCurrency(monthlyIncomeUSD, 'USD')}</p>
+                    <p className="text-xl font-bold text-text truncate">{formatCurrency(monthlyIncome, primaryCurrency)}</p>
                 </div>
 
                 <div className="bg-surface p-4 rounded-lg border border-border">
-                    <h3 className="text-muted text-xs font-bold uppercase mb-2">{texts.budget.fixedTotal} (USD)</h3>
-                    <p className="text-xl font-bold text-text truncate">{formatCurrency(fixedCostUSD, 'USD')}</p>
+                    <h3 className="text-muted text-xs font-bold uppercase mb-2">{texts.budget.fixedTotal} ({primaryCurrency})</h3>
+                    <p className="text-xl font-bold text-text truncate">{formatCurrency(fixedCostPrimary, primaryCurrency)}</p>
                     <p className="text-xs text-muted">{texts.budget.monthly || "Mensual"}</p>
                 </div>
 
-                <div className="bg-surface p-4 rounded-lg border border-border">
-                    <h3 className="text-muted text-xs font-bold uppercase mb-2">{texts.budget.fixedTotal} (VES)</h3>
-                    <p className="text-xl font-bold text-text truncate">{formatCurrency(fixedCostVES, 'VES')}</p>
-                    <p className="text-xs text-muted">{texts.budget.monthly || "Mensual"}</p>
-                </div>
-
-                <div className="bg-surface p-4 rounded-lg border border-border">
-                    <h3 className="text-muted text-xs font-bold uppercase mb-2">{texts.budget.quincenaTitle}</h3>
-                    <p className="text-xl font-bold text-text mb-1 truncate">{formatCurrency(fixedCostUSD / 2, 'USD')}</p>
-                    <p className="text-xs text-muted mb-1">50% de gastos fijos</p>
-                    <div className={`text-xs font-bold px-2 py-1 rounded inline-block ${monthlyIncomeUSD >= fixedCostUSD
-                        ? 'bg-green-500/10 text-green-500'
-                        : 'bg-yellow-500/10 text-yellow-500'
-                        }`}>
-                        {texts.budget.collected}: {formatCurrency(monthlyIncomeUSD, 'USD')}
+                {/* VES card - only for Venezuela */}
+                {isDual && (
+                    <div className="bg-surface p-4 rounded-lg border border-border">
+                        <h3 className="text-muted text-xs font-bold uppercase mb-2">{texts.budget.fixedTotal} (VES)</h3>
+                        <p className="text-xl font-bold text-text truncate">{formatCurrency(fixedCostVES, 'VES')}</p>
+                        <p className="text-xs text-muted">{texts.budget.monthly || "Mensual"}</p>
                     </div>
-                </div>
+                )}
 
-                <div className={`p-4 rounded-lg border border-border ${disposableUSD >= 0 ? 'bg-primary/5 border-primary/20' : 'bg-red-500/5 border-red-500/20'}`}>
-                    <h3 className={`${disposableUSD >= 0 ? 'text-primary' : 'text-danger'} text-xs font-bold uppercase mb-2`}>{texts.budget.disposable}</h3>
-                    <p className={`text-xl font-bold ${disposableUSD >= 0 ? 'text-text' : 'text-danger'} mb-1 truncate`}>
-                        {formatCurrency(disposableUSD, 'USD')}
+                {/* Quincena card - only for Venezuela */}
+                {isDual && (
+                    <div className="bg-surface p-4 rounded-lg border border-border">
+                        <h3 className="text-muted text-xs font-bold uppercase mb-2">{texts.budget.quincenaTitle}</h3>
+                        <p className="text-xl font-bold text-text mb-1 truncate">{formatCurrency(fixedCostPrimary / 2, primaryCurrency)}</p>
+                        <p className="text-xs text-muted mb-1">50% de gastos fijos</p>
+                        <div className={`text-xs font-bold px-2 py-1 rounded inline-block ${monthlyIncome >= fixedCostTotal
+                            ? 'bg-green-500/10 text-green-500'
+                            : 'bg-yellow-500/10 text-yellow-500'
+                            }`}>
+                            {texts.budget.collected}: {formatCurrency(monthlyIncome, primaryCurrency)}
+                        </div>
+                    </div>
+                )}
+
+                <div className={`p-4 rounded-lg border border-border ${disposable >= 0 ? 'bg-primary/5 border-primary/20' : 'bg-red-500/5 border-red-500/20'}`}>
+                    <h3 className={`${disposable >= 0 ? 'text-primary' : 'text-danger'} text-xs font-bold uppercase mb-2`}>{texts.budget.disposable}</h3>
+                    <p className={`text-xl font-bold ${disposable >= 0 ? 'text-text' : 'text-danger'} mb-1 truncate`}>
+                        {formatCurrency(disposable, primaryCurrency)}
                     </p>
                     <p className="text-xs text-muted truncate">
-                        20% Sugerido: <strong className={disposableUSD >= 0 ? 'text-primary' : 'text-danger'}>{formatCurrency(savingsTarget, 'USD')}</strong>
+                        20% Sugerido: <strong className={disposable >= 0 ? 'text-primary' : 'text-danger'}>{formatCurrency(savingsTarget, primaryCurrency)}</strong>
                     </p>
                 </div>
             </div>

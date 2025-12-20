@@ -6,16 +6,22 @@ import CircularProgressBar from '../components/common/CircularProgressBar';
 import Skeleton from '../components/common/Skeleton';
 import EmptyState from '../components/common/EmptyState';
 import { texts, formatCurrency } from '../i18n/es';
+import { useAuth } from '../context/AuthContext';
+import { getCountryConfig, isDualCurrency } from '../config/countries';
 
 export default function GoalsPage() {
+    const { user } = useAuth();
+    const countryConfig = getCountryConfig(user?.country || 'VE');
+    const isDual = isDualCurrency(user?.country || 'VE');
+
     const [goals, setGoals] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [newGoal, setNewGoal] = useState({
         title: '',
         totalCost: '',
-        months: '', // Changed from monthlyAmount
-        currency: 'USD',
+        months: '',
+        currency: countryConfig.defaultCurrency, // Use user's default currency
         description: '',
         startDate: new Date().toISOString().slice(0, 10)
     });
@@ -129,8 +135,9 @@ export default function GoalsPage() {
                                     onChange={e => setNewGoal({ ...newGoal, currency: e.target.value })}
                                     className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text"
                                 >
-                                    <option value="USD">USD ($)</option>
-                                    <option value="VES">VES (Bs.)</option>
+                                    {countryConfig.currencies.map(cur => (
+                                        <option key={cur} value={cur}>{cur}</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>
