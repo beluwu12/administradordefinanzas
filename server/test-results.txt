@@ -1,0 +1,32 @@
+Γ£à registerSchema - valid registration
+Γ£à registerSchema - password too short rejected
+Γ£à registerSchema - invalid email rejected
+Γ£à registerSchema - defaults country to VE
+Γ£à loginSchema - valid login
+Γ£à loginSchema - empty password rejected
+Γ£à createTransactionSchema - valid income transaction
+Γ£à createTransactionSchema - valid expense transaction
+Γ£à createTransactionSchema - invalid type
+Γ£à createTransactionSchema - negative amount rejected
+Γ£à createTransactionSchema - empty description rejected
+Γ£à withSoftDelete - adds deletedAt: null
+Γ£à withSoftDelete - handles empty object
+Γ£à getCountryConfig - VE returns dual currency
+Γ£à getCountryConfig - CO returns single currency
+Γ£à isDualCurrency - VE is true
+Γ£à isDualCurrency - US is false
+Γ£à cache - can set and get values
+Γ£à cache - returns undefined for missing keys
+[Cache] Invalidated: to-invalidate
+Γ£à invalidate - removes cached value
+[Cache] Cleared all
+Γ£à clearAll - removes all cached values
+Γ£à success - returns correct format
+Γ£à error - returns correct format
+Γ£à errors.notFound - returns 404
+Γ£à errors.unauthorized - returns 401
+Γ£à errors.validation - returns 400
+
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+≡ƒôè Test Results: 26 passed, 0 failed
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ

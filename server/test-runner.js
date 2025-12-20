@@ -200,6 +200,80 @@ test('isDualCurrency - US is false', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// CACHE SERVICE TESTS
+// ═══════════════════════════════════════════════════════════════
+
+const { cache, invalidate, clearAll } = require('./services/cacheService');
+
+test('cache - can set and get values', () => {
+    cache.set('test-key', 'test-value');
+    const result = cache.get('test-key');
+    assert.strictEqual(result, 'test-value');
+    cache.del('test-key'); // cleanup
+});
+
+test('cache - returns undefined for missing keys', () => {
+    const result = cache.get('non-existent-key');
+    assert.strictEqual(result, undefined);
+});
+
+test('invalidate - removes cached value', () => {
+    cache.set('to-invalidate', 'value');
+    invalidate('to-invalidate');
+    const result = cache.get('to-invalidate');
+    assert.strictEqual(result, undefined);
+});
+
+test('clearAll - removes all cached values', () => {
+    cache.set('key1', 'value1');
+    cache.set('key2', 'value2');
+    clearAll();
+    assert.strictEqual(cache.get('key1'), undefined);
+    assert.strictEqual(cache.get('key2'), undefined);
+});
+
+// ═══════════════════════════════════════════════════════════════
+// RESPONSE UTILITIES TESTS
+// ═══════════════════════════════════════════════════════════════
+
+const { success, error, errors } = require('./utils/responseUtils');
+
+test('success - returns correct format', () => {
+    const result = success({ id: 1 }, 'Done');
+    assert.strictEqual(result.success, true);
+    assert.deepStrictEqual(result.data, { id: 1 });
+    assert.strictEqual(result.message, 'Done');
+    assert.strictEqual(result.error, null);
+});
+
+test('error - returns correct format', () => {
+    const result = error('Something went wrong', 'ERR_CODE', 400);
+    assert.strictEqual(result.success, false);
+    assert.strictEqual(result.message, 'Something went wrong');
+    assert.strictEqual(result.code, 'ERR_CODE');
+    assert.strictEqual(result.status, 400);
+});
+
+test('errors.notFound - returns 404', () => {
+    const result = errors.notFound('Usuario');
+    assert.strictEqual(result.status, 404);
+    assert.strictEqual(result.code, 'NOT_FOUND');
+    assert.ok(result.message.includes('Usuario'));
+});
+
+test('errors.unauthorized - returns 401', () => {
+    const result = errors.unauthorized();
+    assert.strictEqual(result.status, 401);
+    assert.strictEqual(result.code, 'UNAUTHORIZED');
+});
+
+test('errors.validation - returns 400', () => {
+    const result = errors.validation('Campo inválido');
+    assert.strictEqual(result.status, 400);
+    assert.strictEqual(result.message, 'Campo inválido');
+});
+
+// ═══════════════════════════════════════════════════════════════
 // RESULTS SUMMARY
 // ═══════════════════════════════════════════════════════════════
 
