@@ -2,13 +2,14 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const prisma = require('../db');
 const { getOrFetch, invalidate } = require('./cacheService');
+const { logger } = require('../utils/logger');
 
 const BCV_URL = 'http://www.bcv.org.ve/';
 const CACHE_KEY = 'bcv-rate-usd-ves';
 
 async function fetchBCVRate() {
     try {
-        console.log("Fetching BCV Rate...");
+        logger.info('Fetching BCV Rate...');
         // Handle SSL errors if any (BCV certs are often self-signed or invalid)
         const agent = new (require('https').Agent)({
             rejectUnauthorized: false
@@ -48,11 +49,11 @@ async function fetchBCVRate() {
             throw new Error(`Parsed rate is invalid: ${rateText} -> ${rate}`);
         }
 
-        console.log(`BCV Rate Fetched: ${rate}`);
+        logger.info('BCV Rate Fetched', { rate });
         return rate;
 
     } catch (error) {
-        console.error("Error scraping BCV:", error.message);
+        logger.error('Error scraping BCV', { error: error.message });
         return null;
     }
 }
@@ -68,12 +69,12 @@ async function updateExchangeRate() {
                     rate: rate
                 }
             });
-            console.log("Exchange Rate updated in DB.");
+            logger.info('Exchange Rate updated in DB', { rate });
             // Invalidate cache so next request gets fresh data
             invalidate(CACHE_KEY);
             return rate;
         } catch (dbError) {
-            console.error("DB Error saving rate:", dbError);
+            logger.error('DB Error saving rate', { error: dbError.message });
         }
     }
     return null;

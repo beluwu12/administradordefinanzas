@@ -1,6 +1,6 @@
 /**
  * Updated Main Server Entry Point
- * With Helmet security headers, global error handling, and rate limiting
+ * With Helmet security headers, global error handling, rate limiting, and Winston logging
  */
 
 const express = require('express');
@@ -8,6 +8,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const prisma = require('./db');
+const { logger } = require('./utils/logger');
 
 // Middleware
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
@@ -45,7 +46,7 @@ app.use(cors({
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      console.warn(`CORS blocked origin: ${origin}`);
+      logger.warn('CORS blocked origin', { origin });
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -127,7 +128,7 @@ const { updateExchangeRate } = require('./services/bcvScraper');
 
 // Schedule: At minute 0 past hour 8, 16, and 0
 cron.schedule('0 8,16,0 * * *', async () => {
-  console.log('[CRON] Running scheduled BCV rate update...');
+  logger.info('Running scheduled BCV rate update', { job: 'bcv-rate' });
   await updateExchangeRate();
 });
 
@@ -149,15 +150,15 @@ app.use(errorHandler);
 // ═══════════════════════════════════════════════════════════════
 
 app.listen(PORT, () => {
-  console.log('═══════════════════════════════════════════════════════');
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📡 API Health: http://localhost:${PORT}/api/health`);
-  console.log('═══════════════════════════════════════════════════════');
+  logger.info('═══════════════════════════════════════════════════════');
+  logger.info(`🚀 Server running on http://localhost:${PORT}`);
+  logger.info(`📡 API Health: http://localhost:${PORT}/api/health`);
+  logger.info('═══════════════════════════════════════════════════════');
 });
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
-  console.log('\n⏹️  Shutting down gracefully...');
+  logger.info('Shutting down gracefully...');
   await prisma.$disconnect();
   process.exit(0);
 });
