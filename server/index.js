@@ -28,6 +28,8 @@ app.use(helmet({
 // CORS: Restrictive configuration for production
 const allowedOrigins = [
   'https://finanzas-frontend.orangeflower-43ff1781.eastus.azurecontainerapps.io',
+  'https://gestorfinanciero.emprende.ve',  // Custom domain
+  'https://www.gestorfinanciero.emprende.ve',  // Custom domain with www
   'http://localhost:5173',  // Vite dev server
   'http://localhost:4173',  // Vite preview
   'http://localhost',       // Docker nginx (port 80)
