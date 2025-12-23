@@ -25,7 +25,7 @@ export default function LoginPage() {
             const res = await api.post('/auth/login', { email, password });
             const data = res.data;
             if (data && data.token) {
-                login(data, data.token);
+                login(data, data.token, data.refreshToken);
                 navigate('/');
             }
         } catch (err) {

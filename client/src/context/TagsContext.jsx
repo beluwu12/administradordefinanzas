@@ -17,14 +17,10 @@ export function TagsProvider({ children }) {
             setLoading(true);
             setError(null);
             const res = await api.get('/tags');
-            const data = res.data || [];
-            if (Array.isArray(data)) {
-                setTags(data);
-            } else {
-                setTags([]);
-            }
+            // api.js interceptor already unwraps {success, data} format
+            setTags(res.data || []);
         } catch (err) {
-            console.error('Error fetching tags:', err);
+            console.error('[TagsContext] Error fetching tags:', err);
             setError(err.message);
             setTags([]);
         } finally {

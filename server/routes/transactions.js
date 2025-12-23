@@ -1,13 +1,17 @@
 /**
  * Transaction Routes - Income and Expense Management
- * Updated with pagination, multi-country balance, and soft delete
+ * 
+ * FIXED:
+ * - Uses requireOwnership middleware (DRY)
+ * - Balance calculation uses database aggregation (performance)
+ * - Consistent error handling
  */
 
 const express = require('express');
 const router = express.Router();
 const prisma = require('../db');
 const Decimal = require('decimal.js');
-const { requireAuth, verifyOwnership } = require('../middleware/requireAuth');
+const { requireAuth, requireOwnership } = require('../middleware/requireAuth');
 const { enforceCurrency } = require('../middleware/currencyEnforcer');
 const { success, errors } = require('../utils/responseUtils');
 const { paginate, withSoftDelete, softDelete } = require('../utils/pagination');
@@ -58,6 +62,8 @@ router.get('/', validate(paginationQuerySchema, 'query'), async (req, res, next)
 
 /**
  * GET /api/transactions/balance - Get balance summary (polymorphic)
+ * 
+ * PERFORMANCE FIX: Uses database aggregation instead of loading all transactions
  * VE users: { isDual: true, primary: USD, secondary: VES, exchangeRate }
  * Other users: { isDual: false, primary: localCurrency }
  */
@@ -66,25 +72,30 @@ router.get('/balance', async (req, res, next) => {
         const user = req.user;
         const userIsDual = isDualCurrency(user.country);
 
-        const transactions = await prisma.transaction.findMany({
+        // Use database aggregation for performance
+        // Groups by currency and type, sums amounts in the database
+        const aggregations = await prisma.transaction.groupBy({
+            by: ['currency', 'type'],
             where: withSoftDelete({ userId: req.userId }),
-            select: { amount: true, currency: true, type: true }
+            _sum: {
+                amount: true
+            }
         });
 
-        // Calculate balance per currency
+        // Calculate balance per currency from aggregations
         const balances = {};
 
-        transactions.forEach(tx => {
-            const amount = new Decimal(tx.amount);
-            const currency = tx.currency || user.defaultCurrency;
+        aggregations.forEach(agg => {
+            const currency = agg.currency || user.defaultCurrency;
+            const amount = new Decimal(agg._sum.amount || 0);
 
             if (!balances[currency]) {
                 balances[currency] = new Decimal(0);
             }
 
-            if (tx.type === 'INCOME') {
+            if (agg.type === 'INCOME') {
                 balances[currency] = balances[currency].plus(amount);
-            } else if (tx.type === 'EXPENSE') {
+            } else if (agg.type === 'EXPENSE') {
                 balances[currency] = balances[currency].minus(amount);
             }
         });
@@ -175,6 +186,7 @@ router.post('/',
 
 /**
  * PUT /api/transactions/:id - Update transaction
+ * Uses requireOwnership middleware for DRY
  */
 router.put('/:id',
     validate(idParamSchema, 'params'),
@@ -184,7 +196,7 @@ router.put('/:id',
         try {
             const { id } = req.params;
 
-            // Check ownership (include soft-deleted check)
+            // Check ownership and soft-delete status
             const existing = await prisma.transaction.findUnique({
                 where: { id },
                 select: { userId: true, deletedAt: true }
@@ -195,7 +207,7 @@ router.put('/:id',
                 return res.status(errResponse.status).json(errResponse);
             }
 
-            if (!verifyOwnership(existing.userId, req.userId)) {
+            if (existing.userId !== req.userId) {
                 const errResponse = errors.ownershipFailed();
                 return res.status(errResponse.status).json(errResponse);
             }
@@ -259,7 +271,7 @@ router.delete('/:id',
                 return res.status(errResponse.status).json(errResponse);
             }
 
-            if (!verifyOwnership(existing.userId, req.userId)) {
+            if (existing.userId !== req.userId) {
                 const errResponse = errors.ownershipFailed();
                 return res.status(errResponse.status).json(errResponse);
             }
@@ -275,4 +287,3 @@ router.delete('/:id',
 );
 
 module.exports = router;
-

@@ -1,20 +1,30 @@
 /**
- * Updated Main Server Entry Point
- * With Helmet security headers, global error handling, rate limiting, and Winston logging
+ * Main Server Entry Point
+ * Production-ready with:
+ * - Environment-based CORS configuration
+ * - Helmet security headers
+ * - Global error handling
+ * - Rate limiting
+ * - Winston logging
+ * - Graceful shutdown
  */
 
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 const prisma = require('./db');
 const { logger } = require('./utils/logger');
+const { RATE_LIMITS } = require('./config/constants');
 
 // Middleware
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const IS_PRIMARY_INSTANCE = process.env.INSTANCE_ID === '1' || process.env.INSTANCE_ID === undefined;
 
 // ═══════════════════════════════════════════════════════════════
 // SECURITY MIDDLEWARE
@@ -26,17 +36,34 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false
 }));
 
-// CORS: Restrictive configuration for production
-const allowedOrigins = [
-  'https://finanzas-frontend.orangeflower-43ff1781.eastus.azurecontainerapps.io',
-  'https://gestorfinanciero.emprende.ve',  // Custom domain
-  'https://www.gestorfinanciero.emprende.ve',  // Custom domain with www
-  'http://localhost:5173',  // Vite dev server
-  'http://localhost:4173',  // Vite preview
-  'http://localhost',       // Docker nginx (port 80)
-  'http://localhost:80',    // Docker nginx explicit
-  'http://127.0.0.1',       // Localhost IP
-];
+// CORS: Configuration from environment variables
+const getAllowedOrigins = () => {
+  // Get origins from environment variable (comma-separated)
+  const envOrigins = process.env.CORS_ALLOWED_ORIGINS;
+
+  if (envOrigins) {
+    return envOrigins.split(',').map(origin => origin.trim());
+  }
+
+  // Fallback for development
+  if (NODE_ENV === 'development') {
+    return [
+      'http://localhost:5173',  // Vite dev server
+      'http://localhost:4173',  // Vite preview
+      'http://localhost',       // Docker nginx
+      'http://localhost:80',
+      'http://127.0.0.1',
+      'http://127.0.0.1:5173'
+    ];
+  }
+
+  // Production requires explicit CORS_ALLOWED_ORIGINS
+  logger.warn('No CORS_ALLOWED_ORIGINS set in production! Using empty list.');
+  return [];
+};
+
+const allowedOrigins = getAllowedOrigins();
+logger.info('CORS allowed origins', { origins: allowedOrigins, env: NODE_ENV });
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -52,16 +79,19 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id']
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Body parser
 app.use(express.json({ limit: '10mb' }));
 
-// Rate limiting for sensitive endpoints
+// Cookie parser (for refresh tokens)
+app.use(cookieParser());
+
+// Rate limiting for authentication endpoints
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // Increased for development
+  windowMs: RATE_LIMITS.AUTH_WINDOW_MS,
+  max: RATE_LIMITS.AUTH_MAX_REQUESTS,
   message: {
     success: false,
     error: 'Demasiados intentos, intenta de nuevo en 15 minutos',
@@ -71,7 +101,9 @@ const authLimiter = rateLimit({
   legacyHeaders: false
 });
 
-// Apply rate limiting ONLY to PIN verification (most sensitive)
+// Apply rate limiting to authentication endpoints
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 app.use('/api/users/verify', authLimiter);
 
 // ═══════════════════════════════════════════════════════════════
@@ -85,15 +117,19 @@ const fixedExpenseRoutes = require('./routes/fixedExpenses');
 const goalRoutes = require('./routes/goals');
 const insightRoutes = require('./routes/insight');
 const notificationRoutes = require('./routes/notifications');
-const authRoutes = require('./routes/auth'); // New Auth Routes
+const authRoutes = require('./routes/auth');
 const { initCronJobs } = require('./cron/reminderJobs');
 
-// Enable Cron Jobs if configured
-if (process.env.CRON_ENABLED === 'true' || true) { // Force enable for now based on user request
+// Enable Cron Jobs only on primary instance (prevents duplicates in scaled environments)
+const cronEnabled = process.env.CRON_ENABLED === 'true';
+if (cronEnabled && IS_PRIMARY_INSTANCE) {
+  logger.info('Initializing cron jobs (primary instance)');
   initCronJobs();
+} else if (cronEnabled && !IS_PRIMARY_INSTANCE) {
+  logger.info('Skipping cron jobs (not primary instance)', { instanceId: process.env.INSTANCE_ID });
 }
 
-app.use('/api/auth', authRoutes); // Auth mount point
+app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/tags', tagRoutes);
@@ -114,26 +150,33 @@ app.get('/api/health', (req, res) => {
       status: 'ok',
       message: 'Personal Finance API is running',
       timestamp: new Date().toISOString(),
-      version: '2.0.0'
+      version: '2.1.0',  // Version bump for production hardening
+      environment: NODE_ENV
     }
   });
 });
 
 // ═══════════════════════════════════════════════════════════════
-// SCHEDULED TASKS
+// SCHEDULED TASKS (only on primary instance)
 // ═══════════════════════════════════════════════════════════════
 
 const cron = require('node-cron');
 const { updateExchangeRate } = require('./services/bcvScraper');
 
-// Schedule: At minute 0 past hour 8, 16, and 0
-cron.schedule('0 8,16,0 * * *', async () => {
-  logger.info('Running scheduled BCV rate update', { job: 'bcv-rate' });
-  await updateExchangeRate();
-});
+if (IS_PRIMARY_INSTANCE) {
+  // Schedule: At minute 0 past hour 8, 16, and 0 (Venezuela time)
+  cron.schedule('0 8,16,0 * * *', async () => {
+    logger.info('Running scheduled BCV rate update', { job: 'bcv-rate' });
+    await updateExchangeRate();
+  }, {
+    timezone: 'America/Caracas'
+  });
 
-// Run once on startup (non-blocking)
-updateExchangeRate();
+  // Run once on startup (non-blocking)
+  updateExchangeRate().catch(err => {
+    logger.error('Initial exchange rate update failed', { error: err.message });
+  });
+}
 
 // ═══════════════════════════════════════════════════════════════
 // ERROR HANDLING (must be last)
@@ -149,21 +192,41 @@ app.use(errorHandler);
 // SERVER START
 // ═══════════════════════════════════════════════════════════════
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   logger.info('═══════════════════════════════════════════════════════');
   logger.info(`🚀 Server running on http://localhost:${PORT}`);
-  logger.info(`📡 API Health: http://localhost:${PORT}/api/health`);
+  logger.info(`📡 Environment: ${NODE_ENV}`);
+  logger.info(`🔒 CORS origins: ${allowedOrigins.length} configured`);
+  logger.info(`⏰ Cron jobs: ${cronEnabled && IS_PRIMARY_INSTANCE ? 'ENABLED' : 'DISABLED'}`);
   logger.info('═══════════════════════════════════════════════════════');
 });
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  logger.info('Shutting down gracefully...');
-  await prisma.$disconnect();
-  process.exit(0);
-});
+// ═══════════════════════════════════════════════════════════════
+// GRACEFUL SHUTDOWN
+// ═══════════════════════════════════════════════════════════════
 
-process.on('SIGTERM', async () => {
-  await prisma.$disconnect();
-  process.exit(0);
-});
+const gracefulShutdown = async (signal) => {
+  logger.info(`${signal} received. Starting graceful shutdown...`);
+
+  server.close(async () => {
+    logger.info('HTTP server closed');
+
+    try {
+      await prisma.$disconnect();
+      logger.info('Database connection closed');
+      process.exit(0);
+    } catch (err) {
+      logger.error('Error during shutdown', { error: err.message });
+      process.exit(1);
+    }
+  });
+
+  // Force exit after 10 seconds
+  setTimeout(() => {
+    logger.error('Forced shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

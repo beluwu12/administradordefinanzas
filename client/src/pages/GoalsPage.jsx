@@ -17,11 +17,13 @@ export default function GoalsPage() {
     const [goals, setGoals] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
+    const [formError, setFormError] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [newGoal, setNewGoal] = useState({
         title: '',
         totalCost: '',
         months: '',
-        currency: countryConfig.defaultCurrency, // Use user's default currency
+        currency: countryConfig.defaultCurrency,
         description: '',
         startDate: new Date().toISOString().slice(0, 10)
     });
@@ -43,15 +45,19 @@ export default function GoalsPage() {
 
     const handleCreate = async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
+
         const cost = parseFloat(newGoal.totalCost);
         const months = parseInt(newGoal.months);
 
         if (!cost || !months || months <= 0) {
-            alert("Por favor ingresa un costo y cantidad de meses válidos.");
+            setFormError('Por favor ingresa un costo y cantidad de meses válidos.');
             return;
         }
 
-        const monthlyAmount = cost / months; // Auto-calculate
+        setFormError(null);
+        setIsSubmitting(true);
+        const monthlyAmount = cost / months;
 
         try {
             await api.post('/goals', {
@@ -63,13 +69,15 @@ export default function GoalsPage() {
                 title: '',
                 totalCost: '',
                 months: '',
-                currency: 'USD',
+                currency: countryConfig.defaultCurrency,
                 description: '',
                 startDate: new Date().toISOString().slice(0, 10)
             });
             fetchGoals();
         } catch (err) {
-            alert(err.message || texts.common.error);
+            setFormError(err.message || texts.common.error);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -96,6 +104,14 @@ export default function GoalsPage() {
             {showForm && (
                 <div className="bg-surface border border-border rounded-xl p-6 shadow-lg mb-6">
                     <h3 className="text-lg font-bold text-text mb-4">Crear Nuevo Objetivo</h3>
+
+                    {/* Error Display */}
+                    {formError && (
+                        <div className="bg-danger/10 text-danger p-3 rounded-lg text-sm mb-4" role="alert">
+                            {formError}
+                        </div>
+                    )}
+
                     <form onSubmit={handleCreate} className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>

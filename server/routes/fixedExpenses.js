@@ -1,12 +1,13 @@
 /**
  * Fixed Expense Routes
- * Updated with validation and standardized responses
+ * 
+ * FIXED: Uses requireOwnership middleware (DRY)
  */
 
 const express = require('express');
 const router = express.Router();
 const prisma = require('../db');
-const { requireAuth, verifyOwnership } = require('../middleware/requireAuth');
+const { requireAuth, requireOwnership } = require('../middleware/requireAuth');
 const { success, errors } = require('../utils/responseUtils');
 const { createFixedExpenseSchema, idParamSchema, validate } = require('../schemas');
 
@@ -33,7 +34,7 @@ router.get('/', async (req, res, next) => {
  */
 router.post('/', validate(createFixedExpenseSchema), async (req, res, next) => {
     try {
-        const { description, amount, currency, dueDay, startDate } = req.body;
+        const { description, amount, currency, dueDay } = req.body;
 
         const expense = await prisma.fixedExpense.create({
             data: {
@@ -53,29 +54,14 @@ router.post('/', validate(createFixedExpenseSchema), async (req, res, next) => {
 
 /**
  * PUT /api/fixed-expenses/:id - Update fixed expense
+ * Uses requireOwnership middleware (DRY)
  */
 router.put('/:id',
     validate(idParamSchema, 'params'),
+    requireOwnership('fixedExpense'),
     async (req, res, next) => {
         try {
             const { id } = req.params;
-
-            // Check ownership
-            const existing = await prisma.fixedExpense.findUnique({
-                where: { id },
-                select: { userId: true }
-            });
-
-            if (!existing) {
-                const errResponse = errors.notFound('Gasto fijo');
-                return res.status(errResponse.status).json(errResponse);
-            }
-
-            if (!verifyOwnership(existing.userId, req.userId)) {
-                const errResponse = errors.ownershipFailed();
-                return res.status(errResponse.status).json(errResponse);
-            }
-
             const { description, amount, currency, dueDay, isActive } = req.body;
 
             const updateData = {};
@@ -99,29 +85,14 @@ router.put('/:id',
 
 /**
  * DELETE /api/fixed-expenses/:id - Delete fixed expense
+ * Uses requireOwnership middleware (DRY)
  */
 router.delete('/:id',
     validate(idParamSchema, 'params'),
+    requireOwnership('fixedExpense'),
     async (req, res, next) => {
         try {
             const { id } = req.params;
-
-            // Check ownership
-            const existing = await prisma.fixedExpense.findUnique({
-                where: { id },
-                select: { userId: true }
-            });
-
-            if (!existing) {
-                const errResponse = errors.notFound('Gasto fijo');
-                return res.status(errResponse.status).json(errResponse);
-            }
-
-            if (!verifyOwnership(existing.userId, req.userId)) {
-                const errResponse = errors.ownershipFailed();
-                return res.status(errResponse.status).json(errResponse);
-            }
-
             await prisma.fixedExpense.delete({ where: { id } });
             res.json(success({ id }, 'Gasto fijo eliminado'));
         } catch (error) {

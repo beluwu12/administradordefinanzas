@@ -1,15 +1,20 @@
 /**
  * Goal Routes - Savings Goals with Quincena Tracking
- * Updated with validation, ownership checks, and decimal.js for calculations
+ * 
+ * FIXED:
+ * - Race condition in toggle-month using Prisma transaction
+ * - Uses constants for magic numbers
+ * - Consistent error handling
  */
 
 const express = require('express');
 const router = express.Router();
 const prisma = require('../db');
 const Decimal = require('decimal.js');
-const { requireAuth, verifyOwnership } = require('../middleware/requireAuth');
+const { requireAuth, requireOwnership } = require('../middleware/requireAuth');
 const { success, errors } = require('../utils/responseUtils');
 const { createGoalSchema, toggleMonthSchema, idParamSchema, goalIdParamSchema, validate } = require('../schemas');
+const { GOALS } = require('../config/constants');
 
 // All routes require authentication
 router.use(requireAuth);
@@ -35,6 +40,29 @@ router.get('/', async (req, res, next) => {
 });
 
 /**
+ * GET /api/goals/:id - Get single goal detail
+ */
+router.get('/:id',
+    validate(idParamSchema, 'params'),
+    requireOwnership('goal'),
+    async (req, res, next) => {
+        try {
+            const goal = await prisma.goal.findUnique({
+                where: { id: req.params.id },
+                include: {
+                    progress: {
+                        orderBy: { monthIndex: 'asc' }
+                    }
+                }
+            });
+            res.json(success(goal));
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+/**
  * POST /api/goals - Create a new goal
  */
 router.post('/', validate(createGoalSchema), async (req, res, next) => {
@@ -45,8 +73,11 @@ router.post('/', validate(createGoalSchema), async (req, res, next) => {
         const parsedMonthlyAmount = new Decimal(monthlyAmount);
 
         const durationMonths = parsedTotalCost.dividedBy(parsedMonthlyAmount).ceil().toNumber();
-        if (durationMonths > 120) {
-            const errResponse = errors.validation('La duración del objetivo excede el máximo (120 meses)');
+
+        if (durationMonths > GOALS.MAX_DURATION_MONTHS) {
+            const errResponse = errors.validation(
+                `La duración del objetivo excede el máximo (${GOALS.MAX_DURATION_MONTHS} meses / ${GOALS.MAX_DURATION_MONTHS / 12} años)`
+            );
             return res.status(errResponse.status).json(errResponse);
         }
 
@@ -94,59 +125,74 @@ router.post('/', validate(createGoalSchema), async (req, res, next) => {
 
 /**
  * PATCH /api/goals/:goalId/toggle-month - Toggle quincena payment
+ * 
+ * CRITICAL FIX: Uses Prisma transaction to prevent race conditions
+ * When multiple requests come in simultaneously, they are serialized
  */
 router.patch('/:goalId/toggle-month',
     validate(goalIdParamSchema, 'params'),
     validate(toggleMonthSchema),
+    requireOwnership('goal', 'goalId'),
     async (req, res, next) => {
         try {
             const { goalId } = req.params;
             const { monthId, period, isPaid } = req.body;
 
-            // Verify goal ownership
-            const goal = await prisma.goal.findUnique({
-                where: { id: goalId },
-                select: { userId: true }
+            // Use Prisma transaction to prevent race conditions
+            const result = await prisma.$transaction(async (tx) => {
+                // Verify the month belongs to this goal
+                const month = await tx.goalMonth.findUnique({
+                    where: { id: monthId },
+                    select: { goalId: true }
+                });
+
+                if (!month || month.goalId !== goalId) {
+                    throw new Error('MONTH_NOT_FOUND');
+                }
+
+                // Update the specific quincena
+                const dataToUpdate = period === 'q1'
+                    ? { isQ1Paid: isPaid }
+                    : { isQ2Paid: isPaid };
+
+                const updatedMonth = await tx.goalMonth.update({
+                    where: { id: monthId },
+                    data: dataToUpdate
+                });
+
+                // Recalculate savedAmount atomically within the same transaction
+                const allMonths = await tx.goalMonth.findMany({
+                    where: { goalId }
+                });
+
+                const newSavedTotal = allMonths.reduce((sum, m) => {
+                    const qAmount = new Decimal(m.target).dividedBy(2);
+                    let monthTotal = new Decimal(0);
+
+                    // Use updated values for the month we just changed
+                    const isQ1 = m.id === monthId ? (period === 'q1' ? isPaid : m.isQ1Paid) : m.isQ1Paid;
+                    const isQ2 = m.id === monthId ? (period === 'q2' ? isPaid : m.isQ2Paid) : m.isQ2Paid;
+
+                    if (isQ1) monthTotal = monthTotal.plus(qAmount);
+                    if (isQ2) monthTotal = monthTotal.plus(qAmount);
+
+                    return sum.plus(monthTotal);
+                }, new Decimal(0));
+
+                await tx.goal.update({
+                    where: { id: goalId },
+                    data: { savedAmount: newSavedTotal.toNumber() }
+                });
+
+                return updatedMonth;
             });
 
-            if (!goal) {
-                const errResponse = errors.notFound('Objetivo');
-                return res.status(errResponse.status).json(errResponse);
-            }
-
-            if (!verifyOwnership(goal.userId, req.userId)) {
-                const errResponse = errors.ownershipFailed();
-                return res.status(errResponse.status).json(errResponse);
-            }
-
-            // Update the specific quincena
-            const dataToUpdate = period === 'q1' ? { isQ1Paid: isPaid } : { isQ2Paid: isPaid };
-
-            const updatedMonth = await prisma.goalMonth.update({
-                where: { id: monthId },
-                data: dataToUpdate
-            });
-
-            // Recalculate savedAmount using decimal.js
-            const allMonths = await prisma.goalMonth.findMany({
-                where: { goalId }
-            });
-
-            const newSavedTotal = allMonths.reduce((sum, m) => {
-                const qAmount = new Decimal(m.target).dividedBy(2);
-                let monthTotal = new Decimal(0);
-                if (m.isQ1Paid) monthTotal = monthTotal.plus(qAmount);
-                if (m.isQ2Paid) monthTotal = monthTotal.plus(qAmount);
-                return sum.plus(monthTotal);
-            }, new Decimal(0));
-
-            await prisma.goal.update({
-                where: { id: goalId },
-                data: { savedAmount: newSavedTotal.toNumber() }
-            });
-
-            res.json(success(updatedMonth, 'Quincena actualizada'));
+            res.json(success(result, 'Quincena actualizada'));
         } catch (error) {
+            if (error.message === 'MONTH_NOT_FOUND') {
+                const errResponse = errors.notFound('Mes del objetivo');
+                return res.status(errResponse.status).json(errResponse);
+            }
             next(error);
         }
     }
@@ -157,27 +203,14 @@ router.patch('/:goalId/toggle-month',
  */
 router.delete('/:id',
     validate(idParamSchema, 'params'),
+    requireOwnership('goal'),
     async (req, res, next) => {
         try {
             const { id } = req.params;
 
-            // Check ownership
-            const goal = await prisma.goal.findUnique({
-                where: { id },
-                select: { userId: true }
-            });
-
-            if (!goal) {
-                const errResponse = errors.notFound('Objetivo');
-                return res.status(errResponse.status).json(errResponse);
-            }
-
-            if (!verifyOwnership(goal.userId, req.userId)) {
-                const errResponse = errors.ownershipFailed();
-                return res.status(errResponse.status).json(errResponse);
-            }
-
+            // Delete goal (cascade will handle progress)
             await prisma.goal.delete({ where: { id } });
+
             res.json(success({ id }, 'Objetivo eliminado'));
         } catch (error) {
             next(error);

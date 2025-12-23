@@ -126,6 +126,6 @@ const requireOwnership = (model, paramName = 'id') => {
 module.exports = {
     requireAuth,
     verifyOwnership,
-    requireOwnership,
-    JWT_SECRET
+    requireOwnership
+    // JWT_SECRET intentionally NOT exported - security best practice
 };

@@ -33,7 +33,7 @@ export default function RegisterPage() {
             const res = await api.post('/auth/register', formData);
             const data = res.data;
             if (data && data.token) {
-                login(data, data.token);
+                login(data, data.token, data.refreshToken);
                 navigate('/');
             }
         } catch (err) {

@@ -1,9 +1,13 @@
 /**
  * Zod Validation Schemas
  * Centralized input validation for all API endpoints
+ * 
+ * CLEANED: Removed deprecated PIN auth schemas (YAGNI)
+ * IMPROVED: Uses constants for magic numbers
  */
 
 const { z } = require('zod');
+const { VALIDATION, PAGINATION, CURRENCIES, COUNTRIES } = require('../config/constants');
 
 // ═══════════════════════════════════════════════════════════════
 // COMMON VALIDATIONS
@@ -12,46 +16,39 @@ const { z } = require('zod');
 const uuid = z.string().uuid('ID debe ser un UUID válido');
 const positiveNumber = z.number().positive('Debe ser un número positivo');
 
-// Multi-currency support
-const currency = z.enum(['USD', 'VES', 'COP', 'CLP', 'MXN', 'ARS'], {
-    message: 'Moneda debe ser USD, VES, COP, CLP, MXN o ARS'
+// Multi-currency support (from constants)
+const currency = z.enum(CURRENCIES.SUPPORTED, {
+    message: `Moneda debe ser ${CURRENCIES.SUPPORTED.join(', ')}`
 });
 
 const transactionType = z.enum(['INCOME', 'EXPENSE'], {
     message: 'Tipo debe ser INCOME o EXPENSE'
 });
 
-// Country enum
-const country = z.enum(['VE', 'CO', 'CL', 'MX', 'AR', 'US'], {
-    message: 'País debe ser VE, CO, CL, MX, AR o US'
+// Country enum (from constants)
+const country = z.enum(COUNTRIES.SUPPORTED, {
+    message: `País debe ser ${COUNTRIES.SUPPORTED.join(', ')}`
 });
 
 // Timezone validation (IANA format)
 const timezone = z.string().min(1).max(50).default('America/Caracas');
 
 // ═══════════════════════════════════════════════════════════════
-// USER SCHEMAS
+// AUTH SCHEMAS (Email/Password only - PIN auth removed)
 // ═══════════════════════════════════════════════════════════════
 
-// Legacy PIN-based auth (deprecated but maintained for compatibility)
-const createUserSchema = z.object({
-    firstName: z.string().min(1, 'Nombre es requerido').max(50, 'Nombre muy largo'),
-    lastName: z.string().min(1, 'Apellido es requerido').max(50, 'Apellido muy largo'),
-    pin: z.string().length(4, 'PIN debe ser de 4 dígitos').regex(/^\d{4}$/, 'PIN debe ser numérico')
-});
-
-const verifyPinSchema = z.object({
-    userId: uuid,
-    pin: z.string().length(4, 'PIN debe ser de 4 dígitos')
-});
-
-// Email/password auth with multi-country support
 const registerSchema = z.object({
     email: z.string().email('Email inválido'),
-    password: z.string().min(6, 'Contraseña debe tener al menos 6 caracteres'),
-    firstName: z.string().min(1, 'Nombre es requerido').max(50, 'Nombre muy largo'),
-    lastName: z.string().min(1, 'Apellido es requerido').max(50, 'Apellido muy largo'),
-    country: country.optional().default('VE')
+    password: z.string().min(VALIDATION.PASSWORD_MIN_LENGTH,
+        `Contraseña debe tener al menos ${VALIDATION.PASSWORD_MIN_LENGTH} caracteres`
+    ),
+    firstName: z.string()
+        .min(1, 'Nombre es requerido')
+        .max(VALIDATION.NAME_MAX_LENGTH, 'Nombre muy largo'),
+    lastName: z.string()
+        .min(1, 'Apellido es requerido')
+        .max(VALIDATION.NAME_MAX_LENGTH, 'Apellido muy largo'),
+    country: country.optional().default(COUNTRIES.DEFAULT)
 });
 
 const loginSchema = z.object({
@@ -64,13 +61,20 @@ const loginSchema = z.object({
 // ═══════════════════════════════════════════════════════════════
 
 const createTransactionSchema = z.object({
-    amount: z.union([z.number(), z.string()]).transform(val => parseFloat(val)).pipe(positiveNumber),
+    amount: z.union([z.number(), z.string()])
+        .transform(val => parseFloat(val))
+        .pipe(positiveNumber),
     currency: currency,
     type: transactionType,
-    description: z.string().min(1, 'Descripción es requerida').max(200, 'Descripción muy larga'),
+    description: z.string()
+        .min(1, 'Descripción es requerida')
+        .max(VALIDATION.DESCRIPTION_MAX_LENGTH, 'Descripción muy larga'),
     source: z.string().max(100).optional().nullable(),
-    date: z.string().datetime().optional().or(z.string().regex(/^\d{4}-\d{2}-\d{2}/).optional()),
-    exchangeRate: z.union([z.number(), z.string()]).transform(val => val ? parseFloat(val) : null).optional().nullable(),
+    date: z.string().datetime().optional()
+        .or(z.string().regex(/^\d{4}-\d{2}-\d{2}/).optional()),
+    exchangeRate: z.union([z.number(), z.string()])
+        .transform(val => val ? parseFloat(val) : null)
+        .optional().nullable(),
     tags: z.array(uuid).optional().default([])
 });
 
@@ -81,7 +85,9 @@ const updateTransactionSchema = createTransactionSchema.partial();
 // ═══════════════════════════════════════════════════════════════
 
 const createTagSchema = z.object({
-    name: z.string().min(1, 'Nombre es requerido').max(50, 'Nombre muy largo'),
+    name: z.string()
+        .min(1, 'Nombre es requerido')
+        .max(VALIDATION.TAG_NAME_MAX_LENGTH, 'Nombre muy largo'),
     color: z.string().max(20).optional().default('blue')
 });
 
@@ -90,12 +96,16 @@ const createTagSchema = z.object({
 // ═══════════════════════════════════════════════════════════════
 
 const createFixedExpenseSchema = z.object({
-    description: z.string().min(1, 'Descripción es requerida').max(200),
-    amount: z.union([z.number(), z.string()]).transform(val => parseFloat(val)).pipe(positiveNumber),
-    currency: currency.optional().default('USD'),
-    dueDay: z.union([z.number(), z.string()]).transform(val => parseInt(val)).pipe(
-        z.number().int().min(1, 'Día debe ser entre 1 y 31').max(31, 'Día debe ser entre 1 y 31')
-    ),
+    description: z.string()
+        .min(1, 'Descripción es requerida')
+        .max(VALIDATION.DESCRIPTION_MAX_LENGTH),
+    amount: z.union([z.number(), z.string()])
+        .transform(val => parseFloat(val))
+        .pipe(positiveNumber),
+    currency: currency.optional().default(CURRENCIES.DEFAULT),
+    dueDay: z.union([z.number(), z.string()])
+        .transform(val => parseInt(val))
+        .pipe(z.number().int().min(1, 'Día debe ser entre 1 y 31').max(31, 'Día debe ser entre 1 y 31')),
     startDate: z.string().optional()
 });
 
@@ -105,12 +115,18 @@ const createFixedExpenseSchema = z.object({
 
 const createGoalSchema = z.object({
     title: z.string().min(1, 'Título es requerido').max(100),
-    description: z.string().max(500).optional().nullable(),
-    totalCost: z.union([z.number(), z.string()]).transform(val => parseFloat(val)).pipe(positiveNumber),
-    monthlyAmount: z.union([z.number(), z.string()]).transform(val => parseFloat(val)).pipe(positiveNumber),
-    currency: currency.optional().default('USD'),
+    description: z.string()
+        .max(VALIDATION.GOAL_DESCRIPTION_MAX_LENGTH)
+        .optional().nullable(),
+    totalCost: z.union([z.number(), z.string()])
+        .transform(val => parseFloat(val))
+        .pipe(positiveNumber),
+    monthlyAmount: z.union([z.number(), z.string()])
+        .transform(val => parseFloat(val))
+        .pipe(positiveNumber),
+    currency: currency.optional().default(CURRENCIES.DEFAULT),
     startDate: z.string().optional(),
-    tag: z.string().max(50).optional().nullable()
+    tag: z.string().max(VALIDATION.TAG_NAME_MAX_LENGTH).optional().nullable()
 }).refine(data => data.monthlyAmount <= data.totalCost, {
     message: 'El ahorro mensual no puede ser mayor que el costo total',
     path: ['monthlyAmount']
@@ -135,14 +151,21 @@ const goalIdParamSchema = z.object({
 });
 
 // ═══════════════════════════════════════════════════════════════
-// PAGINATION & QUERY SCHEMAS
+// PAGINATION & QUERY SCHEMAS (using constants)
 // ═══════════════════════════════════════════════════════════════
 
 const paginationQuerySchema = z.object({
-    page: z.string().transform(val => Math.max(1, parseInt(val) || 1)).default('1'),
-    limit: z.string().transform(val => Math.min(100, Math.max(1, parseInt(val) || 20))).default('20'),
+    page: z.string()
+        .transform(val => Math.max(1, parseInt(val) || 1))
+        .default('1'),
+    limit: z.string()
+        .transform(val => Math.min(
+            PAGINATION.MAX_PAGE_SIZE,
+            Math.max(PAGINATION.MIN_PAGE_SIZE, parseInt(val) || PAGINATION.DEFAULT_PAGE_SIZE)
+        ))
+        .default(String(PAGINATION.DEFAULT_PAGE_SIZE)),
     type: transactionType.optional(),
-    search: z.string().max(100).optional()
+    search: z.string().max(VALIDATION.SEARCH_MAX_LENGTH).optional()
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -168,9 +191,7 @@ const validate = (schema, source = 'body') => {
 };
 
 module.exports = {
-    // User
-    createUserSchema,
-    verifyPinSchema,
+    // Auth (PIN schemas removed - YAGNI)
     registerSchema,
     loginSchema,
 
@@ -201,4 +222,3 @@ module.exports = {
     // Middleware
     validate
 };
-

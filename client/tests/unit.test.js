@@ -150,3 +150,71 @@ describe('getCountryOptions', () => {
         });
     });
 });
+
+// ═══════════════════════════════════════════════════════════════
+// DATE UTILS TESTS
+// ═══════════════════════════════════════════════════════════════
+
+import { toUTCISOString, getCurrentLocalDatetime, utcToLocalDatetime } from '../src/utils/dateUtils';
+
+describe('toUTCISOString', () => {
+    it('converts valid date string to UTC ISO', () => {
+        const result = toUTCISOString('2023-10-27T08:30:00');
+        expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+        expect(result).toContain('Z'); // UTC marker
+    });
+
+    it('handles null by returning current time', () => {
+        const result = toUTCISOString(null);
+        expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+        expect(result).toContain('Z');
+    });
+
+    it('handles undefined by returning current time', () => {
+        const result = toUTCISOString(undefined);
+        expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+    });
+
+    it('handles invalid date string by returning current time', () => {
+        const result = toUTCISOString('not-a-date');
+        expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+    });
+
+    it('handles empty string by returning current time', () => {
+        const result = toUTCISOString('');
+        expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+    });
+});
+
+describe('getCurrentLocalDatetime', () => {
+    it('returns string in correct format', () => {
+        const result = getCurrentLocalDatetime();
+        // Format: YYYY-MM-DDTHH:mm:ss (19 characters)
+        expect(result.length).toBe(19);
+        expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/);
+    });
+
+    it('does not include timezone marker', () => {
+        const result = getCurrentLocalDatetime();
+        expect(result).not.toContain('Z');
+    });
+});
+
+describe('utcToLocalDatetime', () => {
+    it('converts UTC to local format', () => {
+        const utcDate = '2023-10-27T12:30:00.000Z';
+        const result = utcToLocalDatetime(utcDate);
+        expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/);
+        expect(result).not.toContain('Z');
+    });
+
+    it('handles null by returning current time', () => {
+        const result = utcToLocalDatetime(null);
+        expect(result.length).toBe(19);
+    });
+
+    it('handles invalid date by returning current time', () => {
+        const result = utcToLocalDatetime('garbage');
+        expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/);
+    });
+});
