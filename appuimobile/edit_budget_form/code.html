@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Edit Budget Form</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {primary: "#db0f79", "background-light": "#f8f6f7", "background-dark": "#221019", "surface-light": "#ffffff", "surface-dark": "#1a2c22", "text-main-light": "#0e1b12", "text-main-dark": "#e0ece4", "text-secondary-light": "#4e9767", "text-secondary-dark": "#8abf9e", "border-light": "#d0e7d7", "border-dark": "#2e4536"}, fontFamily: {display: "Manrope"}, borderRadius: {DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem"}}}};</script>
+<style>
+        /* Hide scrollbar for cleaner look */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-main-light dark:text-text-main-dark transition-colors duration-200 antialiased selection:bg-primary selection:text-background-dark">
+<div class="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden pb-28">
+<!-- Header -->
+<header class="sticky top-0 z-10 flex items-center justify-between bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm p-4 pb-2">
+<button class="flex size-10 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-text-main-light dark:text-text-main-dark" style="font-size: 24px;">arrow_back_ios_new</span>
+</button>
+<h2 class="text-lg font-bold leading-tight tracking-[-0.015em] text-center flex-1 pr-10">Edit Budget</h2>
+<div class="w-0"></div> <!-- Spacer to balance back button -->
+</header>
+<!-- Main Content -->
+<main class="flex flex-col gap-6 px-4 pt-4">
+<!-- Headline Section -->
+<div class="flex flex-col gap-1">
+<span class="text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">Editing Budget</span>
+<h1 class="text-3xl font-extrabold tracking-tight text-text-main-light dark:text-text-main-dark">Groceries</h1>
+</div>
+<!-- Current Status Card (Visual Context) -->
+<div class="rounded-xl bg-surface-light dark:bg-surface-dark p-5 shadow-sm border border-border-light dark:border-border-dark">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-size: 20px;">pie_chart</span>
+<span class="text-sm font-bold text-text-main-light dark:text-text-main-dark">Current Spending</span>
+</div>
+<span class="text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark">Oct 2023</span>
+</div>
+<div class="flex justify-between items-end mb-2">
+<p class="text-2xl font-bold text-text-main-light dark:text-text-main-dark">$150.00</p>
+<p class="text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark mb-1">of $400.00 limit</p>
+</div>
+<!-- Progress Bar -->
+<div class="h-3 w-full rounded-full bg-border-light dark:bg-black/40 overflow-hidden">
+<div class="h-full rounded-full bg-primary transition-all duration-500 ease-out shadow-[0_0_10px_rgba(25,230,94,0.4)]" style="width: 37.5%;"></div>
+</div>
+<p class="mt-3 text-xs text-text-secondary-light dark:text-text-secondary-dark leading-relaxed">
+                    You've spent <span class="font-bold text-primary">37.5%</span> of your budget. Increasing the limit will give you more breathing room.
+                </p>
+</div>
+<!-- Form Fields -->
+<div class="flex flex-col gap-5">
+<!-- Category Select -->
+<div class="flex flex-col gap-2">
+<label class="text-base font-bold text-text-main-light dark:text-text-main-dark">Category</label>
+<div class="relative">
+<select class="w-full appearance-none rounded-xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark py-4 pl-12 pr-10 text-base font-medium text-text-main-light dark:text-text-main-dark focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-shadow cursor-pointer">
+<option selected="" value="groceries">Groceries</option>
+<option value="utilities">Utilities</option>
+<option value="rent">Rent &amp; Housing</option>
+<option value="entertainment">Entertainment</option>
+<option value="transportation">Transportation</option>
+</select>
+<!-- Left Icon -->
+<div class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-primary">
+<span class="material-symbols-outlined">shopping_cart</span>
+</div>
+<!-- Right Chevron -->
+<div class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary-light dark:text-text-secondary-dark">
+<span class="material-symbols-outlined">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Monthly Limit Input -->
+<div class="flex flex-col gap-2">
+<label class="text-base font-bold text-text-main-light dark:text-text-main-dark">Monthly Limit</label>
+<div class="relative group">
+<input class="w-full rounded-xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark py-4 pl-12 pr-4 text-xl font-bold text-text-main-light dark:text-text-main-dark placeholder:text-text-secondary-light focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-shadow" placeholder="0.00" type="number" value="400.00"/>
+<!-- Currency Symbol -->
+<div class="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-text-secondary-light dark:text-text-secondary-dark font-bold text-xl group-focus-within:text-primary transition-colors">
+                            $
+                        </div>
+</div>
+<p class="text-xs text-text-secondary-light dark:text-text-secondary-dark px-1">
+                        Enter the maximum amount you plan to spend.
+                    </p>
+</div>
+<!-- Recurring Switch -->
+<div class="flex items-center justify-between rounded-xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark p-4 mt-2">
+<div class="flex flex-col gap-0.5">
+<span class="text-base font-bold text-text-main-light dark:text-text-main-dark">Future Months</span>
+<span class="text-xs text-text-secondary-light dark:text-text-secondary-dark">Apply this limit to upcoming budgets</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+</main>
+<!-- Sticky Bottom Actions -->
+<div class="fixed bottom-0 left-0 right-0 z-20 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md border-t border-border-light dark:border-border-dark p-4 pb-8">
+<div class="flex gap-4 max-w-md mx-auto w-full">
+<button class="flex-1 h-12 rounded-xl border border-border-light dark:border-border-dark bg-transparent text-text-main-light dark:text-text-main-dark font-bold text-base hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                    Cancel
+                </button>
+<button class="flex-[2] h-12 rounded-xl bg-primary text-background-dark font-bold text-base shadow-lg shadow-primary/20 hover:bg-primary/90 hover:shadow-primary/30 active:scale-[0.98] transition-all">
+                    Save Changes
+                </button>
+</div>
+</div>
+</div>
+</body></html>

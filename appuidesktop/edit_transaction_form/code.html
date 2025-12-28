@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Editar Transacción</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Theme Configuration -->
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13ec5b",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#102216",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#162a1e",
+                        "border-light": "#cfe7d7",
+                        "border-dark": "#2a4234",
+                        "text-main-light": "#0d1b12",
+                        "text-main-dark": "#e0ece4",
+                        "text-sub-light": "#4c9a66",
+                        "text-sub-dark": "#8abf9e",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <!-- Material Symbols -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <style>
+        /* Custom scrollbar to match theme */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 20px;
+        }
+
+        .dark ::-webkit-scrollbar-thumb {
+            background-color: #334155;
+        }
+
+        /* Remove number input spinners */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-background-light dark:bg-background-dark font-display min-h-screen flex flex-col items-center justify-center p-4 transition-colors duration-200">
+    <!-- Main Card Container -->
+    <div
+        class="relative flex w-full max-w-[640px] flex-col overflow-hidden rounded-xl bg-surface-light dark:bg-surface-dark shadow-xl border border-border-light dark:border-border-dark transition-colors duration-200">
+        <!-- Header -->
+        <div class="flex items-center justify-between px-6 py-5 border-b border-border-light dark:border-border-dark">
+            <div class="flex flex-col gap-1">
+                <h1
+                    class="text-text-main-light dark:text-text-main-dark text-xl font-bold leading-tight tracking-tight">
+                    Editar Transacción</h1>
+                <p class="text-text-sub-light dark:text-text-sub-dark text-sm font-normal">Detalles de la transacción
+                    #TRX-8920</p>
+            </div>
+            <button
+                class="flex items-center justify-center w-8 h-8 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-text-sub-light dark:text-text-sub-dark">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <!-- Scrollable Form Content -->
+        <div class="flex-1 overflow-y-auto max-h-[calc(100vh-200px)]">
+            <form class="flex flex-col p-6 gap-6">
+                <!-- Transaction Type Toggle -->
+                <div class="flex flex-col gap-2">
+                    <label class="text-text-main-light dark:text-text-main-dark text-sm font-medium">Tipo de
+                        Transacción</label>
+                    <div
+                        class="flex h-12 w-full items-center justify-center rounded-lg bg-[#e7f3eb] dark:bg-[#1f3629] p-1">
+                        <label
+                            class="group flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-md px-2 transition-all has-[:checked]:bg-surface-light dark:has-[:checked]:bg-surface-dark has-[:checked]:shadow-sm has-[:checked]:text-text-main-light dark:has-[:checked]:text-primary text-text-sub-light dark:text-text-sub-dark text-sm font-medium">
+                            <span class="truncate">Ingreso</span>
+                            <input class="invisible w-0" name="transaction_type" type="radio" value="Income" />
+                        </label>
+                        <label
+                            class="group flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-md px-2 transition-all has-[:checked]:bg-surface-light dark:has-[:checked]:bg-surface-dark has-[:checked]:shadow-sm has-[:checked]:text-text-main-light dark:has-[:checked]:text-primary text-text-sub-light dark:text-text-sub-dark text-sm font-medium">
+                            <span class="truncate">Gasto</span>
+                            <input checked="" class="invisible w-0" name="transaction_type" type="radio"
+                                value="Expense" />
+                        </label>
+                    </div>
+                </div>
+                <!-- Amount Input (Prominent) -->
+                <div class="flex flex-col gap-2">
+                    <label class="text-text-main-light dark:text-text-main-dark text-sm font-medium">Monto</label>
+                    <div class="relative flex items-center">
+                        <span
+                            class="absolute left-4 text-text-sub-light dark:text-text-sub-dark material-symbols-outlined">attach_money</span>
+                        <input
+                            class="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-main-light dark:text-text-main-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark focus:border-primary h-16 pl-12 pr-4 text-2xl font-bold leading-normal transition-all placeholder:text-text-sub-light/50"
+                            step="0.01" type="number" value="124.50" />
+                    </div>
+                </div>
+                <!-- Date & Category Row -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Date -->
+                    <label class="flex flex-col min-w-40 flex-1 gap-2">
+                        <span class="text-text-main-light dark:text-text-main-dark text-sm font-medium">Fecha</span>
+                        <div class="relative flex items-center">
+                            <input
+                                class="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-main-light dark:text-text-main-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark focus:border-primary h-12 px-4 text-base font-normal leading-normal transition-all appearance-none [&amp;::-webkit-calendar-picker-indicator]:opacity-0 z-10 bg-transparent"
+                                type="date" value="2023-10-24" />
+                            <div
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-text-sub-light dark:text-text-sub-dark pointer-events-none z-0">
+                                <span class="material-symbols-outlined text-[20px]">calendar_today</span>
+                            </div>
+                        </div>
+                    </label>
+                    <!-- Category -->
+                    <label class="flex flex-col min-w-40 flex-1 gap-2">
+                        <span class="text-text-main-light dark:text-text-main-dark text-sm font-medium">Categoría</span>
+                        <div class="relative">
+                            <select
+                                class="flex w-full min-w-0 flex-1 appearance-none rounded-lg text-text-main-light dark:text-text-main-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark focus:border-primary h-12 px-4 pr-10 text-base font-normal leading-normal transition-all cursor-pointer">
+                                <option>Comestibles</option>
+                                <option>Comer Afuera</option>
+                                <option>Transporte</option>
+                                <option>Entretenimiento</option>
+                                <option>Servicios</option>
+                            </select>
+                            <div
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-text-sub-light dark:text-text-sub-dark pointer-events-none flex items-center">
+                                <span class="material-symbols-outlined">expand_more</span>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+                <!-- Payment Method -->
+                <label class="flex flex-col min-w-40 flex-1 gap-2">
+                    <span class="text-text-main-light dark:text-text-main-dark text-sm font-medium">Método de
+                        Pago</span>
+                    <div class="relative">
+                        <div
+                            class="absolute left-4 top-1/2 -translate-y-1/2 text-text-sub-light dark:text-text-sub-dark pointer-events-none flex items-center">
+                            <span class="material-symbols-outlined text-[20px]">credit_card</span>
+                        </div>
+                        <select
+                            class="flex w-full min-w-0 flex-1 appearance-none rounded-lg text-text-main-light dark:text-text-main-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark focus:border-primary h-12 pl-12 pr-10 text-base font-normal leading-normal transition-all cursor-pointer">
+                            <option>Chase Sapphire</option>
+                            <option>Bank of America Checking</option>
+                            <option>Efectivo</option>
+                            <option>Apple Pay</option>
+                        </select>
+                        <div
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-text-sub-light dark:text-text-sub-dark pointer-events-none flex items-center">
+                            <span class="material-symbols-outlined">expand_more</span>
+                        </div>
+                    </div>
+                </label>
+                <!-- Description -->
+                <label class="flex flex-col min-w-40 flex-1 gap-2">
+                    <span class="text-text-main-light dark:text-text-main-dark text-sm font-medium">Descripción</span>
+                    <textarea
+                        class="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-main-light dark:text-text-main-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark focus:border-primary min-h-[100px] p-4 text-base font-normal leading-normal transition-all placeholder:text-text-sub-light"
+                        placeholder="¿Para qué fue esta transacción?">Compras semanales en Whole Foods</textarea>
+                </label>
+            </form>
+        </div>
+        <!-- Footer Actions -->
+        <div
+            class="flex flex-col-reverse sm:flex-row items-center justify-between gap-4 p-6 border-t border-border-light dark:border-border-dark bg-surface-light/50 dark:bg-surface-dark/50">
+            <!-- Delete Action -->
+            <button
+                class="group flex items-center gap-2 text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors text-sm font-medium px-2 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/10"
+                type="button">
+                <span class="material-symbols-outlined text-[20px]">delete</span>
+                <span>Eliminar Transacción</span>
+            </button>
+            <!-- Save/Cancel -->
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                <button
+                    class="flex-1 sm:flex-none justify-center items-center h-10 px-6 rounded-lg text-text-sub-light dark:text-text-sub-dark hover:text-text-main-light dark:hover:text-white font-medium text-sm transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                    type="button">
+                    Cancelar
+                </button>
+                <button
+                    class="flex-1 sm:flex-none flex items-center justify-center gap-2 h-10 px-6 rounded-lg bg-primary hover:bg-[#0fd951] active:scale-[0.98] text-[#0d1b12] font-bold text-sm transition-all shadow-sm hover:shadow-md"
+                    type="button">
+                    <span>Guardar Cambios</span>
+                    <span class="material-symbols-outlined text-[18px]">check</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

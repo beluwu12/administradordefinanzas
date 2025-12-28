@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Gestor Financiero - Agregar Nueva Meta</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13ec5b",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#102216",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1c3024",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+</head>
+
+<body
+    class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white antialiased transition-colors duration-200">
+    <div class="flex min-h-screen w-full overflow-hidden">
+        <!-- Sidebar -->
+        <aside
+            class="hidden w-64 flex-col border-r border-slate-200 dark:border-slate-800 bg-background-light dark:bg-background-dark lg:flex">
+            <div class="flex items-center gap-3 px-6 py-6">
+                <div class="flex size-8 items-center justify-center rounded-lg bg-primary text-slate-900">
+                    <span class="material-symbols-outlined">savings</span>
+                </div>
+                <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Gestor Financiero</h1>
+            </div>
+            <nav class="flex-1 px-4 py-4 space-y-1">
+                <a class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    href="#">
+                    <span class="material-symbols-outlined">dashboard</span>
+                    Panel
+                </a>
+                <a class="flex items-center gap-3 rounded-lg bg-primary/20 px-3 py-2.5 text-sm font-medium text-slate-900 dark:text-white"
+                    href="#">
+                    <span class="material-symbols-outlined fill-1">track_changes</span>
+                    Metas
+                </a>
+                <a class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    href="#">
+                    <span class="material-symbols-outlined">credit_card</span>
+                    Transacciones
+                </a>
+                <a class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    href="#">
+                    <span class="material-symbols-outlined">pie_chart</span>
+                    Presupuesto
+                </a>
+                <a class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    href="#">
+                    <span class="material-symbols-outlined">settings</span>
+                    Ajustes
+                </a>
+            </nav>
+            <div class="p-4 border-t border-slate-200 dark:border-slate-800">
+                <div
+                    class="flex items-center gap-3 rounded-lg bg-surface-light dark:bg-surface-dark p-3 shadow-sm border border-slate-100 dark:border-slate-700">
+                    <div class="h-10 w-10 overflow-hidden rounded-full bg-slate-200"
+                        data-alt="Imagen de perfil de usuario">
+                        <img alt="User Avatar" class="h-full w-full object-cover"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3VsZb6AzJtAEGxDO9zT4ThNeO3qXtWxa0QGFFRXoRkNi3cCF8DzpAMcmLbqwi2GbCdxw9fsFAJFSwV1yih6waL6XDuzLB0kVTnsJIbZbwiUkpos_xr3JCxednOC57Iw7BMvZgYGSul_9FdLVJCYUMwmluUszs7dB8wQeZ0VUnNUqI-0Lw2f8IdzOZitZKHtIHDfvLaUdE2-AOPXuvTRetsS33dy_Yr_1EXGuD87LFCHLHc7GL2APeS9lfmrB3qIPLU7neV9bl_f4" />
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-sm font-semibold text-slate-900 dark:text-white">Alex Morgan</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">Plan Pro</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        <!-- Main Content -->
+        <div class="flex flex-1 flex-col overflow-y-auto">
+            <!-- Top Navbar -->
+            <header
+                class="flex h-16 items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-background-light/80 dark:bg-background-dark/80 px-6 backdrop-blur-md sticky top-0 z-10">
+                <div class="flex items-center gap-4 lg:hidden">
+                    <button class="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+                        <span class="material-symbols-outlined">menu</span>
+                    </button>
+                    <span class="text-lg font-bold text-slate-900 dark:text-white">Gestor Financiero</span>
+                </div>
+                <div class="hidden md:block w-full max-w-md">
+                    <div class="relative">
+                        <span
+                            class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
+                        <input
+                            class="h-10 w-full rounded-lg border-none bg-surface-light dark:bg-surface-dark pl-10 pr-4 text-sm text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-primary dark:text-white shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                            placeholder="Buscar transacciones, metas..." type="text" />
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button
+                        class="relative flex h-10 w-10 items-center justify-center rounded-lg bg-surface-light dark:bg-surface-dark text-slate-500 hover:text-primary transition-colors shadow-sm ring-1 ring-slate-200 dark:ring-slate-700">
+                        <span class="material-symbols-outlined">notifications</span>
+                        <span class="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500"></span>
+                    </button>
+                </div>
+            </header>
+            <!-- Page Content -->
+            <main class="flex-1 px-4 py-8 md:px-8 xl:px-12">
+                <div class="mx-auto max-w-5xl">
+                    <!-- Breadcrumbs -->
+                    <nav class="mb-6 flex items-center text-sm font-medium text-slate-500 dark:text-slate-400">
+                        <a class="hover:text-primary transition-colors" href="#">Panel</a>
+                        <span class="mx-2 text-slate-300 dark:text-slate-600">/</span>
+                        <a class="hover:text-primary transition-colors" href="#">Metas</a>
+                        <span class="mx-2 text-slate-300 dark:text-slate-600">/</span>
+                        <span class="text-slate-900 dark:text-white font-semibold">Agregar Nueva</span>
+                    </nav>
+                    <!-- Page Header -->
+                    <div class="mb-8">
+                        <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white sm:text-4xl">Crear
+                            Meta de Ahorro</h1>
+                        <p class="mt-2 text-lg text-slate-600 dark:text-slate-400">Establece un objetivo para seguir tu
+                            progreso y gestionar tus sueños.</p>
+                    </div>
+                    <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
+                        <!-- Form Section -->
+                        <div class="lg:col-span-2">
+                            <form action="#"
+                                class="space-y-6 rounded-2xl bg-surface-light dark:bg-surface-dark p-6 shadow-sm border border-slate-200 dark:border-slate-800 lg:p-8">
+                                <!-- Goal Name -->
+                                <div>
+                                    <label class="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200"
+                                        for="goalName">Nombre de la Meta</label>
+                                    <div class="relative">
+                                        <input
+                                            class="block w-full rounded-xl border-slate-300 bg-background-light p-4 text-base text-slate-900 placeholder-slate-400 focus:border-primary focus:ring-primary dark:border-slate-700 dark:bg-background-dark dark:text-white dark:placeholder-slate-500 shadow-sm"
+                                            id="goalName" name="goalName"
+                                            placeholder="ej. Vacaciones Soñadas, Auto Nuevo" type="text" />
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                    <!-- Target Amount -->
+                                    <div>
+                                        <label class="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200"
+                                            for="targetAmount">Monto Objetivo</label>
+                                        <div class="relative">
+                                            <div
+                                                class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                                                <span class="text-slate-500 text-lg">$</span>
+                                            </div>
+                                            <input
+                                                class="block w-full rounded-xl border-slate-300 bg-background-light p-4 pl-10 text-base text-slate-900 placeholder-slate-400 focus:border-primary focus:ring-primary dark:border-slate-700 dark:bg-background-dark dark:text-white dark:placeholder-slate-500 shadow-sm"
+                                                id="targetAmount" name="targetAmount" placeholder="0.00"
+                                                type="number" />
+                                        </div>
+                                    </div>
+                                    <!-- Target Date -->
+                                    <div>
+                                        <label class="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200"
+                                            for="targetDate">Fecha Objetivo</label>
+                                        <div class="relative">
+                                            <div
+                                                class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4">
+                                                <span
+                                                    class="material-symbols-outlined text-slate-400">calendar_today</span>
+                                            </div>
+                                            <input
+                                                class="block w-full rounded-xl border-slate-300 bg-background-light p-4 text-base text-slate-900 placeholder-slate-400 focus:border-primary focus:ring-primary dark:border-slate-700 dark:bg-background-dark dark:text-white dark:placeholder-slate-500 shadow-sm [color-scheme:light] dark:[color-scheme:dark]"
+                                                id="targetDate" name="targetDate" type="date" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Category -->
+                                <div>
+                                    <label class="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200"
+                                        for="category">Categoría</label>
+                                    <div class="relative">
+                                        <select
+                                            class="block w-full appearance-none rounded-xl border-slate-300 bg-background-light p-4 text-base text-slate-900 focus:border-primary focus:ring-primary dark:border-slate-700 dark:bg-background-dark dark:text-white shadow-sm"
+                                            id="category" name="category">
+                                            <option disabled="" selected="" value="">Seleccionar categoría</option>
+                                            <option value="travel">Viajes</option>
+                                            <option value="emergency">Fondo de Emergencia</option>
+                                            <option value="housing">Vivienda</option>
+                                            <option value="vehicle">Vehículo</option>
+                                            <option value="education">Educación</option>
+                                            <option value="other">Otro</option>
+                                        </select>
+                                        <div
+                                            class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                                            <span class="material-symbols-outlined">expand_more</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Description -->
+                                <div>
+                                    <label class="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200"
+                                        for="description">Notas (Opcional)</label>
+                                    <textarea
+                                        class="block w-full rounded-xl border-slate-300 bg-background-light p-4 text-base text-slate-900 placeholder-slate-400 focus:border-primary focus:ring-primary dark:border-slate-700 dark:bg-background-dark dark:text-white dark:placeholder-slate-500 shadow-sm resize-none"
+                                        id="description" name="description"
+                                        placeholder="Add any details about this goal..." rows="3"></textarea>
+                                </div>
+                                <!-- Actions -->
+                                <div class="flex flex-col-reverse gap-4 pt-4 sm:flex-row sm:justify-end">
+                                    <button
+                                        class="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-transparent px-6 py-3 text-base font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800 transition-all"
+                                        type="button">
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        class="inline-flex items-center justify-center rounded-lg border border-transparent bg-primary px-8 py-3 text-base font-bold text-slate-900 shadow-md hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-all transform active:scale-95"
+                                        type="submit">
+                                        Crear meta
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        <!-- Sidebar / Calculator Section -->
+                        <div class="lg:col-span-1">
+                            <div class="sticky top-24 space-y-6">
+                                <!-- Savings Calculator Card -->
+                                <div
+                                    class="overflow-hidden rounded-2xl bg-surface-light dark:bg-surface-dark shadow-lg border border-slate-200 dark:border-slate-800">
+                                    <div
+                                        class="bg-gradient-to-br from-emerald-900 to-slate-900 p-6 text-white relative overflow-hidden">
+                                        <!-- Decorative background pattern -->
+                                        <div
+                                            class="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-primary/20 blur-xl">
+                                        </div>
+                                        <div
+                                            class="absolute -left-6 -bottom-6 h-24 w-24 rounded-full bg-primary/20 blur-xl">
+                                        </div>
+                                        <h3 class="relative text-lg font-semibold">Plan Mensual</h3>
+                                        <p class="relative mt-1 text-sm text-slate-300">Lo calculamos automáticamente.
+                                        </p>
+                                    </div>
+                                    <div class="p-6">
+                                        <div class="flex flex-col gap-1">
+                                            <span
+                                                class="text-sm font-medium text-slate-500 dark:text-slate-400">Necesitas
+                                                ahorrar</span>
+                                            <div class="flex items-baseline gap-1">
+                                                <span
+                                                    class="text-3xl font-bold text-slate-900 dark:text-white">$0</span>
+                                                <span class="text-base text-slate-500">/ mes</span>
+                                            </div>
+                                        </div>
+                                        <div class="my-6 h-px w-full bg-slate-200 dark:bg-slate-700"></div>
+                                        <div class="space-y-4">
+                                            <div class="flex justify-between text-sm">
+                                                <span class="text-slate-500 dark:text-slate-400">Monto Objetivo</span>
+                                                <span class="font-medium text-slate-900 dark:text-white">$0</span>
+                                            </div>
+                                            <div class="flex justify-between text-sm">
+                                                <span class="text-slate-500 dark:text-slate-400">Meses restantes</span>
+                                                <span class="font-medium text-slate-900 dark:text-white">0</span>
+                                            </div>
+                                        </div>
+                                        <div class="mt-6 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 p-3">
+                                            <div class="flex gap-2 text-emerald-700 dark:text-emerald-400">
+                                                <span
+                                                    class="material-symbols-outlined text-sm pt-0.5">tips_and_updates</span>
+                                                <p class="text-xs leading-relaxed">
+                                                    Consejo: Establecer una fecha realista aumenta tus posibilidades de
+                                                    éxito en un 40%.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Help Card -->
+                                <div
+                                    class="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-4 text-center">
+                                    <div
+                                        class="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
+                                        <span class="material-symbols-outlined">help</span>
+                                    </div>
+                                    <h4 class="text-sm font-semibold text-slate-900 dark:text-white">¿Necesitas Ayuda?
+                                    </h4>
+                                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Lee nuestra guía sobre
+                                        cómo establecer metas financieras efectivas.</p>
+                                    <a class="mt-3 inline-block text-xs font-semibold text-primary hover:underline"
+                                        href="#">Leer Guía</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>

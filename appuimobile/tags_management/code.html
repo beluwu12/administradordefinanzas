@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tags Management</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#db0f79",
+              "background-light": "#f8f6f7",
+              "background-dark": "#221019",
+              "surface-light": "#ffffff",
+              "surface-dark": "#2f1b25",
+            },
+            fontFamily: {
+              "display": ["Manrope", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "sm": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Custom scrollbar hiding for clean UI */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white flex flex-col min-h-screen relative font-display antialiased selection:bg-primary/30">
+<!-- Top App Bar -->
+<header class="sticky top-0 z-50 w-full bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md border-b border-black/5 dark:border-white/5 transition-colors duration-300">
+<div class="flex items-center justify-between px-4 py-3">
+<button class="flex items-center justify-center w-10 h-10 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all text-primary dark:text-primary">
+<span class="material-symbols-outlined text-[28px]">chevron_left</span>
+</button>
+<h1 class="text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-8">Manage Tags</h1>
+<!-- Optional Done/Save button could go here, keeping empty for now as per prompt layout -->
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 w-full max-w-md mx-auto px-4 pb-24 pt-2">
+<!-- Search Bar -->
+<div class="py-3 sticky top-[60px] z-40 bg-background-light dark:bg-background-dark">
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+<span class="material-symbols-outlined text-gray-400 dark:text-gray-500">search</span>
+</div>
+<input class="block w-full p-3 pl-10 text-sm text-gray-900 border-none rounded-lg bg-surface-light dark:bg-surface-dark shadow-sm ring-1 ring-black/5 dark:ring-white/5 focus:ring-2 focus:ring-primary dark:focus:ring-primary focus:outline-none placeholder-gray-400 dark:placeholder-gray-500 dark:text-white transition-all" placeholder="Search tags..." type="text"/>
+</div>
+</div>
+<!-- Tags List -->
+<div class="space-y-3 mt-2">
+<!-- List Item: Groceries -->
+<div class="group flex items-center justify-between p-3 bg-surface-light dark:bg-surface-dark rounded-lg shadow-sm border border-black/5 dark:border-white/5 hover:border-primary/30 dark:hover:border-primary/30 transition-all cursor-pointer">
+<div class="flex items-center gap-4 flex-1 overflow-hidden">
+<div class="flex items-center justify-center w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 shrink-0">
+<span class="material-symbols-outlined text-[20px]">shopping_cart</span>
+</div>
+<div class="flex flex-col truncate">
+<p class="text-base font-semibold text-gray-900 dark:text-white truncate">Groceries</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">Monthly budget: $400</p>
+</div>
+</div>
+<div class="flex items-center gap-1 pl-2">
+<button aria-label="Edit tag" class="p-2 text-gray-400 hover:text-primary dark:hover:text-primary transition-colors rounded-full hover:bg-primary/5 active:scale-95">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button aria-label="Delete tag" class="p-2 text-gray-400 hover:text-red-500 transition-colors rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 active:scale-95">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+</div>
+<!-- List Item: Utilities -->
+<div class="group flex items-center justify-between p-3 bg-surface-light dark:bg-surface-dark rounded-lg shadow-sm border border-black/5 dark:border-white/5 hover:border-primary/30 dark:hover:border-primary/30 transition-all cursor-pointer">
+<div class="flex items-center gap-4 flex-1 overflow-hidden">
+<div class="flex items-center justify-center w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 shrink-0">
+<span class="material-symbols-outlined text-[20px]">bolt</span>
+</div>
+<div class="flex flex-col truncate">
+<p class="text-base font-semibold text-gray-900 dark:text-white truncate">Utilities</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">Auto-paid</p>
+</div>
+</div>
+<div class="flex items-center gap-1 pl-2">
+<button aria-label="Edit tag" class="p-2 text-gray-400 hover:text-primary dark:hover:text-primary transition-colors rounded-full hover:bg-primary/5 active:scale-95">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button aria-label="Delete tag" class="p-2 text-gray-400 hover:text-red-500 transition-colors rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 active:scale-95">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+</div>
+<!-- List Item: Entertainment -->
+<div class="group flex items-center justify-between p-3 bg-surface-light dark:bg-surface-dark rounded-lg shadow-sm border border-black/5 dark:border-white/5 hover:border-primary/30 dark:hover:border-primary/30 transition-all cursor-pointer">
+<div class="flex items-center gap-4 flex-1 overflow-hidden">
+<div class="flex items-center justify-center w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 shrink-0">
+<span class="material-symbols-outlined text-[20px]">movie</span>
+</div>
+<div class="flex flex-col truncate">
+<p class="text-base font-semibold text-gray-900 dark:text-white truncate">Entertainment</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">Flex budget</p>
+</div>
+</div>
+<div class="flex items-center gap-1 pl-2">
+<button aria-label="Edit tag" class="p-2 text-gray-400 hover:text-primary dark:hover:text-primary transition-colors rounded-full hover:bg-primary/5 active:scale-95">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button aria-label="Delete tag" class="p-2 text-gray-400 hover:text-red-500 transition-colors rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 active:scale-95">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+</div>
+<!-- List Item: Side Hustle -->
+<div class="group flex items-center justify-between p-3 bg-surface-light dark:bg-surface-dark rounded-lg shadow-sm border border-black/5 dark:border-white/5 hover:border-primary/30 dark:hover:border-primary/30 transition-all cursor-pointer">
+<div class="flex items-center gap-4 flex-1 overflow-hidden">
+<div class="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shrink-0">
+<span class="material-symbols-outlined text-[20px]">payments</span>
+</div>
+<div class="flex flex-col truncate">
+<p class="text-base font-semibold text-gray-900 dark:text-white truncate">Side Hustle</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">Income source</p>
+</div>
+</div>
+<div class="flex items-center gap-1 pl-2">
+<button aria-label="Edit tag" class="p-2 text-gray-400 hover:text-primary dark:hover:text-primary transition-colors rounded-full hover:bg-primary/5 active:scale-95">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button aria-label="Delete tag" class="p-2 text-gray-400 hover:text-red-500 transition-colors rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 active:scale-95">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+</div>
+<!-- List Item: Transport -->
+<div class="group flex items-center justify-between p-3 bg-surface-light dark:bg-surface-dark rounded-lg shadow-sm border border-black/5 dark:border-white/5 hover:border-primary/30 dark:hover:border-primary/30 transition-all cursor-pointer">
+<div class="flex items-center gap-4 flex-1 overflow-hidden">
+<div class="flex items-center justify-center w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 shrink-0">
+<span class="material-symbols-outlined text-[20px]">directions_car</span>
+</div>
+<div class="flex flex-col truncate">
+<p class="text-base font-semibold text-gray-900 dark:text-white truncate">Transport</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">Fuel &amp; maintenance</p>
+</div>
+</div>
+<div class="flex items-center gap-1 pl-2">
+<button aria-label="Edit tag" class="p-2 text-gray-400 hover:text-primary dark:hover:text-primary transition-colors rounded-full hover:bg-primary/5 active:scale-95">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button aria-label="Delete tag" class="p-2 text-gray-400 hover:text-red-500 transition-colors rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 active:scale-95">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+</div>
+<!-- List Item: Health -->
+<div class="group flex items-center justify-between p-3 bg-surface-light dark:bg-surface-dark rounded-lg shadow-sm border border-black/5 dark:border-white/5 hover:border-primary/30 dark:hover:border-primary/30 transition-all cursor-pointer">
+<div class="flex items-center gap-4 flex-1 overflow-hidden">
+<div class="flex items-center justify-center w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 shrink-0">
+<span class="material-symbols-outlined text-[20px]">cardiology</span>
+</div>
+<div class="flex flex-col truncate">
+<p class="text-base font-semibold text-gray-900 dark:text-white truncate">Health</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">Insurance &amp; meds</p>
+</div>
+</div>
+<div class="flex items-center gap-1 pl-2">
+<button aria-label="Edit tag" class="p-2 text-gray-400 hover:text-primary dark:hover:text-primary transition-colors rounded-full hover:bg-primary/5 active:scale-95">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button aria-label="Delete tag" class="p-2 text-gray-400 hover:text-red-500 transition-colors rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 active:scale-95">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- Sticky Bottom CTA -->
+<div class="fixed bottom-0 left-0 w-full bg-background-light dark:bg-background-dark/95 backdrop-blur-lg border-t border-black/5 dark:border-white/5 p-4 z-50">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3.5 px-6 rounded-lg shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-transform active:scale-[0.98]">
+<span class="material-symbols-outlined">add</span>
+            Add New Tag
+        </button>
+</div>
+</body></html>

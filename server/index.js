@@ -63,12 +63,20 @@ const getAllowedOrigins = () => {
 };
 
 const allowedOrigins = getAllowedOrigins();
-logger.info('CORS allowed origins', { origins: allowedOrigins, env: NODE_ENV });
+const ALLOW_NO_ORIGIN = process.env.FEATURE_ALLOW_NO_ORIGIN === 'true';
+logger.info('CORS allowed origins', { origins: allowedOrigins, env: NODE_ENV, allowNoOrigin: ALLOW_NO_ORIGIN });
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, Postman)
-    if (!origin) return callback(null, true);
+    // Requests with no origin (mobile apps, curl, Postman)
+    if (!origin) {
+      // In production, block no-origin unless explicitly allowed
+      if (ALLOW_NO_ORIGIN || NODE_ENV === 'development') {
+        return callback(null, true);
+      }
+      logger.warn('CORS blocked request with no origin');
+      return callback(new Error('Origin required'));
+    }
 
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
@@ -79,7 +87,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token']
 }));
 
 // Body parser
@@ -140,9 +148,13 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/exchange-rate', require('./routes/exchangeRate'));
 
 // ═══════════════════════════════════════════════════════════════
-// HEALTH CHECK
+// HEALTH CHECK (enhanced with readiness/liveness probes)
 // ═══════════════════════════════════════════════════════════════
 
+const healthRoutes = require('./routes/health');
+app.use('/health', healthRoutes);
+
+// Legacy /api/health endpoint for backwards compatibility
 app.get('/api/health', (req, res) => {
   res.json({
     success: true,
@@ -150,7 +162,7 @@ app.get('/api/health', (req, res) => {
       status: 'ok',
       message: 'Personal Finance API is running',
       timestamp: new Date().toISOString(),
-      version: '2.1.0',  // Version bump for production hardening
+      version: '2.2.0',  // Version bump for Google-quality refactor
       environment: NODE_ENV
     }
   });

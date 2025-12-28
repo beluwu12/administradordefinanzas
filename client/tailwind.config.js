@@ -35,9 +35,9 @@ export default {
                     foreground: "hsl(var(--warning-foreground))",
                 },
                 muted: {
-                    DEFAULT: "hsl(var(--muted-foreground))",  // text-muted uses dark color
+                    DEFAULT: "hsl(var(--muted-foreground))",
                     foreground: "hsl(var(--muted-foreground))",
-                    bg: "hsl(var(--muted))",  // for bg-muted use this
+                    bg: "hsl(var(--muted))",
                 },
                 accent: {
                     DEFAULT: "hsl(var(--accent))",
@@ -51,19 +51,19 @@ export default {
                     DEFAULT: "hsl(var(--card))",
                     foreground: "hsl(var(--card-foreground))",
                 },
-                // Legacy colors for backward compatibility
+                // Legacy colors
                 surface: "hsl(var(--card))",
-                sidebar: "hsl(var(--sidebar))",
-                danger: "hsl(var(--destructive))",
-                text: "hsl(var(--foreground))",
             },
             borderRadius: {
                 lg: "var(--radius)",
                 md: "calc(var(--radius) - 2px)",
                 sm: "calc(var(--radius) - 4px)",
+                xl: "0.75rem",
+                "2xl": "1rem",
             },
             fontFamily: {
-                sans: ['Inter', 'sans-serif'],
+                sans: ['Manrope', 'sans-serif'],
+                display: ['Manrope', 'sans-serif'],
             },
             keyframes: {
                 "accordion-down": {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { LayoutDashboard, CreditCard, Tag, PiggyBank, Target, LogOut, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { texts } from '../../i18n/es';
 import Sidebar from './Sidebar';
@@ -24,20 +24,23 @@ const urlBase64ToUint8Array = (base64String) => {
     return outputArray;
 }
 
+/**
+ * MainLayout - Based on appuidesktop template
+ * Light background, white cards, pink accent
+ */
 const MainLayout = ({ children }) => {
     const { user, logout } = useAuth();
     const [toast, setToast] = useState(null);
 
     const navItems = [
-        { icon: LayoutDashboard, label: texts.nav.dashboard, to: '/' },
-        { icon: CreditCard, label: texts.nav.transactions, to: '/transactions' },
-        { icon: Tag, label: texts.nav.tags, to: '/tags' },
-        { icon: PiggyBank, label: texts.nav.budget, to: '/budget' },
-        { icon: Target, label: texts.nav.goals, to: '/goals' },
+        { icon: 'dashboard', label: texts.nav.dashboard, to: '/' },
+        { icon: 'receipt_long', label: texts.nav.transactions, to: '/transactions' },
+        { icon: 'sell', label: texts.nav.tags, to: '/tags' },
+        { icon: 'pie_chart', label: texts.nav.budget, to: '/budget' },
+        { icon: 'savings', label: texts.nav.goals, to: '/goals' },
     ];
 
     useEffect(() => {
-        // Register Push Subscription
         const registerPush = async () => {
             if ('serviceWorker' in navigator && 'PushManager' in window) {
                 try {
@@ -47,7 +50,6 @@ const MainLayout = ({ children }) => {
                         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
                     });
 
-                    // Send to backend
                     await api.post('/notifications/subscribe', {
                         endpoint: subscription.endpoint,
                         keys: {
@@ -66,8 +68,6 @@ const MainLayout = ({ children }) => {
         }
     }, [user]);
 
-    // Expose Toast globally via window event (hacky but simple for this requirement)
-    // Ideally use Context, but staying simple as per "MANTÉN responsive y no rompas"
     useEffect(() => {
         const handleToast = (e) => setToast(e.detail);
         window.addEventListener('show-toast', handleToast);
@@ -75,7 +75,7 @@ const MainLayout = ({ children }) => {
     }, []);
 
     return (
-        <div className="min-h-screen bg-background text-text font-sans selection:bg-primary/30">
+        <div className="bg-background min-h-screen overflow-hidden flex">
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
             {/* Desktop Sidebar */}
@@ -87,42 +87,55 @@ const MainLayout = ({ children }) => {
             {/* Mobile FAB */}
             <FloatingActionButton />
 
-            {/* Main Content Area */}
-            <main className="md:pl-64 min-h-screen flex flex-col pb-20 md:pb-0">
-                {/* Mobile Header (Simple) */}
-                <header className="md:hidden h-16 flex items-center justify-between px-4 sticky top-0 bg-background/80 backdrop-blur-md z-40 border-b border-[#ffffff10]">
-                    <span className="font-bold text-lg">{texts.app.name}</span>
-                    <div className="flex items-center gap-3">
+            {/* Main Content */}
+            <main className="flex-1 flex flex-col min-w-0 md:ml-64">
+                {/* Desktop Header */}
+                <header className="hidden md:flex h-16 border-b border-gray-200 bg-white/80 backdrop-blur-md items-center justify-between px-6 sticky top-0 z-20">
+                    <div className="flex flex-col">
+                        <h2 className="text-foreground text-lg font-bold leading-tight">Resumen</h2>
+                        <p className="text-gray-500 text-xs">Bienvenido de nuevo, {user?.firstName}</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        {/* Search */}
+                        <div className="hidden lg:flex h-9 bg-gray-50 border border-gray-200 rounded-lg items-center px-3 w-64 focus-within:ring-1 focus-within:ring-primary focus-within:border-primary">
+                            <span className="material-symbols-outlined text-gray-400 text-[20px]">search</span>
+                            <input
+                                className="bg-transparent border-none text-sm text-foreground placeholder-gray-400 focus:ring-0 w-full h-full p-0 pl-2"
+                                placeholder="Buscar transacciones..."
+                                type="text"
+                            />
+                        </div>
                         <NotificationBell />
-                        <button onClick={logout} className="p-2 text-textSecondary">
-                            <LogOut size={20} />
+                        <Link className="p-2 text-gray-500 hover:text-foreground transition-colors" to="/settings" title="Configuración">
+                            <span className="material-symbols-outlined">settings</span>
+                        </Link>
+                        <div className="h-8 w-px bg-gray-200 mx-1"></div>
+                        <button className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-gray-50 transition-colors">
+                            <div
+                                className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-pink-700 flex items-center justify-center text-white text-sm font-bold"
+                            >
+                                {user?.firstName?.charAt(0) || 'U'}
+                            </div>
                         </button>
                     </div>
                 </header>
 
-                {/* Desktop Header (Profile & Utils) */}
-                <header className="hidden md:flex h-20 items-center justify-end px-8 sticky top-0 bg-background/90 backdrop-blur-md z-40">
-                    <div className="flex items-center gap-4">
-                        <NotificationBell />
-                        <span className="text-textSecondary text-sm">
-                            {texts.app.welcome}, <span className="text-text font-semibold">{user?.firstName}</span>
-                        </span>
-                        <div className="w-10 h-10 bg-surface rounded-full flex items-center justify-center border border-[#ffffff10]">
-                            <User size={20} className="text-primary" />
-                        </div>
-                        <button
-                            onClick={logout}
-                            className="p-2 hover:bg-surface rounded-full transition-colors text-textSecondary hover:text-red-400"
-                            title={texts.app.logout}
-                        >
-                            <LogOut size={20} />
-                        </button>
+                {/* Mobile Header */}
+                <header className="md:hidden sticky top-0 z-20 bg-background/90 backdrop-blur-md px-6 py-4 flex items-center justify-between border-b border-gray-100">
+                    <div className="flex flex-col">
+                        <span className="text-sm font-medium text-gray-500">Bienvenido,</span>
+                        <h2 className="text-xl font-bold leading-tight tracking-tight text-foreground">{user?.firstName}</h2>
                     </div>
+                    <button className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition-colors text-foreground">
+                        <span className="material-symbols-outlined text-2xl">settings</span>
+                    </button>
                 </header>
 
                 {/* Page Content */}
-                <div className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full animate-fadeIn">
-                    {children}
+                <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-24 md:pb-8">
+                    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fadeIn">
+                        {children}
+                    </div>
                 </div>
             </main>
         </div>

@@ -10,6 +10,7 @@ import TagsPage from './pages/TagsPage';
 import TransactionsPage from './pages/TransactionsPage';
 import GoalsPage from './pages/GoalsPage';
 import GoalDetailPage from './pages/GoalDetailPage';
+import SettingsPage from './pages/SettingsPage';
 
 // Auth Pages
 import LoginPage from './pages/LoginPage';
@@ -61,6 +62,7 @@ function App() {
                 <Route path="/budget" element={<BudgetPage />} />
                 <Route path="/goals" element={<GoalsPage />} />
                 <Route path="/goals/:id" element={<GoalDetailPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
               </Route>
             </Route>
 

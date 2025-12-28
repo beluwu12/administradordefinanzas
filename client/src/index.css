@@ -1,83 +1,92 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════════════════════════
+   FINCONTROL DESIGN SYSTEM
+   Based on HTML templates with pink (#db0f79) primary
+   ═══════════════════════════════════════════════════════════════ */
+
 @layer base {
   :root {
-    /* DRAFT UI - Classic Blue Theme (High Contrast Light Mode) */
-    --background: 210 40% 90%;
-    /* Darker: ~slate-200/250 - More contrast */
-    --foreground: 222 47% 11%;
-    /* slate-900: #0f172a - Almost black */
-
-    --card: 0 0% 100%;
-    /* Pure white cards */
-    --card-foreground: 222 47% 11%;
-    /* Dark text on cards */
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-
-    --primary: 207 90% 28%;
-    /* Classic Blue: #0F4C81 */
+    /* Color Palette */
+    --primary: 330 90% 46%;           /* #db0f79 - Pink */
     --primary-foreground: 0 0% 100%;
-
-    --secondary: 210 40% 96%;
-    /* slate-100: #f1f5f9 */
-    --secondary-foreground: 222 47% 11%;
-
-    --muted: 210 40% 96%;
-    /* slate-100 background */
-    --muted-foreground: 215 25% 30%;
-    /* Improved contrast: darker gray for WCAG AA compliance */
-
-    --accent: 207 90% 28%;
-    /* Classic Blue */
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 72% 51%;
-    /* Slightly darker red for better contrast */
-    --destructive-foreground: 0 0% 100%;
-
-    --success: 142 76% 32%;
-    /* Slightly darker green for better contrast */
-    --success-foreground: 0 0% 100%;
-
-    --warning: 38 92% 45%;
-    /* Slightly darker amber for better contrast */
-    --warning-foreground: 0 0% 0%;
-
-    --border: 214 32% 91%;
-    /* slate-200: #e2e8f0 */
-    --input: 214 32% 91%;
-    --ring: 207 90% 28%;
-    /* Classic Blue ring */
-
-    --sidebar: 0 0% 100%;
-    /* Pure white sidebar */
-
-    --radius: 0.5rem;
-    /* rounded-lg */
     
-    /* Safe area insets for iOS */
+    --background: 340 10% 97%;        /* #f8f6f7 - Light pink/gray */
+    --foreground: 340 30% 10%;        /* #1c0d15 - Dark */
+    
+    --card: 0 0% 100%;                /* White */
+    --card-foreground: 340 30% 10%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 340 30% 10%;
+    
+    --secondary: 210 20% 96%;         /* Light gray */
+    --secondary-foreground: 340 30% 10%;
+    
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 16% 47%;  /* Gray-500 */
+    
+    --accent: 330 90% 46%;
+    --accent-foreground: 0 0% 100%;
+    
+    --destructive: 0 84% 60%;         /* Red */
+    --destructive-foreground: 0 0% 100%;
+    
+    --success: 142 76% 36%;           /* Green */
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 38 92% 50%;            /* Amber */
+    --warning-foreground: 0 0% 0%;
+    
+    --border: 220 13% 91%;            /* gray-200 */
+    --input: 220 13% 91%;
+    --ring: 330 90% 46%;
+    
+    --radius: 0.5rem;
+    
+    /* Safe areas */
     --safe-area-inset-top: env(safe-area-inset-top, 0px);
     --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
     --safe-area-inset-left: env(safe-area-inset-left, 0px);
     --safe-area-inset-right: env(safe-area-inset-right, 0px);
   }
 
+  .dark {
+    --background: 340 30% 8%;         /* #221019 */
+    --foreground: 0 0% 100%;
+    
+    --card: 220 20% 14%;              /* gray-800 */
+    --card-foreground: 0 0% 100%;
+    
+    --popover: 220 20% 14%;
+    --popover-foreground: 0 0% 100%;
+    
+    --muted: 215 28% 17%;
+    --muted-foreground: 215 20% 65%;
+    
+    --border: 0 0% 100% / 0.05;
+    --input: 0 0% 100% / 0.05;
+  }
+
   * {
     @apply border-border;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Manrope', system-ui, sans-serif;
     padding-bottom: var(--safe-area-inset-bottom);
   }
-  
-  /* Improved focus states for accessibility */
+
+  /* Focus states */
   button:focus-visible,
   input:focus-visible,
   select:focus-visible,
@@ -87,92 +96,214 @@
   }
 }
 
-/* Draft UI Component Styles */
+/* ═══════════════════════════════════════════════════════════════
+   COMPONENTS
+   ═══════════════════════════════════════════════════════════════ */
+
 @layer components {
-
-  /* Cards - Clean white with subtle shadow */
-  .card-draft {
-    @apply bg-card rounded-lg border border-border shadow-sm;
+  
+  /* Cards */
+  .card-template {
+    @apply bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm;
   }
 
-  .card-draft:hover {
-    @apply shadow-md;
+  /* Balance Card */
+  .balance-card {
+    @apply card-template p-6 relative overflow-hidden;
+  }
+  
+  .balance-card::after {
+    content: '';
+    @apply absolute -top-12 -right-12 w-32 h-32 bg-primary/10 rounded-full blur-2xl;
   }
 
-  /* Sidebar styles */
-  .sidebar-draft {
-    @apply bg-white border-r border-border;
+  /* Stat Card */
+  .stat-card {
+    @apply card-template p-5;
+  }
+  
+  .stat-value {
+    @apply text-3xl font-extrabold tracking-tight text-foreground;
+  }
+  
+  .stat-label {
+    @apply text-sm font-medium text-gray-500 dark:text-gray-400;
   }
 
-  .sidebar-item-draft {
-    @apply flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground transition-all duration-200;
+  /* Action Buttons (Quick Actions Grid) */
+  .action-btn {
+    @apply flex flex-col items-center gap-2 group;
+  }
+  
+  .action-btn-icon {
+    @apply flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-transform active:scale-95;
+  }
+  
+  .action-btn-label {
+    @apply text-xs font-semibold text-foreground;
   }
 
-  .sidebar-item-draft:hover {
-    @apply bg-slate-50 text-foreground;
+  /* Primary Button */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2;
+    @apply bg-primary hover:bg-pink-700 text-white;
+    @apply font-bold rounded-lg px-4 h-10 transition-all;
+    @apply shadow-md shadow-primary/20;
+    @apply active:scale-[0.98];
+  }
+  
+  .btn-primary:disabled {
+    @apply opacity-50 cursor-not-allowed;
   }
 
-  .sidebar-item-active {
-    @apply bg-blue-50 text-primary border-l-4 border-primary;
+  /* Secondary Button */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2;
+    @apply bg-gray-100 hover:bg-gray-200 text-foreground;
+    @apply font-bold rounded-lg px-4 h-10 transition-colors;
   }
 
-  /* Legacy compatibility */
-  .bg-surface {
-    @apply bg-card;
+  /* Ghost Button */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2;
+    @apply bg-transparent hover:bg-primary/5 text-primary;
+    @apply font-semibold rounded-lg px-4 py-2 transition-colors;
   }
 
-  /* Buttons - Solid Classic Blue */
-  .btn-primary-draft {
-    @apply bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium;
-    @apply hover:bg-blue-800 transition-colors;
+  /* Danger Button */
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2;
+    @apply text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10;
+    @apply font-semibold rounded-lg px-4 py-2 transition-colors;
   }
 
-  .btn-secondary-draft {
-    @apply bg-white text-foreground px-4 py-2 rounded-md font-medium border border-border;
-    @apply hover:bg-slate-50 transition-colors;
+  /* Form Input */
+  .input-template {
+    @apply w-full rounded-lg border border-gray-200 dark:border-gray-600;
+    @apply bg-background dark:bg-background;
+    @apply px-4 py-3.5 text-base font-normal text-foreground;
+    @apply placeholder:text-gray-400;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary;
+    @apply transition-all;
   }
 
-  /* Inputs - Clear white with visible borders */
-  .input-draft {
-    @apply bg-white border border-slate-300 rounded-md px-3 py-2 text-foreground;
-    @apply focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none;
-    @apply placeholder:text-muted-foreground;
+  /* Form Label */
+  .label-template {
+    @apply text-base font-medium text-foreground mb-2 block;
   }
 
-  /* Financial amounts - Big and clear */
-  .amount-large {
-    @apply text-3xl font-bold text-primary;
+  /* Progress Bar */
+  .progress-bar {
+    @apply w-full bg-gray-100 dark:bg-white/10 rounded-full h-2;
+  }
+  
+  .progress-bar-fill {
+    @apply h-2 rounded-full transition-all duration-500;
   }
 
-  .amount-medium {
-    @apply text-xl font-bold text-foreground;
+  /* Transaction Row */
+  .transaction-row {
+    @apply flex items-center gap-3 px-6 py-4;
+    @apply hover:bg-gray-50 dark:hover:bg-white/5 transition-colors;
+  }
+  
+  .transaction-icon {
+    @apply w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-foreground;
+  }
+  
+  .transaction-title {
+    @apply font-medium text-foreground;
+  }
+  
+  .transaction-category {
+    @apply text-sm text-gray-500;
+  }
+  
+  .transaction-amount {
+    @apply font-medium text-right;
+  }
+  
+  .transaction-amount-positive {
+    @apply text-green-600 dark:text-green-400;
+  }
+  
+  .transaction-amount-negative {
+    @apply text-foreground;
+  }
+
+  /* Sidebar Nav Item */
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors;
+    @apply text-gray-500 hover:text-foreground hover:bg-gray-50;
+  }
+  
+  .nav-item.active {
+    @apply bg-primary/10 text-primary;
+  }
+  
+  .nav-item-icon {
+    @apply text-[22px];
+  }
+  
+  .nav-item-label {
+    @apply text-sm font-semibold;
+  }
+
+  /* Floating Action Button */
+  .fab {
+    @apply fixed bottom-6 right-6 z-50;
+    @apply flex items-center gap-2 bg-primary hover:bg-pink-700 text-white;
+    @apply shadow-lg hover:shadow-primary/40 transition-all rounded-full;
+    @apply h-14 pl-4 pr-6 font-bold;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold;
+  }
+  
+  .badge-positive {
+    @apply bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400;
+  }
+  
+  .badge-negative {
+    @apply bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400;
+  }
+
+  /* Goal Card */
+  .goal-card {
+    @apply card-template p-5;
+  }
+  
+  .goal-progress-ring {
+    @apply w-12 h-12 rounded-full border-4 border-primary/30 flex items-center justify-center relative;
+  }
+
+  /* Divider with text */
+  .divider-text {
+    @apply relative my-8;
+  }
+  
+  .divider-text::before {
+    content: '';
+    @apply absolute inset-0 flex items-center;
+    @apply border-t border-gray-200 dark:border-white/10;
+  }
+  
+  .divider-text span {
+    @apply relative bg-white dark:bg-gray-800 px-4 text-gray-500 font-medium text-sm;
   }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
+/* ═══════════════════════════════════════════════════════════════
+   UTILITIES
+   ═══════════════════════════════════════════════════════════════ */
 
-::-webkit-scrollbar-track {
-  background: hsl(var(--background));
-}
-
-::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.3);
-}
-
-/* Animations */
 @layer utilities {
   .animate-slideUp {
     animation: slideUp 0.3s ease-out;
   }
-
+  
   .animate-fadeIn {
     animation: fadeIn 0.3s ease-out;
   }
@@ -180,9 +311,8 @@
   @keyframes slideUp {
     from {
       opacity: 0;
-      transform: translateY(20px);
+      transform: translateY(16px);
     }
-
     to {
       opacity: 1;
       transform: translateY(0);
@@ -190,12 +320,36 @@
   }
 
   @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-
-    to {
-      opacity: 1;
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
+
+  /* Hide scrollbar */
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }

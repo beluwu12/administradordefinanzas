@@ -8,7 +8,7 @@
  */
 
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
-import api from '../api';
+import api, { unwrapData } from '../api';
 
 const AuthContext = createContext();
 
@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
     const clearAuthData = useCallback(() => {
         localStorage.removeItem('finance_user');
         localStorage.removeItem('finance_token');
-        localStorage.removeItem('finance_refresh_token');
+        // refresh token is in httpOnly cookie - cleared by server on logout
         setUser(null);
     }, []);
 
@@ -43,12 +43,12 @@ export const AuthProvider = ({ children }) => {
                     // Validate token is still valid by calling /me
                     const response = await api.get('/auth/me');
 
-                    if (response.data) {
-                        // Token valid, update user with fresh data
-                        setUser(response.data);
-                        localStorage.setItem('finance_user', JSON.stringify(response.data));
+                    // Token valid, update user with fresh data
+                    const userData = unwrapData(response);
+                    if (userData) {
+                        setUser(userData);
+                        localStorage.setItem('finance_user', JSON.stringify(userData));
                     } else {
-                        // Token invalid, clear storage
                         clearAuthData();
                     }
                 } catch {
@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }) => {
         initializeAuth();
     }, [clearAuthData]);
 
-    const login = useCallback((userData, token, refreshToken = null) => {
+    const login = useCallback((userData, token) => {
         if (!userData || !token) {
             console.error('[AuthContext] login called with missing userData or token');
             return;
@@ -71,16 +71,18 @@ export const AuthProvider = ({ children }) => {
         // Store in localStorage (api.js interceptor will pick it up)
         localStorage.setItem('finance_user', JSON.stringify(userData));
         localStorage.setItem('finance_token', token);
-
-        // Store refresh token if provided
-        if (refreshToken) {
-            localStorage.setItem('finance_refresh_token', refreshToken);
-        }
+        // refresh token is set via httpOnly cookie by server - not stored here
 
         setUser(userData);
     }, []);
 
-    const logout = useCallback(() => {
+    const logout = useCallback(async () => {
+        // Call server to clear httpOnly cookie
+        try {
+            await api.post('/auth/logout');
+        } catch (e) {
+            // Ignore logout errors
+        }
         clearAuthData();
     }, [clearAuthData]);
 

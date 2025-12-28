@@ -40,23 +40,38 @@ const processQueue = (error, token = null) => {
     failedQueue = [];
 };
 
+// ═══════════════════════════════════════════════════════════════
+// CSRF HELPERS - For cross-site cookie protection
+// ═══════════════════════════════════════════════════════════════
+
 /**
- * Attempt to refresh the access token
+ * Get CSRF token from cookie (set by server on login)
+ */
+const getCsrfToken = () => {
+    const match = document.cookie.match(/csrf_token=([^;]+)/);
+    return match ? match[1] : null;
+};
+
+/**
+ * Get headers with CSRF token for cookie-dependent endpoints
+ */
+const getCsrfHeaders = () => {
+    const token = getCsrfToken();
+    return token ? { 'x-csrf-token': token } : {};
+};
+
+/**
+ * Attempt to refresh the access token using httpOnly cookie
  * Returns new token or null if refresh fails
  */
 const refreshAccessToken = async () => {
-    const refreshToken = localStorage.getItem('finance_refresh_token');
-
-    if (!refreshToken) {
-        return null;
-    }
-
     try {
-        // Use a separate axios instance to avoid interceptor loops
-        const response = await axios.post(`${API_URL}/auth/refresh`, {
-            refreshToken
-        }, {
-            withCredentials: true
+        // Cookie httpOnly se envía automáticamente con withCredentials
+        // NO leemos de localStorage - el refresh token está solo en cookie
+        // CSRF: header x-csrf-token must match csrf_token cookie
+        const response = await axios.post(`${API_URL}/auth/refresh`, null, {
+            withCredentials: true,
+            headers: getCsrfHeaders()
         });
 
         if (response.data?.success && response.data?.data?.token) {
@@ -79,11 +94,23 @@ const refreshAccessToken = async () => {
 
 /**
  * Clear all auth data and redirect to login
+ * Calls logout endpoint to clear httpOnly cookie on server
  */
-const clearAuthAndRedirect = () => {
+const clearAuthAndRedirect = async () => {
     localStorage.removeItem('finance_token');
-    localStorage.removeItem('finance_refresh_token');
     localStorage.removeItem('finance_user');
+
+    // Call logout to clear httpOnly cookie on server
+    // CSRF: header x-csrf-token must match csrf_token cookie
+    try {
+        await axios.post(`${API_URL}/auth/logout`, null, {
+            withCredentials: true,
+            headers: getCsrfHeaders()
+        });
+    } catch (e) {
+        // Ignore logout errors - we're clearing local state regardless
+    }
+
     window.location.href = '/login';
 };
 
@@ -112,12 +139,9 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
     (response) => {
-        // Unwrap standardized response format
-        if (response.data && typeof response.data === 'object') {
-            if ('data' in response.data && response.data.data !== undefined) {
-                response.data = response.data.data;
-            }
-        }
+        // DO NOT unwrap response.data automatically
+        // This preserves pagination metadata for list endpoints
+        // Use unwrapData() or unwrapPaginated() helpers instead
         return response;
     },
     async (error) => {
@@ -234,4 +258,41 @@ function getErrorMessage(status, data) {
     }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// RESPONSE HELPERS - Use these instead of automatic unwrap
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Unwrap standard API response to get just the data
+ * Use for endpoints that return { success, data }
+ */
+export const unwrapData = (response) => {
+    if (response.data?.success && response.data?.data !== undefined) {
+        return response.data.data;
+    }
+    return response.data;
+};
+
+/**
+ * Unwrap paginated API response preserving pagination metadata
+ * Use for list endpoints that return { success, data, pagination }
+ */
+export const unwrapPaginated = (response) => {
+    if (response.data?.success) {
+        return {
+            data: response.data.data,
+            pagination: response.data.pagination || null
+        };
+    }
+    return { data: response.data, pagination: null };
+};
+
+/**
+ * Check if response was successful
+ */
+export const isSuccess = (response) => {
+    return response.data?.success === true;
+};
+
 export default api;
+

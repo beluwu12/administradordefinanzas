@@ -1,38 +1,37 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ArrowRightLeft, PieChart, Target, User } from 'lucide-react';
-import { texts } from '../../i18n/es';
 
+/**
+ * BottomNav - Based on mobile template concept
+ * White background, pink active state
+ */
 const BottomNav = ({ navItems }) => {
     const location = useLocation();
-
-    // Use passed navItems or fallback to empty array
     const items = navItems || [];
 
     return (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-surface/95 backdrop-blur-lg border-t border-border z-40 pb-safe animate-in slide-in-from-bottom-full duration-500">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-40 pb-safe">
             <div className="flex justify-around items-center h-16">
-                {items.map((item) => {
-                    // Check if item has 'to' or 'path' property to support both structures
+                {items.slice(0, 5).map((item) => {
                     const path = item.to || item.path;
-                    const Icon = item.icon;
                     const isActive = location.pathname === path;
 
                     return (
                         <NavLink
                             key={path}
                             to={path}
-                            className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${isActive
+                            className={`flex flex-col items-center justify-center flex-1 h-full py-2 transition-colors ${isActive
                                     ? 'text-primary'
-                                    : 'text-muted hover:text-text'
+                                    : 'text-gray-400 hover:text-gray-600'
                                 }`}
                         >
-                            <Icon
-                                size={24}
-                                strokeWidth={isActive ? 2.5 : 2}
-                                className={`transition-transform duration-200 ${isActive ? 'scale-110' : ''}`}
-                            />
-                            <span className="text-[10px] font-medium leading-none">
+                            <span
+                                className="material-symbols-outlined text-2xl mb-1"
+                                style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
+                            >
+                                {getIconName(path)}
+                            </span>
+                            <span className={`text-[10px] font-semibold ${isActive ? 'font-bold' : ''}`}>
                                 {item.label}
                             </span>
                         </NavLink>
@@ -41,6 +40,17 @@ const BottomNav = ({ navItems }) => {
             </div>
         </div>
     );
+};
+
+const getIconName = (path) => {
+    const icons = {
+        '/': 'dashboard',
+        '/transactions': 'receipt_long',
+        '/tags': 'sell',
+        '/budget': 'pie_chart',
+        '/goals': 'savings',
+    };
+    return icons[path] || 'circle';
 };
 
 export default BottomNav;

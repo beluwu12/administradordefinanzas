@@ -62,6 +62,144 @@ cd server && npx prisma db push && cd ..
 .\start.bat
 ```
 
+## 📘 Guía detallada (paso a paso)
+
+### 1) Clonar y preparar entorno
+- Instala Node.js 20+ y npm.
+- Clona el repo y entra en la carpeta:
+  ```bash
+  git clone https://github.com/Gillardo/personal-finance-app.git
+  cd personal-finance-app
+  ```
+- Copia los archivos de entorno:
+  ```bash
+  cd server && cp .env.example .env && cd ..
+  ```
+  Edita `server/.env` y define un `JWT_SECRET` seguro.
+
+### 2) Backend (API Express)
+```bash
+cd server
+npm install
+npx prisma db push         # crea DB (SQLite local) o usa tu PostgreSQL
+npm run dev                # http://localhost:3000
+```
+Comprobación rápida: `curl http://localhost:3000/api/health`.
+
+### 3) Frontend (React + Vite)
+```bash
+cd client
+npm install
+npm run dev                # http://localhost:5173
+```
+El frontend detecta la URL de la API desde `src/config.js`. Si usas otro host/puerto, ajusta `VITE_API_URL`.
+
+### 4) Flujo de uso básico
+1. Regístrate en `/auth/register`.
+2. Inicia sesión en `/auth/login`.
+3. Agrega transacciones (ingreso/gasto) y etiquetas.
+4. Consulta dashboard y balance; para VE se muestra USD/VES.
+5. Crea metas de ahorro y gastos fijos si lo necesitas.
+
+### 5) Variables de entorno mínimas
+`server/.env`
+```
+DATABASE_URL="file:./dev.db"           # o tu cadena PostgreSQL
+JWT_SECRET="cadena-super-segura"       # genera con: openssl rand -hex 32
+NODE_ENV="development"
+PORT=3000
+CRON_ENABLED=true
+```
+
+### 6) Correr pruebas
+- Backend: `cd server && npm test` (usa el runner incluido).
+- Frontend: (no hay suite completa, pero existe `client/tests/unit.test.js`).
+
+### 7) Docker (local)
+```bash
+docker compose up -d
+docker compose logs -f
+```
+Frontend en `http://localhost:5173`, backend en `http://localhost:3000`.
+
+### 8) Despliegue (resumen)
+- VPS/Traefik: `cp .env.example .env` y `docker compose -f docker-compose.prod.yml up -d`.
+- Azure Container Apps: sigue `docs/DEPLOY_CLOUD.md` y los scripts en `deploy/`.
+
+### 9) Troubleshooting rápido
+- CORS bloqueado: define `CORS_ALLOWED_ORIGINS` en `server/.env`.
+- Token inválido: revisa `JWT_SECRET` y expira tokens borrando `localStorage` y cookies.
+- Migraciones Prisma: si cambias de SQLite a Postgres, ajusta `DATABASE_URL` y ejecuta `npx prisma migrate deploy`.
+
+---
+
+## 🧭 Plan de mejoras pendientes (hallazgos y pasos concretos)
+
+> Estas son las mejoras prioritarias que se detectaron al revisar el código. Están ordenadas por impacto (seguridad y datos primero).
+
+### 1) Seguridad de tokens (alta prioridad)
+- **Problema:** El refresh token se guarda en `localStorage` (JS accesible) aunque el backend lo setea como cookie httpOnly; expone credenciales largas a XSS.
+- **Acción:** En el cliente, guardar el refresh token solo en cookie httpOnly+Secure; no persistirlo en `localStorage`. Guardar el access token en memoria (estado) y no en `localStorage`.
+- **Archivos:** `client/src/api.js`, `client/src/context/AuthContext.jsx`, `server/routes/auth.js` (para rotación/blacklist si se implementa).
+- **Paso a paso:**
+  1. Quitar `finance_refresh_token` de `localStorage` en `api.js` y `AuthContext`.
+  2. Usar solo la cookie httpOnly enviada por el backend para `/auth/refresh` (`withCredentials: true` ya está).
+  3. Guardar access token en memoria (state) y opcionalmente en `sessionStorage` (no `localStorage`).
+  4. (Opcional recomendado) Implementar rotación de refresh tokens y tabla de sesiones (hash + revokedAt).
+
+### 2) Paginación y respuestas API (media-alta)
+- **Problema:** El interceptor Axios elimina el envoltorio `{ data, pagination }` y deja la UI sin `pagination`, forzando filtrado incompleto.
+- **Acción:** Conservar `pagination` en las respuestas o desestructurar explícitamente en cada uso.
+- **Archivos:** `client/src/api.js`, consumidores como `client/src/pages/TransactionsPage.jsx`.
+- **Paso a paso:**
+  1. En el interceptor, no sobrescribir `response.data` si existen claves adicionales; devolver el objeto completo.
+  2. Ajustar las vistas para leer `res.data` y `res.pagination` correctamente.
+
+### 3) Cálculo de estadísticas en UI (media)
+- **Problema:** Se comparan tipos en minúsculas (`income/expense`) pero el API devuelve `INCOME/EXPENSE`; las tarjetas de ingresos/gastos/balance muestran 0/incorrecto.
+- **Acción:** Normalizar a mayúsculas o usar constantes; recalcular stats con los valores correctos.
+- **Archivos:** `client/src/pages/TransactionsPage.jsx`.
+- **Paso a paso:**
+  1. Al iterar transacciones, comparar con `INCOME`/`EXPENSE` o hacer `tx.type.toUpperCase()`.
+  2. Verificar que el valor mostrado use la moneda correcta (ya soporta dual-currency).
+
+### 4) Reutilizar middleware de auth (media)
+- **Problema:** Varias rutas de auth vuelven a parsear JWT manualmente en vez de usar `requireAuth`; riesgo de inconsistencias y duplicación.
+- **Acción:** Aplicar `requireAuth` en `/auth/me`, `/auth/profile`, `/auth/password`, `/auth/account` y retirar parseo manual.
+- **Archivos:** `server/routes/auth.js`, `server/middleware/requireAuth.js`.
+- **Paso a paso:**
+  1. Añadir `router.use(requireAuth)` para las rutas protegidas (o aplicar por endpoint).
+  2. Eliminar lecturas manuales del header y llamadas directas a `jwt.verify`.
+  3. Usar `req.user`/`req.userId` ya asignados por el middleware.
+
+### 5) Calidad de datos y UX (media)
+- **Problema:** Falta validación espejo en UI para límites definidos en Zod (longitud de descripción, montos máximos).
+- **Acción:** Replicar reglas de `server/schemas/index.js` en los formularios del frontend para feedback inmediato.
+- **Archivos:** Formularios en `client/src/components/TransactionForm` y otros formularios de metas/gastos fijos.
+- **Paso a paso:**
+  1. Añadir validaciones en el cliente alineadas a `VALIDATION` (descripción, montos > 0).
+  2. Mostrar mensajes amigables antes de enviar al backend.
+
+### 6) (Opcional) Resiliencia de tokens
+- **Problema:** No hay lista de revocación/rotación para refresh tokens; si uno se filtra, dura 7 días.
+- **Acción:** Guardar refresh tokens (hasheados) por sesión/dispositivo y permitir revocarlos en logout/rotación.
+- **Archivos:** `server/routes/auth.js`, `prisma/schema.prisma` (si se crea una tabla Sessions).
+- **Paso a paso:**
+  1. Crear modelo `Session` (userId, tokenHash, userAgent, ip, expiresAt, revokedAt).
+  2. Al hacer login/refresh, emitir nuevo refresh token, guardar hash y revocar el previo.
+  3. En `/refresh`, validar contra la tabla y rechazar si revocado/expirado.
+
+### 7) Observabilidad y seguridad extra (recomendado)
+- Agregar rate limit por IP/usuario en endpoints de mutación financiera (create/update/delete transacciones).
+- Evitar loggear PII en errores; revisar `logger` para sanitizar payloads.
+- Considerar CSP si algún día se sirve el SPA desde el backend.
+
+### 8) UX/Funcionalidad sugerida (producto)
+- Presupuestos/envelopes por categoría con alertas al 80/100%.
+- Proyección de flujo de caja con gastos fijos + metas.
+- Importar/exportar CSV/OFX con validación.
+- Filtros server-side (rango de fechas, tipo, tag) para listas grandes.
+
 **Scripts disponibles:**
 - `start.bat` - Inicia backend + frontend
 - `stop.bat` - Detiene todos los servicios

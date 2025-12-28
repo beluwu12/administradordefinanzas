@@ -48,6 +48,30 @@ model User {
   goals             Goal[]
   notifications     Notification[]
   pushSubscriptions PushSubscription[]
+  sessions          Session[]
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SESSION MODEL - For refresh token rotation and reuse detection
+// ═══════════════════════════════════════════════════════════════
+
+model Session {
+  id          String    @id @default(uuid())
+  tokenHash   String    @unique  // SHA-256 hash of refresh token
+  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  
+  userAgent   String?
+  ipAddress   String?
+  
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
+  lastUsedAt  DateTime  @default(now())
+  revokedAt   DateTime?  // Set when token is rotated or revoked
+  
+  @@index([userId, revokedAt])
+  @@index([tokenHash])
 }
 
 // ═══════════════════════════════════════════════════════════════

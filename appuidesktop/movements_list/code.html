@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html class="light" lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Lista de Movimientos - Gestor Financiero</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1bd962", "primary-dark": "#16b251",
+                        "background-main": "#f2f4f6", "surface-white": "#ffffff",
+                        "surface-border": "#e5e7eb", "text-main": "#111827",
+                        "text-secondary": "#6b7280",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1rem", "2xl": "1.5rem", "full": "9999px" },
+                    boxShadow: {
+                        'soft': '0 2px 10px rgba(0, 0, 0, 0.03)',
+                        'card': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                    }
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .icon-fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+    </style>
+</head>
+
+<body class="bg-background-main text-text-main font-display antialiased overflow-hidden">
+    <div class="flex h-screen w-full overflow-hidden">
+        <div
+            class="hidden md:flex flex-col w-64 border-r border-surface-border bg-surface-white h-full flex-shrink-0 z-20 shadow-sm">
+            <div class="p-6 flex items-center gap-3">
+                <div
+                    class="size-10 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-green-200">
+                    F</div>
+                <h1 class="text-text-main text-lg font-bold tracking-tight">Gestor Financiero</h1>
+            </div>
+            <nav class="flex flex-col gap-2 px-4 mt-2 flex-1">
+                <a class="flex items-center gap-3 px-3 py-3 rounded-xl text-text-secondary hover:bg-gray-50 hover:text-primary transition-colors group"
+                    href="#">
+                    <span class="material-symbols-outlined text-gray-400 group-hover:text-primary">dashboard</span>
+                    <span class="text-sm font-medium">Panel</span>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-3 rounded-xl bg-green-50 text-primary font-bold shadow-sm ring-1 ring-green-100 group"
+                    href="#">
+                    <span class="material-symbols-outlined icon-fill">list</span>
+                    <span class="text-sm">Movimientos</span>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-3 rounded-xl text-text-secondary hover:bg-gray-50 hover:text-primary transition-colors group"
+                    href="#">
+                    <span class="material-symbols-outlined text-gray-400 group-hover:text-primary">pie_chart</span>
+                    <span class="text-sm font-medium">Reportes</span>
+                </a>
+                <a class="flex items-center gap-3 px-3 py-3 rounded-xl text-text-secondary hover:bg-gray-50 hover:text-primary transition-colors group"
+                    href="#">
+                    <span class="material-symbols-outlined text-gray-400 group-hover:text-primary">credit_card</span>
+                    <span class="text-sm font-medium">Tarjetas</span>
+                </a>
+                <div class="mt-auto mb-6">
+                    <a class="flex items-center gap-3 px-3 py-3 rounded-xl text-text-secondary hover:bg-gray-50 hover:text-primary transition-colors group"
+                        href="#">
+                        <span class="material-symbols-outlined text-gray-400 group-hover:text-primary">settings</span>
+                        <span class="text-sm font-medium">Ajustes</span>
+                    </a>
+                </div>
+            </nav>
+        </div>
+        <div class="flex-1 flex flex-col h-full overflow-hidden relative bg-background-main">
+            <header
+                class="flex items-center justify-between bg-surface-white/80 backdrop-blur-md px-6 py-4 flex-shrink-0 z-10 sticky top-0 border-b border-surface-border">
+                <div class="flex items-center gap-4 text-text-main md:hidden">
+                    <button class="text-text-secondary">
+                        <span class="material-symbols-outlined">menu</span>
+                    </button>
+                    <span class="font-bold text-lg">Movimientos</span>
+                </div>
+                <div class="hidden md:block">
+                </div>
+                <div class="flex-1 flex justify-end gap-6 items-center">
+                    <div
+                        class="hidden md:flex items-center text-sm text-text-secondary bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100 shadow-sm">
+                        <span class="w-2 h-2 rounded-full bg-primary mr-2"></span>
+                        Última sincronización: Ahora mismo
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button
+                            class="flex items-center justify-center rounded-xl size-10 hover:bg-gray-50 text-text-secondary transition-colors relative border border-transparent hover:border-gray-100">
+                            <span class="material-symbols-outlined">notifications</span>
+                            <span
+                                class="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                        </button>
+                        <div class="h-8 w-[1px] bg-gray-200"></div>
+                        <div class="flex items-center gap-3 cursor-pointer pl-1">
+                            <div class="h-10 w-10 rounded-xl bg-center bg-no-repeat bg-cover shadow-sm ring-2 ring-white"
+                                data-alt="Avatar de perfil de usuario mostrando una persona sonriente"
+                                style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBWEv7Mww5_yeKEdfCatyiHTUezvLS__7T4V6gMkN5mFnr3fGnZpvbNqzQhU1P1Ml98n-RE6vs1Scc8MT19iuYX7GpVvHzAmWFwaAtCesvc_TNleAj_ysCzy4mx4RjyCI-qHL52beb53Gc1-ZpZorbWZaSm73OHzC4uksnMtnIwSoU8twWcwlKK1ACStjUYpojK8I6ruu8zoyVfusWuubhuSPTaonRXZ77DP8lRBnUDdnfRZI8P9N_XnmzxQDM01OuLbKt93hIC2JU");'>
+                            </div>
+                            <div class="hidden md:block">
+                                <p class="text-text-main text-sm font-bold leading-tight">Alex Morgan</p>
+                                <p class="text-text-secondary text-xs font-medium">Plan Pro</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            <main class="flex-1 overflow-y-auto p-4 md:p-8">
+                <div class="max-w-7xl mx-auto flex flex-col gap-6">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h2 class="text-text-main text-3xl font-extrabold tracking-tight mb-1">Movimientos</h2>
+                            <p class="text-text-secondary text-sm">Rastrea y gestiona tus transacciones financieras.</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button
+                                class="flex items-center justify-center gap-2 px-5 h-11 rounded-xl bg-white border border-gray-200 text-text-main text-sm font-bold hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm">
+                                <span class="material-symbols-outlined text-[20px]">download</span>
+                                <span>Exportar</span>
+                            </button>
+                            <button
+                                class="flex items-center justify-center gap-2 px-5 h-11 rounded-xl bg-text-main text-white text-sm font-bold shadow-lg shadow-gray-300 hover:bg-gray-800 transition-all hover:-translate-y-0.5">
+                                <span class="material-symbols-outlined text-[20px]">add</span>
+                                <span>Agregar Transacción</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div
+                            class="relative overflow-hidden rounded-2xl bg-surface-white p-6 shadow-card group hover:shadow-lg transition-all border border-transparent hover:border-green-100">
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="p-2 bg-green-50 rounded-lg text-primary">
+                                    <span class="material-symbols-outlined">trending_up</span>
+                                </div>
+                                <span
+                                    class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                                    +12%
+                                </span>
+                            </div>
+                            <p class="text-text-secondary text-sm font-medium mb-1">Ingresos Totales</p>
+                            <p class="text-text-main text-3xl font-extrabold tracking-tight">$12,450.00</p>
+                        </div>
+                        <div
+                            class="relative overflow-hidden rounded-2xl bg-surface-white p-6 shadow-card group hover:shadow-lg transition-all border border-transparent hover:border-red-100">
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="p-2 bg-red-50 rounded-lg text-red-500">
+                                    <span class="material-symbols-outlined">trending_down</span>
+                                </div>
+                                <span
+                                    class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600">
+                                    +5%
+                                </span>
+                            </div>
+                            <p class="text-text-secondary text-sm font-medium mb-1">Gastos Totales</p>
+                            <p class="text-text-main text-3xl font-extrabold tracking-tight">$8,320.00</p>
+                        </div>
+                        <div
+                            class="relative overflow-hidden rounded-2xl bg-text-main text-white p-6 shadow-xl shadow-gray-200 group hover:shadow-2xl transition-all">
+                            <div class="absolute right-0 top-0 p-4 opacity-10">
+                                <span class="material-symbols-outlined text-8xl">account_balance_wallet</span>
+                            </div>
+                            <div class="relative z-10">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div class="p-2 bg-white/10 rounded-lg text-white backdrop-blur-sm">
+                                        <span class="material-symbols-outlined">account_balance_wallet</span>
+                                    </div>
+                                    <span
+                                        class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-primary text-white">
+                                        +22%
+                                    </span>
+                                </div>
+                                <p class="text-gray-400 text-sm font-medium mb-1">Saldo Neto</p>
+                                <p class="text-white text-3xl font-extrabold tracking-tight">$4,130.00</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        class="flex flex-col lg:flex-row gap-4 p-4 rounded-2xl bg-surface-white shadow-card border border-surface-border">
+                        <div class="flex-1 relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="material-symbols-outlined text-gray-400">search</span>
+                            </div>
+                            <input
+                                class="block w-full pl-10 pr-3 py-3 border-gray-200 rounded-xl leading-5 bg-gray-50 text-text-main placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent focus:bg-white sm:text-sm transition-all"
+                                placeholder="Buscar por comercio, categoría o monto..." type="text" />
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div class="relative">
+                                <select
+                                    class="appearance-none bg-gray-50 border border-gray-200 text-text-main py-3 pl-4 pr-10 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-primary focus:border-transparent cursor-pointer hover:bg-white transition-colors shadow-sm">
+                                    <option>Este Mes</option>
+                                    <option>Último Mes</option>
+                                    <option>Últimos 3 Meses</option>
+                                    <option>Este Año</option>
+                                </select>
+                                <div
+                                    class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                    <span class="material-symbols-outlined text-[20px]">calendar_today</span>
+                                </div>
+                            </div>
+                            <div class="relative">
+                                <select
+                                    class="appearance-none bg-gray-50 border border-gray-200 text-text-main py-3 pl-4 pr-10 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-primary focus:border-transparent cursor-pointer hover:bg-white transition-colors shadow-sm">
+                                    <option>Todas las Categorías</option>
+                                    <option>Comida</option>
+                                    <option>Compras</option>
+                                    <option>Transporte</option>
+                                    <option>Servicios</option>
+                                </select>
+                                <div
+                                    class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                    <span class="material-symbols-outlined text-[20px]">category</span>
+                                </div>
+                            </div>
+                            <div class="relative">
+                                <select
+                                    class="appearance-none bg-gray-50 border border-gray-200 text-text-main py-3 pl-4 pr-10 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-primary focus:border-transparent cursor-pointer hover:bg-white transition-colors shadow-sm">
+                                    <option>Todas las Cuentas</option>
+                                    <option>Chase Checking</option>
+                                    <option>Amex Gold</option>
+                                    <option>Efectivo</option>
+                                </select>
+                                <div
+                                    class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                    <span class="material-symbols-outlined text-[20px]">account_balance</span>
+                                </div>
+                            </div>
+                            <button
+                                class="flex items-center justify-center size-11 rounded-xl bg-gray-50 text-gray-500 hover:text-primary hover:bg-green-50 transition-colors border border-gray-200 shadow-sm"
+                                title="Más Filtros">
+                                <span class="material-symbols-outlined">filter_list</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        class="bg-surface-white border border-surface-border rounded-2xl overflow-hidden flex flex-col shadow-card">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-100">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider"
+                                            scope="col">Fecha</th>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider"
+                                            scope="col">Comercio / Descripción</th>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider"
+                                            scope="col">Categoría</th>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider hidden sm:table-cell"
+                                            scope="col">Cuenta</th>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider hidden lg:table-cell"
+                                            scope="col">Estado</th>
+                                        <th class="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider"
+                                            scope="col">Monto</th>
+                                        <th class="relative px-6 py-3" scope="col"><span class="sr-only">Acciones</span>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 bg-surface-white">
+                                    <tr class="hover:bg-gray-50 transition-colors group cursor-pointer">
+                                        <td class="px-6 py-5 whitespace-nowrap text-sm font-medium text-text-secondary">
+                                            Oct 24, 2023</td>
+                                        <td class="px-6 py-5 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div
+                                                    class="h-10 w-10 rounded-full bg-gray-100 p-1.5 flex items-center justify-center flex-shrink-0 mr-4 shadow-sm">
+                                                    <img alt="Spotify Logo"
+                                                        class="h-full w-full object-contain rounded-full"
+                                                        data-alt="Spotify green logo icon"
+                                                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBmfq9vnksRaNDLMTL1tijaBAt-tI5YvbziEqw2izavo-ZEFtYsr2wKASxOS_v9L9n7in46e64Df6PvzPSnA25nF8SjtWvBknAU_pNQQ3RJOtEDHdxKiQ4BrU4D3KSNbjChbaK1ipce6AXf82wY64gW6Bvt1ht9GGew8zgDSep91jD8mgHrlWL7g7SNecvcoyCjOks0nbP3FVXtSk0XC1VK0IL1UL7LkZllW5GK2rVAUeW7OqGrZzzNYyvHXGHX4M8vbvJEQx7_-Fo" />
+                                                </div>
+                                                <div class="text-sm font-bold text-text-main">Spotify Premium</div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-5 whitespace-nowrap">
+                                            <span
+                                                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-600 border border-purple-100">
+                                                <span
+                                                    class="material-symbols-outlined text-[14px] mr-1">subscriptions</span>
+                                                Suscripciones
+                                            </span>
+                                        </td>
+                                        <td
+                                            class="px-6 py-5 whitespace-nowrap text-sm text-text-secondary hidden sm:table-cell">
+                                            Amex Gold •••• 4202</td>
+                                        <td class="px-6 py-5 whitespace-nowrap hidden lg:table-cell">
+                                            <span
+                                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-600 border border-green-100">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                                Completado
+                                            </span>
+                                        </td>
+                                        <td
+                                            class="px-6 py-5 whitespace-nowrap text-right text-sm font-bold text-text-main tabular-nums">
+                                            -$12.99</td>
+                                        <td class="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
+                                            <div
+                                                class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <a class="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-text-secondary bg-white border border-gray-200 hover:text-primary hover:border-primary transition-all shadow-sm"
+                                                    href="#">
+                                                    <span class="material-symbols-outlined text-[16px]">edit</span>
+                                                    Editar
+                                                </a>
+                                                <button class="text-gray-400 hover:text-text-main transition-colors">
+                                                    <span class="material-symbols-outlined text-[20px]">more_vert</span>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50 transition-colors group cursor-pointer bg-red-50/50">
+                                        <td class="px-6 py-5 whitespace-nowrap text-sm font-medium text-text-secondary">
+                                            Oct 23, 2023</td>
+                                        <td class="px-6 py-5 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div
+                                                    class="h-10 w-10 rounded-full bg-orange-50 flex items-center justify-center flex-shrink-0 mr-4 border border-orange-100">
+                                                    <span
+                                                        class="material-symbols-outlined text-orange-500 text-lg">storefront</span>
+                                                </div>
+                                                <div class="text-sm font-bold text-text-main">Whole Foods Market</div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-5 whitespace-nowrap">
+                                            <span
+                                                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-50 text-orange-600 border border-orange-100">
+                                                <span
+                                                    class="material-symbols-outlined text-[14px] mr-1">shopping_cart</span>
+                                                Comestibles
+                                            </span>
+                                        </td>
+                                        <td
+                                            class="px-6 py-5 whitespace-nowrap text-sm text-text-secondary hidden sm:table-cell">
+                                            Chase Checking •••• 8812</td>
+                                        <td class="px-6 py-5 whitespace-nowrap hidden lg:table-cell">
+                                            <span
+                                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-600 border border-green-100">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                                Completed
+                                            </span>
+                                        </td>
+                                        <td
+                                            class="px-6 py-5 whitespace-nowrap text-right text-sm font-bold text-text-main tabular-nums">
+                                            -$142.80</td>
+                                        <td class="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
+                                            <div
+                                                class="flex items-center justify-end gap-2 opacity-100 transition-opacity">
+                                                <a class="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-text-secondary bg-white border border-gray-200 hover:text-primary hover:border-primary transition-all shadow-sm"
+                                                    href="#">
+                                                    <span class="material-symbols-outlined text-[16px]">edit</span>
+                                                    Edit
+                                                </a>
+                                                <button class="text-gray-600 hover:text-text-main transition-colors">
+                                                    <span class="material-symbols-outlined text-[20px]">more_vert</span>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50 transition-colors group cursor-pointer">
+                                        <td class="px-6 py-5 whitespace-nowrap text-sm font-medium text-text-secondary">
+                                            Oct 22, 2023</td>
+                                        <td class="px-6 py-5 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div
+                                                    class="h-10 w-10 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0 mr-4 border border-green-100">
+                                                    <span
+                                                        class="material-symbols-outlined text-primary text-lg">payments</span>
+                                                </div>
+                                                <div class="text-sm font-bold text-text-main">Direct Deposit - TechCorp
+                                                    Inc.</div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-5 whitespace-nowrap">
+                                            <span
+                                                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-100">
+                                                <span
+                                                    class="material-symbols-outlined text-[14px] mr-1">attach_money</span>
+                                                Ingresos
+                                            </span>
+                                        </td>
+                                        <td
+                                            class="px-6 py-5 whitespace-nowrap text-sm text-text-secondary hidden sm:table-cell">
+                                            Chase Checking •••• 8812</td>
+                                        <td class="px-6 py-5 whitespace-nowrap hidden lg:table-cell">
+                                            <span
+                                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-600 border border-green-100">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                                Completed
+                                            </span>
+                                        </td>
+                                        <td
+                                            class="px-6 py-5 whitespace-nowrap text-right text-sm font-bold text-primary tabular-nums">
+                                            +$3,450.00</td>
+                                        <td class="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
+                                            <div
+                                                class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <a class="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-text-secondary bg-white border border-gray-200 hover:text-primary hover:border-primary transition-all shadow-sm"
+                                                    href="#">
+                                                    <span class="material-symbols-outlined text-[16px]">edit</span>
+                                                    Edit
+                                                </a>
+                                                <button class="text-gray-400 hover:text-text-main transition-colors">
+                                                    <span class="material-symbols-outlined text-[20px]">more_vert</span>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50 transition-colors group cursor-pointer">
+                                        <td class="px-6 py-5 whitespace-nowrap text-sm font-medium text-text-secondary">
+                                            Oct 21, 2023</td>
+                                        <td class="px-6 py-5 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div
+                                                    class="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 mr-4 border border-blue-100">
+                                                    <span
+                                                        class="material-symbols-outlined text-blue-500 text-lg">local_gas_station</span>
+                                                </div>
+                                                <div class="text-sm font-bold text-text-main">Shell Station #402</div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-5 whitespace-nowrap">
+                                            <span
+                                                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-100">
+                                                <span
+                                                    class="material-symbols-outlined text-[14px] mr-1">directions_car</span>
+                                                Transporte
+                                            </span>
+                                        </td>
+                                        <td
+                                            class="px-6 py-5 whitespace-nowrap text-sm text-text-secondary hidden sm:table-cell">
+                                            Amex Gold •••• 4202</td>
+                                        <td class="px-6 py-5 whitespace-nowrap hidden lg:table-cell">
+                                            <span
+                                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-50 text-yellow-600 border border-yellow-100">
+                                                <span
+                                                    class="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse"></span>
+                                                Pendiente
+                                            </span>
+                                        </td>
+                                        <td
+                                            class="px-6 py-5 whitespace-nowrap text-right text-sm font-bold text-text-main tabular-nums">
+                                            -$45.50</td>
+                                        <td class="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
+                                            <div
+                                                class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <a class="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-text-secondary bg-white border border-gray-200 hover:text-primary hover:border-primary transition-all shadow-sm"
+                                                    href="#">
+                                                    <span class="material-symbols-outlined text-[16px]">edit</span>
+                                                    Edit
+                                                </a>
+                                                <button class="text-gray-400 hover:text-text-main transition-colors">
+                                                    <span class="material-symbols-outlined text-[20px]">more_vert</span>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50 transition-colors group cursor-pointer">
+                                        <td class="px-6 py-5 whitespace-nowrap text-sm font-medium text-text-secondary">
+                                            Oct 20, 2023</td>
+                                        <td class="px-6 py-5 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div
+                                                    class="h-10 w-10 rounded-full bg-pink-50 flex items-center justify-center flex-shrink-0 mr-4 border border-pink-100">
+                                                    <span
+                                                        class="material-symbols-outlined text-pink-500 text-lg">restaurant</span>
+                                                </div>
+                                                <div class="text-sm font-bold text-text-main">Uber Eats</div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-5 whitespace-nowrap">
+                                            <span
+                                                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-pink-50 text-pink-600 border border-pink-100">
+                                                <span class="material-symbols-outlined text-[14px] mr-1">fastfood</span>
+                                                Comida
+                                            </span>
+                                        </td>
+                                        <td
+                                            class="px-6 py-5 whitespace-nowrap text-sm text-text-secondary hidden sm:table-cell">
+                                            Chase Checking •••• 8812</td>
+                                        <td class="px-6 py-5 whitespace-nowrap hidden lg:table-cell">
+                                            <span
+                                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-600 border border-green-100">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                                Completed
+                                            </span>
+                                        </td>
+                                        <td
+                                            class="px-6 py-5 whitespace-nowrap text-right text-sm font-bold text-text-main tabular-nums">
+                                            -$28.15</td>
+                                        <td class="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
+                                            <div
+                                                class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <a class="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-text-secondary bg-white border border-gray-200 hover:text-primary hover:border-primary transition-all shadow-sm"
+                                                    href="#">
+                                                    <span class="material-symbols-outlined text-[16px]">edit</span>
+                                                    Edit
+                                                </a>
+                                                <button class="text-gray-400 hover:text-text-main transition-colors">
+                                                    <span class="material-symbols-outlined text-[20px]">more_vert</span>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50 transition-colors group cursor-pointer">
+                                        <td class="px-6 py-5 whitespace-nowrap text-sm font-medium text-text-secondary">
+                                            Oct 19, 2023</td>
+                                        <td class="px-6 py-5 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div
+                                                    class="h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center flex-shrink-0 mr-4 shadow-sm border border-gray-100">
+                                                    <img alt="Netflix Logo" class="h-5 w-5 object-contain"
+                                                        data-alt="Netflix red N logo"
+                                                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuCh4uKR4CG7gPokSlAp5RQKrixSd1K4UMgeFe6BnDI6XuoZ6MyuK-RBcAFApwXkBC1Psd5ixjQ2utZ5C0T7WODfaX1K46b0X7Hs6AfrlhYcIasnkLTe3Gxyn6mUXO1epa0eIWt0nVuZsDf4lLw0F3U0wxD7HSwNmBB-PiUUJxsmVeEph6JuCC1ycOf_HTrFqeDvPAYdfF9ZeWCp9zqO0bvB8-LlXA1LLkzWzdOH_K62zR6nxVIJQlKGR6rBfLxSVu6IJiGI5STN5Y8" />
+                                                </div>
+                                                <div class="text-sm font-bold text-text-main">Netflix</div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-5 whitespace-nowrap">
+                                            <span
+                                                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-600 border border-purple-100">
+                                                <span
+                                                    class="material-symbols-outlined text-[14px] mr-1">subscriptions</span>
+                                                Subscriptions
+                                            </span>
+                                        </td>
+                                        <td
+                                            class="px-6 py-5 whitespace-nowrap text-sm text-text-secondary hidden sm:table-cell">
+                                            Amex Gold •••• 4202</td>
+                                        <td class="px-6 py-5 whitespace-nowrap hidden lg:table-cell">
+                                            <span
+                                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-600 border border-green-100">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                                Completed
+                                            </span>
+                                        </td>
+                                        <td
+                                            class="px-6 py-5 whitespace-nowrap text-right text-sm font-bold text-text-main tabular-nums">
+                                            -$15.49</td>
+                                        <td class="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
+                                            <div
+                                                class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <a class="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-text-secondary bg-white border border-gray-200 hover:text-primary hover:border-primary transition-all shadow-sm"
+                                                    href="#">
+                                                    <span class="material-symbols-outlined text-[16px]">edit</span>
+                                                    Edit
+                                                </a>
+                                                <button class="text-gray-400 hover:text-text-main transition-colors">
+                                                    <span class="material-symbols-outlined text-[20px]">more_vert</span>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div
+                            class="bg-surface-white px-4 py-3 border-t border-gray-200 flex items-center justify-between sm:px-6">
+                            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                                <div>
+                                    <p class="text-sm text-text-secondary">
+                                        Mostrando <span class="font-bold text-text-main">1</span> a <span
+                                            class="font-bold text-text-main">6</span> de <span
+                                            class="font-bold text-text-main">97</span> resultados
+                                    </p>
+                                </div>
+                                <div>
+                                    <nav aria-label="Pagination"
+                                        class="relative z-0 inline-flex rounded-lg shadow-sm -space-x-px">
+                                        <a class="relative inline-flex items-center px-2 py-2 rounded-l-lg border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors"
+                                            href="#">
+                                            <span class="sr-only">Anterior</span>
+                                            <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+                                        </a>
+                                        <a aria-current="page"
+                                            class="z-10 bg-green-50 border-primary text-primary relative inline-flex items-center px-4 py-2 border text-sm font-bold"
+                                            href="#">
+                                            1
+                                        </a>
+                                        <a class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium transition-colors"
+                                            href="#">
+                                            2
+                                        </a>
+                                        <a class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 hidden md:inline-flex relative items-center px-4 py-2 border text-sm font-medium transition-colors"
+                                            href="#">
+                                            3
+                                        </a>
+                                        <span
+                                            class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                                            ...
+                                        </span>
+                                        <a class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 hidden md:inline-flex relative items-center px-4 py-2 border text-sm font-medium transition-colors"
+                                            href="#">
+                                            10
+                                        </a>
+                                        <a class="relative inline-flex items-center px-2 py-2 rounded-r-lg border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors"
+                                            href="#">
+                                            <span class="sr-only">Siguiente</span>
+                                            <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+                                        </a>
+                                    </nav>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between w-full sm:hidden">
+                                <a class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50"
+                                    href="#">Anterior</a>
+                                <a class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50"
+                                    href="#">Siguiente</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="h-12 w-full"></div>
+            </main>
+        </div>
+        <div aria-labelledby="modal-title" aria-modal="true" class="relative z-[100]" role="dialog">
+            <div class="fixed inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity"></div>
+            <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                    <div
+                        class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-gray-100">
+                        <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                            <div class="sm:flex sm:items-start">
+                                <div
+                                    class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-50 sm:mx-0 sm:h-10 sm:w-10 ring-8 ring-red-50/50">
+                                    <span class="material-symbols-outlined text-red-600">warning</span>
+                                </div>
+                                <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                                    <h3 class="text-lg font-bold leading-6 text-text-main" id="modal-title">Eliminar
+                                        Transacción</h3>
+                                    <div class="mt-2">
+                                        <p class="text-sm text-text-secondary leading-relaxed">¿Estás seguro de que
+                                            deseas eliminar esta transacción de <span
+                                                class="font-bold text-text-main">Whole Foods Market</span> por <span
+                                                class="font-bold text-text-main">$142.80</span>? Esta acción no se puede
+                                            deshacer y será eliminada permanentemente de tu historial.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div
+                            class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-3 border-t border-gray-100">
+                            <button
+                                class="inline-flex w-full justify-center rounded-xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-red-700 sm:ml-3 sm:w-auto transition-colors focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                                type="button">Eliminar</button>
+                            <button
+                                class="mt-3 inline-flex w-full justify-center rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-text-main shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto transition-colors focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+                                type="button">Cancelar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

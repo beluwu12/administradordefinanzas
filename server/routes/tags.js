@@ -92,6 +92,59 @@ router.delete('/:id',
 );
 
 /**
+ * PUT /api/tags/:id - Update a tag
+ * Validates: id param is UUID, body contains name/color
+ * Checks ownership before update
+ */
+router.put('/:id',
+    validate(idParamSchema, 'params'),
+    async (req, res, next) => {
+        try {
+            const { id } = req.params;
+            const { name, color } = req.body;
+
+            // Check ownership
+            const tag = await prisma.tag.findUnique({
+                where: { id },
+                select: { userId: true }
+            });
+
+            if (!tag) {
+                const errResponse = errors.notFound('Etiqueta');
+                return res.status(errResponse.status).json(errResponse);
+            }
+
+            if (!verifyOwnership(tag.userId, req.userId)) {
+                const errResponse = errors.ownershipFailed();
+                return res.status(errResponse.status).json(errResponse);
+            }
+
+            // Build update data
+            const updateData = {};
+            if (name !== undefined) updateData.name = name.trim();
+            if (color !== undefined) updateData.color = color;
+
+            if (Object.keys(updateData).length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'VALIDATION_ERROR',
+                    message: 'Se requiere al menos un campo para actualizar'
+                });
+            }
+
+            const updatedTag = await prisma.tag.update({
+                where: { id },
+                data: updateData
+            });
+
+            res.json(success(updatedTag, 'Etiqueta actualizada'));
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+/**
  * GET /api/tags/:id/transactions - Get transactions for a specific tag
  * Validates: id param is UUID
  * Checks ownership before returning

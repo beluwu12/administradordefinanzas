@@ -1,13 +1,41 @@
 /**
  * TagSelector Component
- * Extracted from TransactionForm for SRP compliance
- * Handles tag selection and inline tag creation
+ * Updated styling for pink theme template
+ * Displays tags as grid cards instead of pills
  */
 
 import React, { useState } from 'react';
-import { Plus, Loader2 } from 'lucide-react';
 import { texts } from '../../i18n/es';
 import { useTagCreation } from '../../hooks/useTagCreation';
+
+// Icon mapping for common tag categories
+const tagIcons = {
+    'comida': 'restaurant',
+    'food': 'restaurant',
+    'transporte': 'directions_car',
+    'transport': 'directions_car',
+    'compras': 'shopping_bag',
+    'shopping': 'shopping_bag',
+    'ocio': 'movie',
+    'entertainment': 'movie',
+    'vivienda': 'cottage',
+    'housing': 'cottage',
+    'servicios': 'bolt',
+    'utilities': 'bolt',
+    'salud': 'health_and_safety',
+    'health': 'health_and_safety',
+    'educacion': 'school',
+    'education': 'school',
+    'default': 'sell'
+};
+
+function getTagIcon(tagName) {
+    const normalized = tagName.toLowerCase();
+    for (const [key, icon] of Object.entries(tagIcons)) {
+        if (normalized.includes(key)) return icon;
+    }
+    return tagIcons.default;
+}
 
 export default function TagSelector({
     availableTags,
@@ -32,74 +60,87 @@ export default function TagSelector({
 
     return (
         <div>
-            {/* Header with Add Button */}
-            <div className="flex justify-between items-center mb-2">
-                <label className="block text-xs font-medium text-muted">
-                    {texts.transactions.category}
-                </label>
-                <button
-                    type="button"
-                    onClick={() => setShowInput(!showInput)}
-                    className="text-xs text-primary hover:underline flex items-center gap-1"
-                    aria-expanded={showInput}
-                >
-                    <Plus size={12} /> {texts.tags.addTitle}
-                </button>
-            </div>
-
             {/* Tag Error */}
             {tagError && (
-                <div className="bg-yellow-500/10 text-yellow-600 p-2 rounded text-xs mb-2" role="alert">
+                <div className="bg-yellow-50 border border-yellow-200 text-yellow-600 p-2 rounded-xl text-xs mb-3">
                     {tagError}
                 </div>
             )}
 
             {/* Inline Tag Creation */}
             {showInput && (
-                <div className="flex gap-2 mb-3">
-                    <input
-                        type="text"
-                        value={newTagName}
-                        onChange={e => setNewTagName(e.target.value)}
-                        className="flex-1 bg-background border border-border rounded-lg px-3 py-1 text-sm"
-                        placeholder={texts.tags.name}
-                        aria-label="Nombre de la nueva etiqueta"
-                        disabled={isCreating}
-                        onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleCreateTag())}
-                    />
+                <div className="flex gap-2 mb-4">
+                    <div className="relative flex-1">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span className="material-symbols-outlined text-gray-400 text-xl">sell</span>
+                        </div>
+                        <input
+                            type="text"
+                            value={newTagName}
+                            onChange={e => setNewTagName(e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder-gray-400 h-12"
+                            placeholder="Nueva etiqueta..."
+                            disabled={isCreating}
+                            onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleCreateTag())}
+                        />
+                    </div>
                     <button
                         type="button"
                         onClick={handleCreateTag}
                         disabled={isCreating || !newTagName.trim()}
-                        className="bg-primary/20 text-primary px-3 py-1 rounded-lg text-sm font-medium hover:bg-primary/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                        className="px-4 h-12 bg-primary text-white rounded-xl font-bold text-sm hover:bg-pink-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
-                        {isCreating && <Loader2 size={12} className="animate-spin" />}
-                        {texts.tags.create}
+                        {isCreating && <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>}
+                        {isCreating ? '' : 'Crear'}
                     </button>
                 </div>
             )}
 
-            {/* Tag Pills */}
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Etiquetas disponibles">
-                {Array.isArray(availableTags) && availableTags.map(tag => (
-                    <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() => onToggleTag(tag.id)}
-                        aria-pressed={selectedTags.includes(tag.id)}
-                        className={`px-3 py-1 rounded-full text-xs transition-colors border ${selectedTags.includes(tag.id)
-                                ? 'bg-primary text-white border-primary'
-                                : 'bg-transparent text-muted border-border hover:border-text'
-                            }`}
-                    >
-                        {tag.name}
-                    </button>
-                ))}
+            {/* Tag Grid - Card style like template */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {Array.isArray(availableTags) && availableTags.map(tag => {
+                    const isSelected = selectedTags.includes(tag.id);
+                    const icon = getTagIcon(tag.name);
 
-                {(!availableTags || availableTags.length === 0) && (
-                    <span className="text-xs text-muted">No hay etiquetas. Crea una nueva.</span>
-                )}
+                    return (
+                        <button
+                            key={tag.id}
+                            type="button"
+                            onClick={() => onToggleTag(tag.id)}
+                            className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${isSelected
+                                    ? 'border-primary bg-pink-50 ring-1 ring-primary'
+                                    : 'border-gray-200 bg-white hover:bg-gray-50'
+                                }`}
+                        >
+                            <div className={`size-8 rounded-full flex items-center justify-center mb-2 ${isSelected ? 'bg-primary/20' : 'bg-gray-100'
+                                }`}>
+                                <span className={`material-symbols-outlined text-[20px] ${isSelected ? 'text-primary' : 'text-gray-500'
+                                    }`}>{icon}</span>
+                            </div>
+                            <span className={`text-xs font-medium truncate w-full text-center ${isSelected ? 'text-primary' : 'text-gray-700'
+                                }`}>{tag.name}</span>
+                        </button>
+                    );
+                })}
+
+                {/* Add New Tag Button */}
+                <button
+                    type="button"
+                    onClick={() => setShowInput(!showInput)}
+                    className="flex flex-col items-center justify-center p-3 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50/50 hover:border-primary hover:bg-pink-50/50 transition-all"
+                >
+                    <div className="size-8 rounded-full bg-white flex items-center justify-center mb-2 shadow-sm">
+                        <span className="material-symbols-outlined text-[20px] text-gray-400">add</span>
+                    </div>
+                    <span className="text-xs font-medium text-gray-500">Nueva</span>
+                </button>
             </div>
+
+            {(!availableTags || availableTags.length === 0) && !showInput && (
+                <p className="text-center text-sm text-gray-500 mt-3">
+                    Crea tu primera categoría usando el botón +
+                </p>
+            )}
         </div>
     );
 }

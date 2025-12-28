@@ -1,21 +1,17 @@
 /**
  * TransactionForm Component
+ * Based on appuidesktop/add_transaction_form template
  * 
- * REFACTORED: Following SRP (Single Responsibility Principle)
- * - DateTimeInput: Handles date/time selection
- * - CurrencySelector: Handles currency dropdown
- * - TagSelector: Handles tag selection and creation
- * - TransactionTypeToggle: Handles INCOME/EXPENSE toggle
- * 
- * This component now focuses only on:
- * - Form state management
- * - Form submission
- * - Layout orchestration
+ * Features:
+ * - Toggle switch for income/expense
+ * - Large amount input with icon
+ * - Grid layout for date/currency
+ * - Tag selector
+ * - Pink accent color
  */
 
 import React, { useState, useEffect } from 'react';
 import api from '../api';
-import { X, Loader2 } from 'lucide-react';
 import { useTransactionDate } from '../utils/useTransactionDate';
 import { toUTCISOString, getCurrentLocalDatetime, utcToLocalDatetime } from '../utils/dateUtils';
 import { texts } from '../i18n/es';
@@ -23,11 +19,10 @@ import { useAuth } from '../context/AuthContext';
 import { useTags } from '../context/TagsContext';
 import { getCountryConfig, isDualCurrency } from '../config/countries';
 
-// Extracted components (SRP)
+// Extracted components
 import DateTimeInput from './common/DateTimeInput';
 import CurrencySelector from './common/CurrencySelector';
 import TagSelector from './common/TagSelector';
-import TransactionTypeToggle from './common/TransactionTypeToggle';
 
 export default function TransactionForm({ onClose, onSuccess, initialData = null }) {
     const { user } = useAuth();
@@ -35,11 +30,9 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
     const countryConfig = getCountryConfig(user?.country || 'VE');
     const userIsDual = isDualCurrency(user?.country || 'VE');
 
-    // Loading state for form submission
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
 
-    // Form state initialization
     const [formData, setFormData] = useState(() => {
         const initialDate = initialData?.date
             ? utcToLocalDatetime(initialData.date)
@@ -57,7 +50,6 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
         };
     });
 
-    // Date Hook
     const { datePart, hours12, minutes, seconds, ampm, updateTime, setDatePart } = useTransactionDate(
         formData.date,
         (newDate) => setFormData(prev => ({ ...prev, date: newDate }))
@@ -74,15 +66,13 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
                         setFormData(prev => ({ ...prev, exchangeRate: rateData.rate }));
                     }
                 } catch {
-                    // Silently fail - user can enter rate manually
+                    // Silently fail
                 }
             }
         };
         fetchRate();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [formData.currency]);
 
-    // Form field updaters
     const updateField = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
@@ -96,7 +86,6 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
         }));
     };
 
-    // Form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (isSubmitting) return;
@@ -128,63 +117,88 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
     };
 
     return (
-        <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="transaction-form-title"
-        >
-            <div className="bg-surface border border-border w-full max-w-sm sm:max-w-md md:max-w-lg rounded-2xl shadow-2xl flex flex-col max-h-[95vh] sm:max-h-[90vh]">
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-gray-100 flex flex-col max-h-[95vh] overflow-hidden">
                 {/* Header */}
-                <div className="p-4 sm:p-6 border-b border-border flex justify-between items-center">
-                    <h2 id="transaction-form-title" className="text-lg sm:text-xl font-bold text-text">
-                        {initialData ? texts.transactions.editTitle : texts.transactions.addTitle}
-                    </h2>
+                <div className="px-6 pt-6 pb-4 flex justify-between items-start border-b border-gray-100">
+                    <div>
+                        <h2 className="text-xl font-bold text-foreground">
+                            {initialData ? texts.transactions.editTitle : 'Nueva Transacción'}
+                        </h2>
+                        <p className="text-sm text-gray-500 mt-1">
+                            Registra un ingreso o gasto
+                        </p>
+                    </div>
                     <button
                         onClick={onClose}
-                        className="text-muted hover:text-text transition-colors p-1"
-                        aria-label="Cerrar formulario"
+                        className="text-gray-400 hover:text-foreground transition-colors p-1 hover:bg-gray-100 rounded-lg"
                     >
-                        <X size={24} />
+                        <span className="material-symbols-outlined">close</span>
                     </button>
                 </div>
 
-                {/* Body */}
-                <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto">
+                {/* Type Toggle */}
+                <div className="px-6 pt-4">
+                    <div className="flex p-1 rounded-xl bg-gray-50 border border-gray-200">
+                        <button
+                            type="button"
+                            onClick={() => updateField('type', 'INCOME')}
+                            className={`flex-1 h-10 flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200 ${formData.type === 'INCOME'
+                                ? 'bg-green-500 text-white shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            <span className="material-symbols-outlined mr-2 text-[18px]">arrow_downward</span>
+                            Ingreso
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => updateField('type', 'EXPENSE')}
+                            className={`flex-1 h-10 flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200 ${formData.type === 'EXPENSE'
+                                ? 'bg-primary text-white shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            <span className="material-symbols-outlined mr-2 text-[18px]">arrow_upward</span>
+                            Gasto
+                        </button>
+                    </div>
+                </div>
+
+                {/* Form Body */}
+                <form onSubmit={handleSubmit} className="p-6 pt-4 space-y-5 overflow-y-auto flex-1">
                     {/* Error Display */}
                     {error && (
-                        <div className="bg-danger/10 text-danger p-3 rounded text-sm" role="alert">
+                        <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-xl text-sm">
                             {error}
                         </div>
                     )}
 
-                    {/* Type Toggle */}
-                    <TransactionTypeToggle
-                        value={formData.type}
-                        onChange={(type) => updateField('type', type)}
-                    />
-
-                    {/* Amount & Currency */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label htmlFor="amount" className="block text-xs font-medium text-muted mb-1">
-                                {texts.transactions.amount}
-                            </label>
+                    {/* Amount Input - Large */}
+                    <div className="flex flex-col gap-2">
+                        <label className="text-gray-700 text-sm font-semibold uppercase tracking-wider">
+                            Monto
+                        </label>
+                        <div className="relative flex items-center">
+                            <div className="absolute left-4 text-gray-400 pointer-events-none flex items-center justify-center">
+                                <span className="material-symbols-outlined">attach_money</span>
+                            </div>
                             <input
-                                id="amount"
                                 type="number"
                                 step="0.01"
                                 required
                                 value={formData.amount}
                                 onChange={e => updateField('amount', e.target.value)}
-                                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                className="w-full bg-white border border-gray-200 text-foreground text-3xl font-bold rounded-xl py-4 pl-12 pr-4 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-gray-300 transition-all"
                                 placeholder="0.00"
                             />
                         </div>
-                        <div>
-                            <label htmlFor="currency" className="block text-xs font-medium text-muted mb-1">
-                                Moneda
-                            </label>
+                    </div>
+
+                    {/* Currency & Exchange Rate */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-2">
+                            <label className="text-gray-700 text-sm font-medium">Moneda</label>
                             <CurrencySelector
                                 value={formData.currency}
                                 onChange={(val) => updateField('currency', val)}
@@ -193,96 +207,114 @@ export default function TransactionForm({ onClose, onSuccess, initialData = null
                                 defaultCurrency={countryConfig.defaultCurrency}
                             />
                         </div>
+                        {userIsDual && formData.currency === 'VES' && (
+                            <div className="flex flex-col gap-2">
+                                <label className="text-gray-700 text-sm font-medium">
+                                    {texts.transactions.exchangeRate}
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span className="material-symbols-outlined text-gray-400 text-xl">currency_exchange</span>
+                                    </div>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={formData.exchangeRate}
+                                        onChange={e => updateField('exchangeRate', e.target.value)}
+                                        className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder-gray-400 h-12"
+                                        placeholder="45.50"
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Exchange Rate (VES only) */}
-                    {userIsDual && formData.currency === 'VES' && (
-                        <div>
-                            <label htmlFor="exchangeRate" className="block text-xs font-medium text-muted mb-1">
-                                {texts.transactions.exchangeRate}
-                            </label>
-                            <input
-                                id="exchangeRate"
-                                type="number"
-                                step="0.01"
-                                value={formData.exchangeRate}
-                                onChange={e => updateField('exchangeRate', e.target.value)}
-                                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text focus:outline-none focus:ring-2 focus:ring-primary/50"
-                                placeholder="Ej. 45.50"
-                            />
+                    {/* Date & Source */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-2">
+                            <label className="text-gray-700 text-sm font-medium">Fecha</label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span className="material-symbols-outlined text-gray-400 text-xl">calendar_month</span>
+                                </div>
+                                <input
+                                    type="date"
+                                    value={datePart}
+                                    onChange={(e) => setDatePart(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary h-12"
+                                />
+                            </div>
                         </div>
-                    )}
+                        <div className="flex flex-col gap-2">
+                            <label className="text-gray-700 text-sm font-medium">Fuente</label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span className="material-symbols-outlined text-gray-400 text-xl">credit_card</span>
+                                </div>
+                                <input
+                                    type="text"
+                                    value={formData.source}
+                                    onChange={e => updateField('source', e.target.value)}
+                                    className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder-gray-400 h-12"
+                                    placeholder="Banesco, Efectivo..."
+                                />
+                            </div>
+                        </div>
+                    </div>
 
                     {/* Description */}
-                    <div>
-                        <label htmlFor="description" className="block text-xs font-medium text-muted mb-1">
-                            {texts.transactions.description}
-                        </label>
-                        <input
-                            id="description"
-                            type="text"
+                    <div className="flex flex-col gap-2">
+                        <label className="text-gray-700 text-sm font-medium">Descripción</label>
+                        <textarea
                             required
                             value={formData.description}
                             onChange={e => updateField('description', e.target.value)}
-                            className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text focus:outline-none focus:ring-2 focus:ring-primary/50"
-                            placeholder={texts.transactions.descriptionPlaceholder}
-                        />
-                    </div>
-
-                    {/* Source */}
-                    <div>
-                        <label htmlFor="source" className="block text-xs font-medium text-muted mb-1">
-                            {texts.transactions.source}
-                        </label>
-                        <input
-                            id="source"
-                            type="text"
-                            value={formData.source}
-                            onChange={e => updateField('source', e.target.value)}
-                            className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text focus:outline-none focus:ring-2 focus:ring-primary/50"
-                            placeholder="Ej. Banesco, Efectivo, Zelle"
-                        />
-                    </div>
-
-                    {/* Date & Time */}
-                    <div>
-                        <label className="block text-xs font-medium text-muted mb-1">
-                            {texts.transactions.date}
-                        </label>
-                        <DateTimeInput
-                            datePart={datePart}
-                            hours12={hours12}
-                            minutes={minutes}
-                            seconds={seconds}
-                            ampm={ampm}
-                            onDateChange={setDatePart}
-                            onTimeChange={updateTime}
+                            className="w-full p-4 bg-white border border-gray-200 rounded-xl text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder-gray-400 resize-none text-sm leading-normal"
+                            placeholder="¿Para qué fue esta transacción?"
+                            rows="2"
                         />
                     </div>
 
                     {/* Tags */}
-                    <TagSelector
-                        availableTags={availableTags}
-                        selectedTags={formData.tags}
-                        onToggleTag={toggleTag}
-                        onTagCreated={(tagId) => updateField('tags', [...formData.tags, tagId])}
-                    />
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                            <label className="text-gray-700 text-sm font-medium">Categoría</label>
+                        </div>
+                        <TagSelector
+                            availableTags={availableTags}
+                            selectedTags={formData.tags}
+                            onToggleTag={toggleTag}
+                            onTagCreated={(tagId) => updateField('tags', [...formData.tags, tagId])}
+                        />
+                    </div>
 
-                    {/* Submit Button */}
-                    <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="w-full bg-primary text-white font-bold py-3 rounded-xl hover:bg-blue-600 transition-colors mt-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                        {isSubmitting ? (
-                            <>
-                                <Loader2 size={20} className="animate-spin" />
-                                Guardando...
-                            </>
-                        ) : (
-                            texts.transactions.save
-                        )}
-                    </button>
+                    {/* Footer */}
+                    <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50 mt-auto">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-6 py-3 rounded-xl text-gray-600 font-medium text-sm hover:bg-gray-100 transition-colors"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="px-8 py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-pink-700 transition-colors shadow-lg shadow-primary/20 flex items-center gap-2 disabled:opacity-50"
+                        >
+                            {isSubmitting ? (
+                                <>
+                                    <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                                    Guardando...
+                                </>
+                            ) : (
+                                <>
+                                    <span className="material-symbols-outlined text-[18px]">check</span>
+                                    Guardar Transacción
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>

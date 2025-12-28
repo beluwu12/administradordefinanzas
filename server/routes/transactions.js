@@ -11,6 +11,7 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../db');
 const Decimal = require('decimal.js');
+const { parseMoney } = require('../utils/money');
 const { requireAuth, requireOwnership } = require('../middleware/requireAuth');
 const { enforceCurrency } = require('../middleware/currencyEnforcer');
 const { success, errors } = require('../utils/responseUtils');
@@ -147,6 +148,15 @@ router.post('/',
         try {
             const { amount, currency, type, description, source, date, exchangeRate, tags } = req.body;
 
+            // Parse monetary values using Decimal.js (never parseFloat for money)
+            const parsedAmount = parseMoney(amount);
+            const parsedRate = exchangeRate ? parseMoney(exchangeRate) : null;
+
+            if (!parsedAmount) {
+                const errResponse = errors.validation('Monto inválido');
+                return res.status(errResponse.status).json(errResponse);
+            }
+
             // If tags provided, verify they belong to user
             if (tags && tags.length > 0) {
                 const userTags = await prisma.tag.findMany({
@@ -160,21 +170,24 @@ router.post('/',
                 }
             }
 
-            const transaction = await prisma.transaction.create({
-                data: {
-                    amount: parseFloat(amount),
-                    currency: currency || req.user.defaultCurrency,
-                    type,
-                    description: description.trim(),
-                    source: source?.trim() || null,
-                    date: date ? new Date(date) : new Date(),
-                    exchangeRate: exchangeRate || null,
-                    userId: req.userId,
-                    tags: tags?.length > 0 ? { connect: tags.map(id => ({ id })) } : undefined
-                },
-                include: {
-                    tags: { select: { id: true, name: true, color: true } }
-                }
+            // Use prisma.$transaction for atomicity when connecting tags
+            const transaction = await prisma.$transaction(async (tx) => {
+                return tx.transaction.create({
+                    data: {
+                        amount: parsedAmount.toNumber(),
+                        currency: currency || req.user.defaultCurrency,
+                        type,
+                        description: description.trim(),
+                        source: source?.trim() || null,
+                        date: date ? new Date(date) : new Date(),
+                        exchangeRate: parsedRate?.toNumber() || null,
+                        userId: req.userId,
+                        tags: tags?.length > 0 ? { connect: tags.map(id => ({ id })) } : undefined
+                    },
+                    include: {
+                        tags: { select: { id: true, name: true, color: true } }
+                    }
+                });
             });
 
             res.status(201).json(success(transaction, 'Transacción creada'));
@@ -215,13 +228,25 @@ router.put('/:id',
             const { amount, currency, type, description, source, date, exchangeRate, tags } = req.body;
 
             const updateData = {};
-            if (amount !== undefined) updateData.amount = parseFloat(amount);
+
+            // Parse monetary values using Decimal.js (never parseFloat for money)
+            if (amount !== undefined) {
+                const parsedAmount = parseMoney(amount);
+                if (!parsedAmount) {
+                    const errResponse = errors.validation('Monto inválido');
+                    return res.status(errResponse.status).json(errResponse);
+                }
+                updateData.amount = parsedAmount.toNumber();
+            }
             if (currency !== undefined) updateData.currency = currency;
             if (type !== undefined) updateData.type = type;
             if (description !== undefined) updateData.description = description.trim();
             if (source !== undefined) updateData.source = source?.trim() || null;
             if (date !== undefined) updateData.date = new Date(date);
-            if (exchangeRate !== undefined) updateData.exchangeRate = exchangeRate;
+            if (exchangeRate !== undefined) {
+                const parsedRate = parseMoney(exchangeRate);
+                updateData.exchangeRate = parsedRate?.toNumber() || null;
+            }
 
             if (tags !== undefined) {
                 if (tags.length > 0) {

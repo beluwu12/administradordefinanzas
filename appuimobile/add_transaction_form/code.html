@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Add Transaction Form</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {primary: "#db0f79", "background-light": "#f8f6f7", "background-dark": "#221019", "surface-light": "#ffffff", "surface-dark": "#1c3022", "input-light": "#eef4f0", "input-dark": "#1a3523"}, fontFamily: {display: "Manrope"}, borderRadius: {DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem"}}}};</script>
+<style>
+        /* Custom scrollbar hiding for horizontal scroll areas */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex flex-col antialiased selection:bg-primary/30">
+<!-- Top Navigation Bar (iOS Style) -->
+<header class="sticky top-0 z-50 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-800/50">
+<div class="flex items-center justify-between px-4 h-14">
+<button class="text-primary font-medium text-base hover:opacity-80 transition-opacity">
+                Cancel
+            </button>
+<h1 class="text-lg font-bold text-center absolute left-1/2 -translate-x-1/2 dark:text-white">
+                New Transaction
+            </h1>
+<!-- Spacer to balance the layout visually if needed, or an icon -->
+<div class="w-12"></div>
+</div>
+</header>
+<main class="flex-1 w-full max-w-md mx-auto p-4 flex flex-col gap-6 pb-32">
+<!-- Transaction Type Toggle -->
+<div class="w-full bg-input-light dark:bg-input-dark p-1 rounded-xl flex items-center relative">
+<!-- Sliding background pill simulation using checked logic could be done with JS, here using simple peer-checked styling for visual mock -->
+<label class="flex-1 relative cursor-pointer group">
+<input class="peer sr-only" name="transaction_type" type="radio" value="income"/>
+<div class="py-2 px-4 rounded-lg text-center text-sm font-semibold text-slate-500 dark:text-slate-400 peer-checked:bg-white dark:peer-checked:bg-surface-dark peer-checked:text-slate-900 dark:peer-checked:text-white peer-checked:shadow-sm transition-all duration-200">
+                    Income
+                </div>
+</label>
+<label class="flex-1 relative cursor-pointer group">
+<input checked="" class="peer sr-only" name="transaction_type" type="radio" value="expense"/>
+<div class="py-2 px-4 rounded-lg text-center text-sm font-semibold text-slate-500 dark:text-slate-400 peer-checked:bg-white dark:peer-checked:bg-surface-dark peer-checked:text-slate-900 dark:peer-checked:text-white peer-checked:shadow-sm transition-all duration-200">
+                    Expense
+                </div>
+</label>
+</div>
+<!-- Hero Amount Input -->
+<div class="flex flex-col items-center justify-center py-6">
+<label class="sr-only" for="amount">Amount</label>
+<div class="relative flex items-center justify-center text-slate-900 dark:text-white">
+<span class="text-4xl font-bold mr-1 text-slate-400 dark:text-slate-600">$</span>
+<input autofocus="" class="bg-transparent border-none text-center text-5xl font-extrabold focus:ring-0 p-0 w-full max-w-[240px] placeholder:text-slate-300 dark:placeholder:text-slate-700 caret-primary" id="amount" placeholder="0.00" type="number"/>
+</div>
+<p class="text-sm text-slate-400 dark:text-slate-500 mt-2 font-medium">USD</p>
+</div>
+<!-- Form Fields Container -->
+<div class="bg-surface-light dark:bg-surface-dark rounded-2xl p-1 shadow-sm border border-gray-100 dark:border-gray-800">
+<!-- Category Selector -->
+<div class="flex flex-col gap-3 p-4 border-b border-gray-100 dark:border-gray-800">
+<div class="flex justify-between items-center">
+<label class="text-sm font-medium text-slate-500 dark:text-slate-400">Category</label>
+<button class="text-xs font-semibold text-primary hover:text-primary/80">See All</button>
+</div>
+<div class="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+<button aria-label="Add new category" class="flex items-center justify-center size-12 shrink-0 rounded-full bg-primary/10 border-2 border-primary/20 text-primary hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined font-bold">add</span>
+</button>
+<!-- Selected Category -->
+<label class="cursor-pointer shrink-0">
+<input checked="" class="peer sr-only" name="category" type="radio" value="food"/>
+<div class="flex flex-col items-center gap-1 opacity-100 peer-checked:opacity-100 peer-checked:scale-105 transition-transform">
+<div class="size-12 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-orange-500 dark:peer-checked:ring-offset-surface-dark transition-all">
+<span class="material-symbols-outlined text-[20px]">restaurant</span>
+</div>
+<span class="text-xs font-medium text-slate-700 dark:text-slate-300">Food</span>
+</div>
+</label>
+<label class="cursor-pointer shrink-0">
+<input class="peer sr-only" name="category" type="radio" value="transport"/>
+<div class="flex flex-col items-center gap-1 opacity-60 peer-checked:opacity-100 peer-checked:scale-105 transition-transform">
+<div class="size-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-blue-500 dark:peer-checked:ring-offset-surface-dark transition-all">
+<span class="material-symbols-outlined text-[20px]">directions_car</span>
+</div>
+<span class="text-xs font-medium text-slate-700 dark:text-slate-300">Transport</span>
+</div>
+</label>
+<label class="cursor-pointer shrink-0">
+<input class="peer sr-only" name="category" type="radio" value="shopping"/>
+<div class="flex flex-col items-center gap-1 opacity-60 peer-checked:opacity-100 peer-checked:scale-105 transition-transform">
+<div class="size-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-purple-500 dark:peer-checked:ring-offset-surface-dark transition-all">
+<span class="material-symbols-outlined text-[20px]">shopping_bag</span>
+</div>
+<span class="text-xs font-medium text-slate-700 dark:text-slate-300">Shopping</span>
+</div>
+</label>
+<label class="cursor-pointer shrink-0">
+<input class="peer sr-only" name="category" type="radio" value="health"/>
+<div class="flex flex-col items-center gap-1 opacity-60 peer-checked:opacity-100 peer-checked:scale-105 transition-transform">
+<div class="size-12 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 dark:text-rose-400 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-rose-500 dark:peer-checked:ring-offset-surface-dark transition-all">
+<span class="material-symbols-outlined text-[20px]">ecg_heart</span>
+</div>
+<span class="text-xs font-medium text-slate-700 dark:text-slate-300">Health</span>
+</div>
+</label>
+</div>
+</div>
+<!-- Date Picker -->
+<button class="w-full flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+<div class="flex items-center gap-3">
+<div class="bg-input-light dark:bg-input-dark p-2 rounded-lg text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200">
+<span class="material-symbols-outlined">calendar_today</span>
+</div>
+<div class="text-left">
+<p class="text-sm font-medium text-slate-500 dark:text-slate-400">Date</p>
+<p class="text-base font-semibold text-slate-900 dark:text-white">Today, Oct 24</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-400">chevron_right</span>
+</button>
+<!-- Wallet / Payment Method -->
+<button class="w-full flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
+<div class="flex items-center gap-3">
+<div class="bg-input-light dark:bg-input-dark p-2 rounded-lg text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+</div>
+<div class="text-left">
+<p class="text-sm font-medium text-slate-500 dark:text-slate-400">Wallet</p>
+<p class="text-base font-semibold text-slate-900 dark:text-white">Personal Account</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-sm font-medium text-slate-400">$2,450.00</span>
+<span class="material-symbols-outlined text-slate-400">chevron_right</span>
+</div>
+</button>
+<!-- Description Input -->
+<div class="w-full flex items-start gap-3 p-4">
+<div class="bg-input-light dark:bg-input-dark p-2 rounded-lg text-slate-500 dark:text-slate-400 mt-1">
+<span class="material-symbols-outlined">edit_note</span>
+</div>
+<div class="flex-1">
+<label class="text-sm font-medium text-slate-500 dark:text-slate-400 block mb-1" for="note">Note</label>
+<textarea class="w-full bg-transparent border-none p-0 text-base text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:ring-0 resize-none" id="note" placeholder="What's this for? (e.g. Lunch with team)" rows="2"></textarea>
+</div>
+</div>
+</div>
+<!-- Add Attachments (Optional, subtle) -->
+<button class="flex items-center gap-2 px-4 py-2 text-primary font-semibold text-sm self-start hover:bg-primary/10 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-[20px]">attach_file</span>
+            Add Receipt / Photo
+        </button>
+</main>
+<!-- Bottom Action Bar (Fixed) -->
+<div class="fixed bottom-0 left-0 w-full bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-xl border-t border-gray-200 dark:border-gray-800 p-4 pb-8 z-50">
+<div class="max-w-md mx-auto w-full">
+<button class="w-full bg-primary hover:bg-green-400 text-surface-dark dark:text-background-dark font-bold text-lg py-4 rounded-xl shadow-lg shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                Save Transaction
+            </button>
+</div>
+</div>
+</body></html>

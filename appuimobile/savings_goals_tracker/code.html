@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Savings Goals Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {primary: "#db0f79", "primary-dark": "#047857", "background-light": "#f8f6f7", "background-dark": "#221019", "card-light": "#FFFFFF", "card-dark": "#1F2937", "text-main-light": "#1F2937", "text-main-dark": "#F9FAFB", "text-sub-light": "#6B7280", "text-sub-dark": "#9CA3AF"}, fontFamily: {display: "Manrope"}, borderRadius: {DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem"}}}};</script>
+<style>
+        body {
+          min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display antialiased min-h-screen relative flex flex-col">
+<header class="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm px-4 py-2 border-b border-gray-200 dark:border-gray-800">
+<div class="flex items-center justify-between h-14">
+<button class="flex items-center justify-center size-10 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-text-main-light dark:text-text-main-dark">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<h1 class="text-text-main-light dark:text-text-main-dark text-lg font-bold">My Goals</h1>
+<button class="flex items-center justify-center size-10 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-text-sub-light dark:text-text-sub-dark">
+<span class="material-symbols-outlined text-[24px]">sort</span>
+</button>
+</div>
+</header>
+<main class="flex-1 px-4 py-6 pb-24 overflow-y-auto">
+<section class="mb-8">
+<div class="flex flex-col gap-1">
+<p class="text-text-sub-light dark:text-text-sub-dark text-sm font-medium uppercase tracking-wider">Total Savings</p>
+<h2 class="text-text-main-light dark:text-text-main-dark text-4xl font-extrabold tracking-tight">$12,450</h2>
+<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">You're 62% of the way to your total target!</p>
+</div>
+</section>
+<div class="flex flex-col gap-5">
+<article class="group relative bg-card-light dark:bg-card-dark rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.04)] dark:shadow-none dark:border dark:border-white/5 overflow-hidden transition-all hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]">
+<div class="flex items-start justify-between p-5 pb-2">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-primary/20 flex items-center justify-center text-primary-dark dark:text-primary">
+<span class="material-symbols-outlined">security</span>
+</div>
+<div>
+<h3 class="text-text-main-light dark:text-text-main-dark text-lg font-bold leading-tight">Emergency Fund</h3>
+<p class="text-text-sub-light dark:text-text-sub-dark text-xs font-semibold">Target: Dec 31, 2024</p>
+</div>
+</div>
+<div class="flex gap-1">
+<button class="size-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 transition-colors">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button class="size-8 flex items-center justify-center rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+</div>
+<div class="px-5 py-4">
+<div class="flex justify-between items-end mb-2">
+<span class="text-3xl font-bold text-text-main-light dark:text-text-main-dark">$1,200</span>
+<span class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">of $5,000</span>
+</div>
+<div class="relative w-full h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+<div class="absolute top-0 left-0 h-full bg-primary rounded-full" style="width: 24%;"></div>
+</div>
+<div class="flex justify-between mt-2 text-xs font-medium">
+<span class="text-text-sub-light dark:text-text-sub-dark">24% Saved</span>
+<span class="text-gray-400 dark:text-gray-500">$3,800 to go</span>
+</div>
+</div>
+</article>
+<article class="group relative bg-card-light dark:bg-card-dark rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.04)] dark:shadow-none dark:border dark:border-white/5 overflow-hidden transition-all hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]">
+<div class="flex items-start justify-between p-5 pb-2">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
+<span class="material-symbols-outlined">directions_car</span>
+</div>
+<div>
+<h3 class="text-text-main-light dark:text-text-main-dark text-lg font-bold leading-tight">New Car</h3>
+<p class="text-text-sub-light dark:text-text-sub-dark text-xs font-semibold">Target: Jun 15, 2025</p>
+</div>
+</div>
+<div class="flex gap-1">
+<button class="size-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 transition-colors">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button class="size-8 flex items-center justify-center rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+</div>
+<div class="px-5 mt-2">
+<div class="w-full h-32 rounded-lg bg-cover bg-center relative overflow-hidden" data-alt="sleek modern car dashboard on highway" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD6T_P2fPuVd5KIDmT5tSLuxf4gy8S3L2oXSIMspzujQCghvJDwOKtOSmEUDlog-qZjnD2UM-XWBE3OfouHxxBVutePv3kQqd8vW5aO4O9f3JIb-_hGqoJ9Z1YYm4XDRw-PMNiMtkcipPzTTp46mhY1pX4hhSrCeu-lwAo5DcBXNzd1IrH-iEe5IqbdMS1zzjTIttMVJMoaj64IavKA1qF4UYhTIjLmGr7OAR7dk7LVc534ZZzTgAZBDZ2yxLkXNvnJpYB1XTC4JBA');">
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+<div class="absolute bottom-2 right-2 px-2 py-1 bg-black/40 backdrop-blur-sm rounded text-xs text-white font-medium">
+                            Dream Drive
+                        </div>
+</div>
+</div>
+<div class="px-5 py-4">
+<div class="flex justify-between items-end mb-2">
+<span class="text-3xl font-bold text-text-main-light dark:text-text-main-dark">$5,000</span>
+<span class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">of $20,000</span>
+</div>
+<div class="relative w-full h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+<div class="absolute top-0 left-0 h-full bg-primary rounded-full" style="width: 25%;"></div>
+</div>
+<div class="flex justify-between mt-2 text-xs font-medium">
+<span class="text-text-sub-light dark:text-text-sub-dark">25% Saved</span>
+<span class="text-gray-400 dark:text-gray-500">308 days left</span>
+</div>
+</div>
+</article>
+<article class="group relative bg-card-light dark:bg-card-dark rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.04)] dark:shadow-none dark:border dark:border-white/5 overflow-hidden transition-all hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]">
+<div class="flex items-start justify-between p-5 pb-2">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-400">
+<span class="material-symbols-outlined">flight_takeoff</span>
+</div>
+<div>
+<h3 class="text-text-main-light dark:text-text-main-dark text-lg font-bold leading-tight">Europe Trip</h3>
+<p class="text-text-sub-light dark:text-text-sub-dark text-xs font-semibold">Target: Aug 01, 2025</p>
+</div>
+</div>
+<div class="flex gap-1">
+<button class="size-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 transition-colors">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button class="size-8 flex items-center justify-center rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+</div>
+<div class="px-5 py-4">
+<div class="flex justify-between items-end mb-2">
+<span class="text-3xl font-bold text-text-main-light dark:text-text-main-dark">$6,250</span>
+<span class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">of $8,000</span>
+</div>
+<div class="relative w-full h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+<div class="absolute top-0 left-0 h-full bg-primary rounded-full" style="width: 78%;"></div>
+</div>
+<div class="flex justify-between mt-2 text-xs font-medium">
+<span class="text-text-sub-light dark:text-text-sub-dark">78% Saved</span>
+<span class="text-gray-400 dark:text-gray-500">Almost there!</span>
+</div>
+</div>
+</article>
+</div>
+</main>
+<div class="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background-light dark:from-background-dark via-background-light/80 dark:via-background-dark/80 to-transparent z-30 pointer-events-none">
+<div class="pointer-events-auto max-w-md mx-auto">
+<button class="w-full bg-primary hover:bg-[#059669] active:bg-[#047857] text-white rounded-xl font-bold text-lg h-14 shadow-lg shadow-primary/30 flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-[0.98]">
+<span class="material-symbols-outlined">add</span>
+                Add New Goal
+            </button>
+</div>
+</div>
+</body></html>

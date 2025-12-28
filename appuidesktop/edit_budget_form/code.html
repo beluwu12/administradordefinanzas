@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Editar Presupuesto - Gestor Financiero</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <!-- Material Symbols -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13ec5b",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#102216",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#182c20",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.375rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+</head>
+
+<body
+    class="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased min-h-screen flex flex-col overflow-x-hidden transition-colors duration-200">
+    <!-- Top Navigation Bar -->
+    <header
+        class="sticky top-0 z-50 flex items-center justify-between whitespace-nowrap border-b border-slate-200 dark:border-slate-800 bg-surface-light/90 dark:bg-surface-dark/90 backdrop-blur-md px-4 sm:px-10 py-3">
+        <div class="flex items-center gap-4">
+            <div class="size-8 text-primary flex items-center justify-center">
+                <span class="material-symbols-outlined text-3xl">account_balance_wallet</span>
+            </div>
+            <h2 class="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-tight">Gestor Financiero
+            </h2>
+        </div>
+        <div class="hidden md:flex flex-1 justify-end gap-8 items-center">
+            <nav class="flex items-center gap-6">
+                <a class="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary text-sm font-medium transition-colors"
+                    href="#">Panel</a>
+                <a class="text-slate-900 dark:text-white text-sm font-medium" href="#">Presupuesto</a>
+                <a class="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary text-sm font-medium transition-colors"
+                    href="#">Reportes</a>
+                <a class="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary text-sm font-medium transition-colors"
+                    href="#">Ajustes</a>
+            </nav>
+            <div class="bg-center bg-no-repeat bg-cover rounded-full size-10 border-2 border-slate-100 dark:border-slate-700 shadow-sm"
+                data-alt="Foto de perfil de usuario mostrando una persona sonriente"
+                style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDDWUKCF35ZzHzO5jonkp6lsDmJSEypFTObw94iYmDypPac_VNMb20Jo0ZgLXTppgVhdtJY75C2TAIeF8WGYWuYzaGSJxmb3zf62NvgVHdL5dkVDZZV3h1zdlEej9GlFzehgleEn2nD6WTE_nndeA7tcB15_C4oWwPSbmJZcQHnLoQnjIF9DPfTswuFJ8u5NeWUGmnAteh5Ct2KGFXG8RAQwWkzR6gKGyQX1TbPb3bGTl9z4pPu3lbQpT_kortWQHMBJZRmSYxQmCs");'>
+            </div>
+        </div>
+        <div class="md:hidden">
+            <span class="material-symbols-outlined text-slate-900 dark:text-white">menu</span>
+        </div>
+    </header>
+    <div class="flex flex-1 flex-col layout-container w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Breadcrumbs -->
+        <nav aria-label="Breadcrumb" class="flex mb-6 text-sm font-medium">
+            <ol class="inline-flex items-center space-x-2">
+                <li class="inline-flex items-center">
+                    <a class="text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-primary" href="#">
+                        Inicio
+                    </a>
+                </li>
+                <li>
+                    <div class="flex items-center">
+                        <span class="material-symbols-outlined text-slate-400 text-sm mx-1">chevron_right</span>
+                        <a class="text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-primary"
+                            href="#">
+                            Presupuesto
+                        </a>
+                    </div>
+                </li>
+                <li>
+                    <div class="flex items-center">
+                        <span class="material-symbols-outlined text-slate-400 text-sm mx-1">chevron_right</span>
+                        <span class="text-slate-900 dark:text-white">Editar Categoría</span>
+                    </div>
+                </li>
+            </ol>
+        </nav>
+        <!-- Main Content Area -->
+        <div class="flex flex-1 justify-center items-start">
+            <!-- Card Container -->
+            <div
+                class="w-full max-w-2xl bg-surface-light dark:bg-surface-dark rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 overflow-hidden relative">
+                <!-- Close Button -->
+                <button
+                    class="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+                <!-- Form Header -->
+                <div class="px-6 py-6 sm:px-8 border-b border-slate-100 dark:border-slate-800">
+                    <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Editar Presupuesto</h1>
+                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Ajusta tu límite de gasto para la
+                        categoría <span class="font-medium text-slate-900 dark:text-white">Comestibles</span>.</p>
+                </div>
+                <!-- Form Body -->
+                <div class="p-6 sm:p-8 space-y-8">
+                    <!-- Category & Frequency Row -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <!-- Category Selector -->
+                        <div class="flex flex-col gap-2">
+                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Categoría</label>
+                            <div class="relative">
+                                <div
+                                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 dark:text-slate-400">
+                                    <span class="material-symbols-outlined text-xl">shopping_cart</span>
+                                </div>
+                                <select
+                                    class="w-full pl-10 pr-10 py-3 bg-slate-50 dark:bg-[#233529] border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none transition-shadow cursor-pointer">
+                                    <option selected="" value="groceries">Comestibles</option>
+                                    <option value="transport">Transporte</option>
+                                    <option value="utilities">Servicios</option>
+                                    <option value="entertainment">Entretenimiento</option>
+                                </select>
+                                <div
+                                    class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-500">
+                                    <span class="material-symbols-outlined text-xl">expand_more</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Frequency Toggle -->
+                        <div class="flex flex-col gap-2">
+                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Frecuencia</label>
+                            <div
+                                class="flex p-1 bg-slate-100 dark:bg-[#1C2E22] rounded-lg border border-slate-200 dark:border-slate-700">
+                                <button
+                                    class="flex-1 py-2 px-3 text-sm font-medium rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                    type="button">Semanal</button>
+                                <button
+                                    class="flex-1 py-2 px-3 text-sm font-bold rounded-md bg-primary text-black shadow-sm transition-all"
+                                    type="button">Mensual</button>
+                                <button
+                                    class="flex-1 py-2 px-3 text-sm font-medium rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                    type="button">Anual</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Amount Input (Large Prominent) -->
+                    <div class="flex flex-col gap-3">
+                        <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Límite de
+                            Presupuesto</label>
+                        <div class="relative group">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <span
+                                    class="text-2xl font-bold text-slate-400 group-focus-within:text-primary transition-colors">$</span>
+                            </div>
+                            <input
+                                class="block w-full pl-10 pr-4 py-4 bg-white dark:bg-[#1C2E22] border-2 border-slate-200 dark:border-slate-700 rounded-xl text-4xl font-bold text-slate-900 dark:text-white placeholder-slate-300 focus:outline-none focus:border-primary focus:ring-0 transition-colors text-left"
+                                type="number" value="450.00" />
+                            <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                                <span class="text-sm font-medium text-slate-400">USD</span>
+                            </div>
+                        </div>
+                        <!-- Comparison/Status -->
+                        <div class="flex items-center gap-2 mt-1">
+                            <div class="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                <div class="h-full bg-emerald-500 w-[92%] rounded-full"></div>
+                            </div>
+                            <span
+                                class="text-xs font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap">Prom:
+                                $412/mes</span>
+                        </div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                            Estás aumentando tu presupuesto en <span
+                                class="font-bold text-slate-700 dark:text-slate-300">9.2%</span> comparado con el mes
+                            anterior.
+                        </p>
+                    </div>
+                    <!-- Notes Field -->
+                    <div class="flex flex-col gap-2">
+                        <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Notas (Opcional)</label>
+                        <textarea
+                            class="w-full p-3 bg-slate-50 dark:bg-[#233529] border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none transition-shadow"
+                            placeholder="Agrega una razón para este cambio..." rows="3"></textarea>
+                    </div>
+                    <!-- Action Buttons -->
+                    <div
+                        class="flex flex-col sm:flex-row items-center gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                        <!-- Left Side: Delete -->
+                        <button
+                            class="order-2 sm:order-1 text-red-500 hover:text-red-700 dark:hover:text-red-400 text-sm font-medium px-4 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                            type="button">
+                            Eliminar Presupuesto
+                        </button>
+                        <div class="flex-1 hidden sm:block order-1 sm:order-2"></div> <!-- Spacer -->
+                        <!-- Right Side: Cancel & Save -->
+                        <div class="flex w-full sm:w-auto gap-3 order-1 sm:order-3">
+                            <button
+                                class="flex-1 sm:flex-none px-6 py-3 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-200"
+                                type="button">
+                                Cancelar
+                            </button>
+                            <button
+                                class="flex-1 sm:flex-none px-6 py-3 rounded-lg bg-primary hover:bg-[#10d650] text-black font-bold shadow-md hover:shadow-lg transition-all transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-offset-surface-dark"
+                                type="button">
+                                Guardar Cambios
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
