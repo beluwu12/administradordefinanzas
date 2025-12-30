@@ -20,10 +20,19 @@ out/
 .env.local
 .env.*.local
 .env.azure
+.env.new
+*.env.new
 deploy/.env*
 deploy/*.env*
+server/.env*
 !.env.example
 !deploy/.env.example
+!server/.env.example
+
+# Cookies and tokens
+cookies.txt
+*.cookies
+*.token
 
 # ══════════════════════════════════════════════════════════════
 # DATABASE
