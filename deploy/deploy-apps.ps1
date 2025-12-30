@@ -30,48 +30,58 @@ $RESOURCE_GROUP = $env:AZURE_RESOURCE_GROUP
 $LOCATION = $env:AZURE_LOCATION
 $REGISTRY_NAME = $env:AZURE_REGISTRY_NAME
 $REGISTRY_URL = "$REGISTRY_NAME.azurecr.io"
-$POSTGRES_SERVER = $env:POSTGRES_SERVER_NAME
-$POSTGRES_USER = $env:POSTGRES_ADMIN_USER
-$POSTGRES_PASSWORD = $env:POSTGRES_ADMIN_PASSWORD
-$POSTGRES_DB = $env:POSTGRES_DB
 $CONTAINER_ENV = $env:CONTAINER_ENV_NAME
 $JWT_SECRET = $env:JWT_SECRET
+$CORS_ORIGINS = $env:CORS_ALLOWED_ORIGINS
 
-# 1. Crear PostgreSQL Flexible Server
-Write-Host "[1/5] Verificando PostgreSQL Server..." -ForegroundColor Yellow
-try {
-    $pgExists = az postgres flexible-server show --resource-group $RESOURCE_GROUP --name $POSTGRES_SERVER 2>&1
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "      PostgreSQL ya existe" -ForegroundColor Green
+# Check if DATABASE_URL is provided (Supabase/external DB)
+$DATABASE_URL = $env:DATABASE_URL
+
+if ($DATABASE_URL -and $DATABASE_URL -ne "") {
+    Write-Host "[1/5] Usando base de datos externa (Supabase)..." -ForegroundColor Yellow
+    Write-Host "      DATABASE_URL configurado" -ForegroundColor Green
+} else {
+    # Fallback: Create Azure PostgreSQL
+    $POSTGRES_SERVER = $env:POSTGRES_SERVER_NAME
+    $POSTGRES_USER = $env:POSTGRES_ADMIN_USER
+    $POSTGRES_PASSWORD = $env:POSTGRES_ADMIN_PASSWORD
+    $POSTGRES_DB = $env:POSTGRES_DB
+    
+    Write-Host "[1/5] Verificando PostgreSQL Server en Azure..." -ForegroundColor Yellow
+    try {
+        $pgExists = az postgres flexible-server show --resource-group $RESOURCE_GROUP --name $POSTGRES_SERVER 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "      PostgreSQL ya existe" -ForegroundColor Green
+        }
+        else {
+            $pgExists = $null
+        }
     }
-    else {
+    catch {
         $pgExists = $null
     }
+    if (-not $pgExists) {
+        Write-Host "      Creando PostgreSQL Flexible Server (esto toma ~3-5 minutos)..." -ForegroundColor Yellow
+        az postgres flexible-server create `
+            --resource-group $RESOURCE_GROUP `
+            --name $POSTGRES_SERVER `
+            --location $LOCATION `
+            --admin-user $POSTGRES_USER `
+            --admin-password $POSTGRES_PASSWORD `
+            --database-name $POSTGRES_DB `
+            --sku-name Standard_B1ms `
+            --tier Burstable `
+            --storage-size 32 `
+            --version 16 `
+            --public-access 0.0.0.0-255.255.255.255
+        Write-Host "      PostgreSQL creado" -ForegroundColor Green
+    }
+    
+    # Build DATABASE_URL from Azure PostgreSQL
+    $pgHost = az postgres flexible-server show --resource-group $RESOURCE_GROUP --name $POSTGRES_SERVER --query fullyQualifiedDomainName -o tsv
+    $DATABASE_URL = "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${pgHost}:5432/${POSTGRES_DB}?sslmode=require"
+    Write-Host "      Host: $pgHost" -ForegroundColor Gray
 }
-catch {
-    $pgExists = $null
-}
-if (-not $pgExists) {
-    Write-Host "      Creando PostgreSQL Flexible Server (esto toma ~3-5 minutos)..." -ForegroundColor Yellow
-    az postgres flexible-server create `
-        --resource-group $RESOURCE_GROUP `
-        --name $POSTGRES_SERVER `
-        --location $LOCATION `
-        --admin-user $POSTGRES_USER `
-        --admin-password $POSTGRES_PASSWORD `
-        --database-name $POSTGRES_DB `
-        --sku-name Standard_B1ms `
-        --tier Burstable `
-        --storage-size 32 `
-        --version 16 `
-        --public-access 0.0.0.0-255.255.255.255
-    Write-Host "      PostgreSQL creado" -ForegroundColor Green
-}
-
-# Obtener hostname del servidor
-$pgHost = az postgres flexible-server show --resource-group $RESOURCE_GROUP --name $POSTGRES_SERVER --query fullyQualifiedDomainName -o tsv
-$DATABASE_URL = "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${pgHost}:5432/${POSTGRES_DB}?sslmode=require"
-Write-Host "      Host: $pgHost" -ForegroundColor Gray
 
 # 2. Crear Container App Environment
 Write-Host "`n[2/5] Verificando Container App Environment..." -ForegroundColor Yellow
