@@ -19,7 +19,11 @@ out/
 .env
 .env.local
 .env.*.local
+.env.azure
+deploy/.env*
+deploy/*.env*
 !.env.example
+!deploy/.env.example
 
 # ══════════════════════════════════════════════════════════════
 # DATABASE
