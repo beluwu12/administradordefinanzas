@@ -106,7 +106,7 @@ export default function GoalsPage() {
     );
 
     return (
-        <>
+        <div className="space-y-6 animate-in fade-in duration-500">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
@@ -125,7 +125,7 @@ export default function GoalsPage() {
             {/* Stats Cards */}
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {/* Total Saved */}
-                <div className="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all hover:shadow-md">
+                <div className="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all hover:shadow-md hover:border-pink-200">
                     <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-pink-50 text-primary">
                         <span className="material-symbols-outlined">account_balance</span>
                     </div>
@@ -134,13 +134,12 @@ export default function GoalsPage() {
                         <span className="text-3xl font-extrabold text-foreground">
                             {formatCurrency(totalSaved, isDual ? 'USD' : countryConfig.defaultCurrency)}
                         </span>
-                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700">+12%</span>
                     </div>
                     <p className="mt-1 text-xs text-gray-500">En {goals.length} metas activas</p>
                 </div>
 
                 {/* Overall Progress */}
-                <div className="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all hover:shadow-md">
+                <div className="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all hover:shadow-md hover:border-blue-200">
                     <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-500">
                         <span className="material-symbols-outlined">donut_large</span>
                     </div>
@@ -160,7 +159,7 @@ export default function GoalsPage() {
                 </div>
 
                 {/* Next Goal */}
-                <div className="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all hover:shadow-md sm:col-span-2 lg:col-span-1">
+                <div className="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all hover:shadow-md hover:border-orange-200 sm:col-span-2 lg:col-span-1">
                     <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
                         <span className="material-symbols-outlined">calendar_clock</span>
                     </div>
@@ -367,6 +366,6 @@ export default function GoalsPage() {
                     </>
                 )}
             </div>
-        </>
+        </div>
     );
 }

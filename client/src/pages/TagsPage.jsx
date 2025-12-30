@@ -32,6 +32,7 @@ export default function TagsPage() {
     const [formData, setFormData] = useState({ name: '', color: 'blue', icon: 'sell' });
     const [isEditing, setIsEditing] = useState(false);
     const [editId, setEditId] = useState(null);
+    const [deletingTag, setDeletingTag] = useState(null);
 
     useEffect(() => {
         fetchTags();
@@ -91,10 +92,15 @@ export default function TagsPage() {
         }
     }
 
-    const handleDelete = async (id) => {
-        if (!window.confirm('¿Eliminar etiqueta? Se desvinculará de las transacciones.')) return;
+    const handleDelete = (tag) => {
+        setDeletingTag(tag);
+    };
+
+    const confirmDelete = async () => {
+        if (!deletingTag) return;
         try {
-            await api.delete(`/tags/${id}`);
+            await api.delete(`/tags/${deletingTag.id}`);
+            setDeletingTag(null);
             fetchTags();
         } catch (error) {
             console.error(error);
@@ -365,7 +371,7 @@ export default function TagsPage() {
                                         <span className="hidden xl:inline">Editar</span>
                                     </button>
                                     <button
-                                        onClick={() => handleDelete(tag.id)}
+                                        onClick={() => handleDelete(tag)}
                                         className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all border border-transparent hover:border-red-100"
                                         title="Eliminar"
                                     >
@@ -384,6 +390,48 @@ export default function TagsPage() {
                     tag={selectedTag}
                     onClose={() => setSelectedTag(null)}
                 />
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {deletingTag && (
+                <div className="fixed inset-0 z-[100]" role="dialog" aria-modal="true">
+                    <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" onClick={() => setDeletingTag(null)}></div>
+                    <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
+                        <div className="flex min-h-full items-center justify-center p-4 text-center">
+                            <div className="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:w-full sm:max-w-lg border border-gray-100">
+                                <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                                    <div className="sm:flex sm:items-start">
+                                        <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-50 sm:mx-0 sm:h-10 sm:w-10 ring-8 ring-red-50/50">
+                                            <span className="material-symbols-outlined text-red-600">warning</span>
+                                        </div>
+                                        <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                                            <h3 className="text-lg font-bold leading-6 text-foreground">Eliminar Etiqueta</h3>
+                                            <div className="mt-2">
+                                                <p className="text-sm text-gray-500 leading-relaxed">
+                                                    ¿Estás seguro de que deseas eliminar la etiqueta <span className="font-bold text-foreground">{deletingTag.name}</span>? Se desvinculará de todas las transacciones asociadas.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-3 border-t border-gray-100">
+                                    <button
+                                        onClick={confirmDelete}
+                                        className="inline-flex w-full justify-center rounded-xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-red-700 sm:ml-3 sm:w-auto transition-colors"
+                                    >
+                                        Eliminar
+                                    </button>
+                                    <button
+                                        onClick={() => setDeletingTag(null)}
+                                        className="mt-3 inline-flex w-full justify-center rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-foreground shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { isDualCurrency, getCountryConfig } from '../config/countries';
 import TransactionItem from '../components/TransactionItem';
 import SimplePieChart from '../components/common/SimplePieChart';
+import TransactionForm from '../components/TransactionForm';
 
 /**
  * DashboardHelper - Based on appuidesktop/dashboard_overview template
@@ -21,12 +22,19 @@ const DashboardHelper = () => {
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
     const [rate, setRate] = useState(null);
+    const [showTransactionForm, setShowTransactionForm] = useState(false);
+    const [goals, setGoals] = useState([]);
+    const [changePercent, setChangePercent] = useState(null);
+    const [fixedExpenses, setFixedExpenses] = useState([]);
 
     const fetchData = async () => {
         try {
             const requests = [
                 api.get('/transactions/balance'),
-                api.get('/transactions')
+                api.get('/transactions'),
+                api.get('/goals'),
+                api.get('/insight/summary'),
+                api.get('/fixed-expenses')
             ];
 
             if (isDual) {
@@ -34,7 +42,7 @@ const DashboardHelper = () => {
             }
 
             const responses = await Promise.all(requests);
-            const [balanceRes, transactionsRes] = responses;
+            const [balanceRes, transactionsRes, goalsRes, insightRes, fixedExpensesRes] = responses;
 
             // Use unwrapData for balance response
             const balanceData = unwrapData(balanceRes);
@@ -62,8 +70,20 @@ const DashboardHelper = () => {
             const { data: txData } = unwrapPaginated(transactionsRes);
             setTransactions((txData || []).slice(0, 4));
 
-            if (isDual && responses[2]) {
-                const rateData = unwrapData(responses[2]);
+            // Goals data
+            const goalsData = unwrapData(goalsRes);
+            setGoals(goalsData || []);
+
+            // Insight data (changePercent for trending)
+            const insightData = unwrapData(insightRes);
+            setChangePercent(insightData?.changePercent ?? null);
+
+            // Fixed expenses data
+            const fixedData = unwrapData(fixedExpensesRes);
+            setFixedExpenses(fixedData || []);
+
+            if (isDual && responses[5]) {
+                const rateData = unwrapData(responses[5]);
                 if (rateData && rateData.rate) {
                     setRate(rateData.rate);
                 }
@@ -90,11 +110,11 @@ const DashboardHelper = () => {
     );
 
     return (
-        <>
+        <div className="space-y-6 animate-in fade-in duration-500">
             {/* Top Row - Balance + Quick Actions */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Balance Card */}
-                <div className="bg-white border border-gray-200 rounded-xl p-5 relative overflow-hidden shadow-sm lg:col-span-1">
+                <div className="bg-white border border-gray-200 rounded-xl p-5 relative overflow-hidden shadow-sm lg:col-span-1 transition-all hover:shadow-md hover:border-primary/30 group">
                     <div className="absolute right-0 top-0 w-64 h-full bg-gradient-to-l from-primary/5 to-transparent pointer-events-none"></div>
                     <div className="flex flex-col justify-between h-full relative z-10">
                         <div className="flex justify-between items-start mb-4">
@@ -117,15 +137,17 @@ const DashboardHelper = () => {
                                     </p>
                                 )}
                             </div>
-                            <span className={`px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1 ${isPositive
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-red-100 text-red-700'
-                                }`}>
-                                <span className="material-symbols-outlined text-sm">
-                                    {isPositive ? 'trending_up' : 'trending_down'}
+                            {changePercent !== null && (
+                                <span className={`px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1 ${changePercent >= 0
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-red-100 text-red-700'
+                                    }`}>
+                                    <span className="material-symbols-outlined text-sm">
+                                        {changePercent >= 0 ? 'trending_up' : 'trending_down'}
+                                    </span>
+                                    {changePercent >= 0 ? '+' : ''}{changePercent}%
                                 </span>
-                                {isPositive ? '+2.4%' : '-1.2%'}
-                            </span>
+                            )}
                         </div>
                         {/* Mini chart */}
                         <div className="flex items-end gap-1 h-10 w-full mt-2 opacity-50 hover:opacity-100 transition-opacity">
@@ -143,55 +165,70 @@ const DashboardHelper = () => {
                 {/* Right Cards Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 lg:col-span-2">
                     {/* Quick Actions */}
-                    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex flex-col items-center justify-center gap-2 text-center h-full">
+                    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex flex-col items-center justify-center gap-2 text-center h-full transition-all hover:shadow-md hover:border-primary/30">
                         <h3 className="text-foreground font-bold text-xs">Acciones Rápidas</h3>
                         <button
-                            onClick={() => navigate('/transactions', { state: { openForm: true } })}
+                            onClick={() => setShowTransactionForm(true)}
                             className="flex items-center justify-center w-10 h-10 bg-primary hover:bg-pink-700 text-white rounded-full transition-all shadow-md shadow-primary/20 mt-1"
                             title="Agregar Transacción"
                         >
                             <span className="material-symbols-outlined text-sm">add</span>
                         </button>
-                        <span className="text-[10px] text-gray-500">Agregar Nuevo</span>
+                        <span className="text-[10px] text-gray-500">Nueva transacción</span>
                     </div>
 
                     {/* Goals Mini Card */}
-                    <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col justify-between gap-4">
+                    <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col justify-between gap-4 transition-all hover:shadow-md hover:border-green-200">
                         <div>
-                            <h4 className="text-sm font-bold text-foreground mb-3">Metas del mes</h4>
-                            <div className="flex flex-col gap-2">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-xs text-gray-500">Fondo de Emergencia</span>
-                                    <span className="text-xs font-semibold text-primary">$400 / $500</span>
+                            <h4 className="text-sm font-bold text-foreground mb-3">Metas de Ahorro</h4>
+                            {goals.length > 0 ? (
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-xs text-gray-500 truncate max-w-[120px]">{goals[0].title}</span>
+                                        <span className="text-xs font-semibold text-primary">
+                                            {formatCurrency(goals[0].savedAmount || 0, goals[0].currency)} / {formatCurrency(goals[0].totalCost, goals[0].currency)}
+                                        </span>
+                                    </div>
+                                    <div className="w-full bg-gray-100 rounded-full h-1.5">
+                                        <div
+                                            className="bg-primary h-1.5 rounded-full"
+                                            style={{ width: `${Math.min(100, (goals[0].savedAmount / goals[0].totalCost) * 100)}%` }}
+                                        ></div>
+                                    </div>
                                 </div>
-                                <div className="w-full bg-gray-100 rounded-full h-1.5">
-                                    <div className="bg-primary h-1.5 rounded-full" style={{ width: '80%' }}></div>
-                                </div>
-                            </div>
+                            ) : (
+                                <p className="text-xs text-gray-400">Sin metas creadas</p>
+                            )}
                         </div>
                         <div className="flex items-center gap-2 mt-auto pt-2 border-t border-gray-200">
                             <Link
                                 to="/goals"
                                 className="flex-1 flex items-center justify-center gap-1 bg-primary text-white text-xs font-bold py-2 rounded-lg hover:bg-pink-700 transition-colors shadow-sm shadow-primary/20"
                             >
-                                <span className="material-symbols-outlined text-[16px]">add</span> Nueva
+                                <span className="material-symbols-outlined text-[16px]">visibility</span> Ver todas
                             </Link>
                         </div>
                     </div>
 
                     {/* Budget Mini Card */}
-                    <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col justify-between gap-4">
+                    <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col justify-between gap-4 transition-all hover:shadow-md hover:border-purple-200">
                         <div>
-                            <h4 className="text-sm font-bold text-foreground mb-3">Control Presupuesto</h4>
-                            <div className="flex flex-col gap-2">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-xs text-gray-500">Comestibles</span>
-                                    <span className="text-xs font-semibold text-foreground">$350 / $500</span>
+                            <h4 className="text-sm font-bold text-foreground mb-3">Gastos Fijos</h4>
+                            {fixedExpenses.length > 0 ? (
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-xs text-gray-500 truncate max-w-[100px]">{fixedExpenses[0].description}</span>
+                                        <span className="text-xs font-semibold text-foreground">
+                                            {formatCurrency(fixedExpenses[0].amount, fixedExpenses[0].currency)}
+                                        </span>
+                                    </div>
+                                    <p className="text-[10px] text-gray-400">
+                                        Día {fixedExpenses[0].dueDay} • {fixedExpenses.length} total
+                                    </p>
                                 </div>
-                                <div className="w-full bg-gray-100 rounded-full h-1.5">
-                                    <div className="bg-primary h-1.5 rounded-full" style={{ width: '70%' }}></div>
-                                </div>
-                            </div>
+                            ) : (
+                                <p className="text-xs text-gray-400">Sin gastos fijos</p>
+                            )}
                         </div>
                         <div className="flex items-center gap-2 mt-auto pt-2 border-t border-gray-200">
                             <Link
@@ -206,7 +243,7 @@ const DashboardHelper = () => {
             </div>
 
             {/* Bottom Row - Transactions Table */}
-            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm transition-all hover:shadow-md hover:border-gray-300">
                 <div className="p-6 border-b border-gray-200 flex items-center justify-between">
                     <h3 className="text-foreground font-bold text-lg">Transacciones Recientes</h3>
                     <Link to="/transactions" className="text-gray-500 hover:text-foreground transition-colors">
@@ -292,7 +329,18 @@ const DashboardHelper = () => {
                     </span>
                 </div>
             )}
-        </>
+
+            {/* Transaction Form Modal */}
+            {showTransactionForm && (
+                <TransactionForm
+                    onClose={() => setShowTransactionForm(false)}
+                    onSuccess={() => {
+                        setShowTransactionForm(false);
+                        fetchData(); // Refresh data after adding transaction
+                    }}
+                />
+            )}
+        </div>
     );
 };
 

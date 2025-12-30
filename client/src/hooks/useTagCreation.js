@@ -35,7 +35,8 @@ export const useTagCreation = () => {
 
         try {
             const res = await api.post('/tags', { name: name.trim(), color });
-            const newTag = res.data;
+            // API returns {success, data: {...}} so unwrap correctly
+            const newTag = res.data?.data || res.data;
 
             if (newTag && newTag.id) {
                 addTag(newTag);
@@ -47,8 +48,13 @@ export const useTagCreation = () => {
             }
         } catch (err) {
             console.error('[useTagCreation] Error:', err);
-            const errorMsg = err.message || 'Error al crear la etiqueta';
-            setError(errorMsg);
+            // Handle 409 Conflict (duplicate tag)
+            if (err.status === 409 || err.code === 'DUPLICATE') {
+                setError('Esta etiqueta ya existe');
+            } else {
+                const errorMsg = err.message || 'Error al crear la etiqueta';
+                setError(errorMsg);
+            }
             return null;
         } finally {
             setIsCreating(false);

@@ -92,8 +92,10 @@ const errorHandler = (err, req, res, next) => {
 
     // Handle Zod validation errors
     if (err.name === 'ZodError') {
-        const details = err.errors.map(e => ({
-            field: e.path.join('.'),
+        // Zod v3 uses 'issues', some wrappers use 'errors'
+        const zodErrors = err.issues || err.errors || [];
+        const details = zodErrors.map(e => ({
+            field: Array.isArray(e.path) ? e.path.join('.') : e.path,
             message: e.message
         }));
         return res.status(400).json({

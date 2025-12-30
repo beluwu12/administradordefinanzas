@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Edit Tag Form</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13ec5b",
+                        "primary-hover": "#0fd650",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#102216",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1a2e22",
+                        "border-light": "#cfe7d7",
+                        "border-dark": "#2a4535",
+                        "text-main": "#0d1b12",
+                        "text-sub": "#4c9a66",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem", 
+                        "lg": "0.5rem", 
+                        "xl": "0.75rem", 
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #cfe7d7;
+            border-radius: 20px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background-color: #2a4535;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-main dark:text-white antialiased min-h-screen flex flex-col">
+<div class="layout-container flex h-full grow flex-col justify-center items-center py-8 px-4 sm:px-6">
+<!-- Main Card Container -->
+<div class="w-full max-w-[640px] bg-surface-light dark:bg-surface-dark rounded-xl shadow-lg border border-border-light dark:border-border-dark flex flex-col overflow-hidden">
+<!-- Header Section -->
+<div class="flex items-start justify-between p-6 border-b border-border-light dark:border-border-dark">
+<div class="flex flex-col gap-1">
+<h1 class="text-2xl font-bold leading-tight text-text-main dark:text-white">Edit Tag</h1>
+<p class="text-text-sub dark:text-gray-400 text-sm font-normal">Update the details for this custom tag.</p>
+</div>
+<button class="text-text-sub hover:text-text-main dark:text-gray-400 dark:hover:text-white transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Scrollable Content Area -->
+<div class="flex-1 overflow-y-auto p-6 space-y-8">
+<!-- Tag Preview Card -->
+<div class="bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg p-4">
+<div class="flex items-center justify-between gap-4">
+<div class="flex flex-col gap-1">
+<p class="text-xs font-medium uppercase tracking-wider text-text-sub dark:text-gray-400">Preview</p>
+<div class="flex items-center gap-3 mt-1">
+<div class="size-10 rounded-full flex items-center justify-center text-white shadow-sm" style="background-color: rgb(19, 236, 91);">
+<span class="material-symbols-outlined text-[20px]">shopping_cart</span>
+</div>
+<span class="text-lg font-bold text-text-main dark:text-white">Groceries</span>
+</div>
+</div>
+<!-- Abstract illustration for decoration -->
+<div class="h-16 w-24 bg-cover bg-center rounded-md opacity-80" data-alt="Abstract green pattern graphic" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuABrXXqj1oWpzJ33AaXUm--u5JZS9ces1pFgFLF_I79nQaEd_oWrydlk-rq5CnZ8yIxpelwNR5xcQRJ7ocBbmJdtw0AfhRt7r6i8fsZqcK2UNO1eoASHMkSYdGVbFnBIDNdRVUXK_oC4l2ohdYhbaATYlQD-CKI7ES5OYAEYbPwlKJns7vO3yAZMjRGlfb71dvAgh6dV2suzKvTlGIDUhnVuhZwsV1GYP24zdABSLBoCcioctEVqAtPok5wkO935rulFHiHmYcnn5U");'>
+</div>
+</div>
+</div>
+<!-- Input: Tag Name -->
+<div class="space-y-3">
+<label class="text-text-main dark:text-white text-sm font-medium leading-normal" for="tag-name">Tag Name</label>
+<input class="w-full h-12 px-4 rounded-lg bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark text-text-main dark:text-white placeholder:text-text-sub focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all" id="tag-name" placeholder="e.g. Utilities, Fun, Travel" type="text" value="Groceries"/>
+</div>
+<!-- Input: Color Picker -->
+<div class="space-y-3">
+<label class="text-text-main dark:text-white text-sm font-medium leading-normal">Color</label>
+<div class="flex flex-wrap gap-3">
+<!-- Green (Selected) -->
+<label class="group relative size-10 cursor-pointer">
+<input checked="" class="peer sr-only" name="tag-color" type="radio"/>
+<span class="absolute inset-0 rounded-full border border-border-light dark:border-border-dark bg-[#13ec5b] peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-[#13ec5b] dark:peer-checked:ring-offset-surface-dark transition-all"></span>
+<span class="material-symbols-outlined absolute inset-0 flex items-center justify-center text-black opacity-0 peer-checked:opacity-100 transition-opacity text-lg">check</span>
+</label>
+<!-- Blue -->
+<label class="group relative size-10 cursor-pointer">
+<input class="peer sr-only" name="tag-color" type="radio"/>
+<span class="absolute inset-0 rounded-full border border-border-light dark:border-border-dark bg-blue-500 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-blue-500 dark:peer-checked:ring-offset-surface-dark transition-all"></span>
+</label>
+<!-- Red -->
+<label class="group relative size-10 cursor-pointer">
+<input class="peer sr-only" name="tag-color" type="radio"/>
+<span class="absolute inset-0 rounded-full border border-border-light dark:border-border-dark bg-red-500 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-red-500 dark:peer-checked:ring-offset-surface-dark transition-all"></span>
+</label>
+<!-- Amber -->
+<label class="group relative size-10 cursor-pointer">
+<input class="peer sr-only" name="tag-color" type="radio"/>
+<span class="absolute inset-0 rounded-full border border-border-light dark:border-border-dark bg-amber-500 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-amber-500 dark:peer-checked:ring-offset-surface-dark transition-all"></span>
+</label>
+<!-- Purple -->
+<label class="group relative size-10 cursor-pointer">
+<input class="peer sr-only" name="tag-color" type="radio"/>
+<span class="absolute inset-0 rounded-full border border-border-light dark:border-border-dark bg-indigo-500 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-indigo-500 dark:peer-checked:ring-offset-surface-dark transition-all"></span>
+</label>
+<!-- Custom Add Button -->
+<button class="size-10 rounded-full border border-dashed border-text-sub flex items-center justify-center text-text-sub hover:border-primary hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">add</span>
+</button>
+</div>
+</div>
+<!-- Input: Icon Picker -->
+<div class="space-y-3">
+<label class="text-text-main dark:text-white text-sm font-medium leading-normal">Icon</label>
+<div class="grid grid-cols-6 sm:grid-cols-8 gap-3">
+<!-- Selected Icon -->
+<label class="relative aspect-square cursor-pointer">
+<input checked="" class="peer sr-only" name="tag-icon" type="radio"/>
+<div class="w-full h-full rounded-lg border border-border-light dark:border-border-dark flex items-center justify-center text-text-main dark:text-gray-300 peer-checked:border-2 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
+<span class="material-symbols-outlined">shopping_cart</span>
+</div>
+</label>
+<!-- Other Icons -->
+<label class="relative aspect-square cursor-pointer">
+<input class="peer sr-only" name="tag-icon" type="radio"/>
+<div class="w-full h-full rounded-lg border border-border-light dark:border-border-dark flex items-center justify-center text-text-main dark:text-gray-300 peer-checked:border-2 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:bg-background-light dark:hover:bg-background-dark transition-all">
+<span class="material-symbols-outlined">directions_car</span>
+</div>
+</label>
+<label class="relative aspect-square cursor-pointer">
+<input class="peer sr-only" name="tag-icon" type="radio"/>
+<div class="w-full h-full rounded-lg border border-border-light dark:border-border-dark flex items-center justify-center text-text-main dark:text-gray-300 peer-checked:border-2 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:bg-background-light dark:hover:bg-background-dark transition-all">
+<span class="material-symbols-outlined">home</span>
+</div>
+</label>
+<label class="relative aspect-square cursor-pointer">
+<input class="peer sr-only" name="tag-icon" type="radio"/>
+<div class="w-full h-full rounded-lg border border-border-light dark:border-border-dark flex items-center justify-center text-text-main dark:text-gray-300 peer-checked:border-2 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:bg-background-light dark:hover:bg-background-dark transition-all">
+<span class="material-symbols-outlined">receipt_long</span>
+</div>
+</label>
+<label class="relative aspect-square cursor-pointer">
+<input class="peer sr-only" name="tag-icon" type="radio"/>
+<div class="w-full h-full rounded-lg border border-border-light dark:border-border-dark flex items-center justify-center text-text-main dark:text-gray-300 peer-checked:border-2 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:bg-background-light dark:hover:bg-background-dark transition-all">
+<span class="material-symbols-outlined">card_giftcard</span>
+</div>
+</label>
+<label class="relative aspect-square cursor-pointer">
+<input class="peer sr-only" name="tag-icon" type="radio"/>
+<div class="w-full h-full rounded-lg border border-border-light dark:border-border-dark flex items-center justify-center text-text-main dark:text-gray-300 peer-checked:border-2 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:bg-background-light dark:hover:bg-background-dark transition-all">
+<span class="material-symbols-outlined">fitness_center</span>
+</div>
+</label>
+<label class="relative aspect-square cursor-pointer">
+<input class="peer sr-only" name="tag-icon" type="radio"/>
+<div class="w-full h-full rounded-lg border border-border-light dark:border-border-dark flex items-center justify-center text-text-main dark:text-gray-300 peer-checked:border-2 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:bg-background-light dark:hover:bg-background-dark transition-all">
+<span class="material-symbols-outlined">restaurant</span>
+</div>
+</label>
+<label class="relative aspect-square cursor-pointer">
+<input class="peer sr-only" name="tag-icon" type="radio"/>
+<div class="w-full h-full rounded-lg border border-border-light dark:border-border-dark flex items-center justify-center text-text-main dark:text-gray-300 peer-checked:border-2 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:bg-background-light dark:hover:bg-background-dark transition-all">
+<span class="material-symbols-outlined">flight</span>
+</div>
+</label>
+<label class="relative aspect-square cursor-pointer">
+<input class="peer sr-only" name="tag-icon" type="radio"/>
+<div class="w-full h-full rounded-lg border border-border-light dark:border-border-dark flex items-center justify-center text-text-main dark:text-gray-300 peer-checked:border-2 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:bg-background-light dark:hover:bg-background-dark transition-all">
+<span class="material-symbols-outlined">school</span>
+</div>
+</label>
+<label class="relative aspect-square cursor-pointer">
+<input class="peer sr-only" name="tag-icon" type="radio"/>
+<div class="w-full h-full rounded-lg border border-border-light dark:border-border-dark flex items-center justify-center text-text-main dark:text-gray-300 peer-checked:border-2 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:bg-background-light dark:hover:bg-background-dark transition-all">
+<span class="material-symbols-outlined">pets</span>
+</div>
+</label>
+<label class="relative aspect-square cursor-pointer">
+<input class="peer sr-only" name="tag-icon" type="radio"/>
+<div class="w-full h-full rounded-lg border border-border-light dark:border-border-dark flex items-center justify-center text-text-main dark:text-gray-300 peer-checked:border-2 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:bg-background-light dark:hover:bg-background-dark transition-all">
+<span class="material-symbols-outlined">movie</span>
+</div>
+</label>
+<button class="aspect-square rounded-lg border border-dashed border-text-sub dark:border-gray-500 flex items-center justify-center text-text-sub dark:text-gray-400 hover:border-primary hover:text-primary dark:hover:text-primary transition-all">
+<span class="material-symbols-outlined">search</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Footer / Action Buttons -->
+<div class="p-6 bg-background-light/50 dark:bg-background-dark/50 border-t border-border-light dark:border-border-dark flex items-center justify-between">
+<button class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium flex items-center gap-2 px-2 py-2 -ml-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+<span class="material-symbols-outlined text-lg">delete</span>
+                    Delete Tag
+                </button>
+<div class="flex items-center gap-3">
+<button class="px-5 py-2.5 rounded-lg border border-border-light dark:border-border-dark text-text-main dark:text-white font-medium text-sm hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
+                        Cancel
+                    </button>
+<button class="px-5 py-2.5 rounded-lg bg-primary hover:bg-primary-hover text-[#0d1b12] font-bold text-sm shadow-sm transition-colors flex items-center gap-2">
+                        Save Changes
+                    </button>
+</div>
+</div>
+</div>
+</div>
+</body></html>

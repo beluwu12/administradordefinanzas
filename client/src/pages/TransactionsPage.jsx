@@ -23,7 +23,9 @@ export default function TransactionsPage() {
     const [editingTx, setEditingTx] = useState(null);
     const [showForm, setShowForm] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [periodFilter, setPeriodFilter] = useState('thisMonth');
     const [stats, setStats] = useState({ income: 0, expense: 0, balance: 0 });
+    const [deletingTx, setDeletingTx] = useState(null);
     const location = useLocation();
 
     useEffect(() => {
@@ -34,12 +36,39 @@ export default function TransactionsPage() {
 
     useEffect(() => {
         fetchTransactions(currentPage);
-    }, [currentPage]);
+    }, [currentPage, periodFilter]);
 
     const fetchTransactions = async (page = 1) => {
         setLoading(true);
         try {
-            const res = await api.get(`/transactions?page=${page}&limit=10`);
+            // Calculate date range based on period filter
+            const now = new Date();
+            let startDate, endDate;
+
+            switch (periodFilter) {
+                case 'lastMonth':
+                    startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+                    break;
+                case 'last3Months':
+                    startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+                    endDate = now;
+                    break;
+                case 'thisYear':
+                    startDate = new Date(now.getFullYear(), 0, 1);
+                    endDate = now;
+                    break;
+                case 'thisMonth':
+                default:
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                    endDate = now;
+                    break;
+            }
+
+            const startStr = startDate.toISOString().split('T')[0];
+            const endStr = endDate.toISOString().split('T')[0];
+
+            const res = await api.get(`/transactions?page=${page}&limit=10&startDate=${startStr}&endDate=${endStr}`);
             // Use unwrapPaginated to properly extract data and pagination
             const { data: txData, pagination: paginationData } = unwrapPaginated(res);
             setTransactions(txData || []);
@@ -63,10 +92,15 @@ export default function TransactionsPage() {
         setCurrentPage(newPage);
     };
 
-    const handleDelete = async (id) => {
-        if (!window.confirm(texts.transactions.confirmDelete)) return;
+    const handleDelete = async (tx) => {
+        setDeletingTx(tx);
+    };
+
+    const confirmDelete = async () => {
+        if (!deletingTx) return;
         try {
-            await api.delete(`/transactions/${id}`);
+            await api.delete(`/transactions/${deletingTx.id}`);
+            setDeletingTx(null);
             fetchTransactions(currentPage);
         } catch (err) {
             alert(err.message || texts.common.error);
@@ -95,7 +129,7 @@ export default function TransactionsPage() {
     );
 
     return (
-        <>
+        <div className="space-y-6 animate-in fade-in duration-500">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
@@ -109,7 +143,7 @@ export default function TransactionsPage() {
                     </button>
                     <button
                         onClick={() => setShowForm(true)}
-                        className="flex items-center justify-center gap-2 px-5 h-11 rounded-xl bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20 hover:bg-pink-700 transition-all active:scale-[0.98]"
+                        className="flex items-center justify-center gap-2 px-5 h-11 rounded-xl bg-foreground text-white text-sm font-bold shadow-lg shadow-gray-300 hover:bg-gray-800 transition-all hover:-translate-y-0.5 active:scale-[0.98]"
                     >
                         <span className="material-symbols-outlined text-[20px]">add</span>
                         <span>Agregar</span>
@@ -125,9 +159,6 @@ export default function TransactionsPage() {
                         <div className="p-2 bg-green-50 rounded-lg text-green-600">
                             <span className="material-symbols-outlined">trending_up</span>
                         </div>
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
-                            +12%
-                        </span>
                     </div>
                     <p className="text-gray-500 text-sm font-medium mb-1">Ingresos Totales</p>
                     <p className="text-foreground text-3xl font-extrabold tracking-tight">
@@ -141,9 +172,6 @@ export default function TransactionsPage() {
                         <div className="p-2 bg-red-50 rounded-lg text-red-500">
                             <span className="material-symbols-outlined">trending_down</span>
                         </div>
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600">
-                            +5%
-                        </span>
                     </div>
                     <p className="text-gray-500 text-sm font-medium mb-1">Gastos Totales</p>
                     <p className="text-foreground text-3xl font-extrabold tracking-tight">
@@ -189,11 +217,15 @@ export default function TransactionsPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                     <div className="relative">
-                        <select className="appearance-none bg-gray-50 border border-gray-200 text-foreground py-3 pl-4 pr-10 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-primary focus:border-transparent cursor-pointer hover:bg-white transition-colors shadow-sm">
-                            <option>Este Mes</option>
-                            <option>Último Mes</option>
-                            <option>Últimos 3 Meses</option>
-                            <option>Este Año</option>
+                        <select
+                            value={periodFilter}
+                            onChange={(e) => { setPeriodFilter(e.target.value); setCurrentPage(1); }}
+                            className="appearance-none bg-gray-50 border border-gray-200 text-foreground py-3 pl-4 pr-10 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-primary focus:border-transparent cursor-pointer hover:bg-white transition-colors shadow-sm"
+                        >
+                            <option value="thisMonth">Mes actual</option>
+                            <option value="lastMonth">Mes anterior</option>
+                            <option value="last3Months">Últimos 3 meses</option>
+                            <option value="thisYear">Este año</option>
                         </select>
                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
                             <span className="material-symbols-outlined text-[20px]">calendar_today</span>
@@ -263,12 +295,26 @@ export default function TransactionsPage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-5 whitespace-nowrap">
-                                            {tx.tags?.[0] ? (
-                                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-                                                    <span className="material-symbols-outlined text-[14px] mr-1">sell</span>
-                                                    {tx.tags[0].name}
-                                                </span>
-                                            ) : (
+                                            {tx.tags?.[0] ? (() => {
+                                                const tag = tx.tags[0];
+                                                const colorMap = {
+                                                    blue: { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100', icon: 'sell' },
+                                                    red: { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-100', icon: 'trending_down' },
+                                                    green: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-100', icon: 'attach_money' },
+                                                    yellow: { bg: 'bg-yellow-50', text: 'text-yellow-600', border: 'border-yellow-100', icon: 'bolt' },
+                                                    purple: { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-100', icon: 'subscriptions' },
+                                                    pink: { bg: 'bg-pink-50', text: 'text-pink-600', border: 'border-pink-100', icon: 'restaurant' },
+                                                    teal: { bg: 'bg-teal-50', text: 'text-teal-600', border: 'border-teal-100', icon: 'savings' },
+                                                    orange: { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-100', icon: 'shopping_cart' },
+                                                };
+                                                const colors = colorMap[tag.color] || { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-100', icon: 'sell' };
+                                                return (
+                                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${colors.bg} ${colors.text} border ${colors.border}`}>
+                                                        <span className="material-symbols-outlined text-[14px] mr-1">{colors.icon}</span>
+                                                        {tag.name}
+                                                    </span>
+                                                );
+                                            })() : (
                                                 <span className="text-gray-400 text-sm">Sin categoría</span>
                                             )}
                                         </td>
@@ -287,7 +333,7 @@ export default function TransactionsPage() {
                                                     Editar
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDelete(tx.id)}
+                                                    onClick={() => handleDelete(tx)}
                                                     className="text-gray-400 hover:text-red-500 transition-colors"
                                                 >
                                                     <span className="material-symbols-outlined text-[20px]">delete</span>
@@ -332,6 +378,48 @@ export default function TransactionsPage() {
                     }}
                 />
             )}
-        </>
+
+            {/* Delete Confirmation Modal */}
+            {deletingTx && (
+                <div className="fixed inset-0 z-[100]" role="dialog" aria-modal="true">
+                    <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" onClick={() => setDeletingTx(null)}></div>
+                    <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
+                        <div className="flex min-h-full items-center justify-center p-4 text-center">
+                            <div className="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:w-full sm:max-w-lg border border-gray-100">
+                                <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                                    <div className="sm:flex sm:items-start">
+                                        <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-50 sm:mx-0 sm:h-10 sm:w-10 ring-8 ring-red-50/50">
+                                            <span className="material-symbols-outlined text-red-600">warning</span>
+                                        </div>
+                                        <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                                            <h3 className="text-lg font-bold leading-6 text-foreground">Eliminar Transacción</h3>
+                                            <div className="mt-2">
+                                                <p className="text-sm text-gray-500 leading-relaxed">
+                                                    ¿Estás seguro de que deseas eliminar esta transacción de <span className="font-bold text-foreground">{deletingTx.description || 'Sin descripción'}</span> por <span className="font-bold text-foreground">{formatCurrency(Math.abs(deletingTx.amount), deletingTx.currency)}</span>? Esta acción no se puede deshacer.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-3 border-t border-gray-100">
+                                    <button
+                                        onClick={confirmDelete}
+                                        className="inline-flex w-full justify-center rounded-xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-red-700 sm:ml-3 sm:w-auto transition-colors focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                                    >
+                                        Eliminar
+                                    </button>
+                                    <button
+                                        onClick={() => setDeletingTx(null)}
+                                        className="mt-3 inline-flex w-full justify-center rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-foreground shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }

@@ -26,7 +26,7 @@ export const texts = {
     },
     transactions: {
         title: "Transacciones",
-        addTitle: "Nueva Transacción",
+        addTitle: "Agregar Nueva",
         editTitle: "Editar Transacción",
         income: "Ingreso",
         expense: "Gasto",

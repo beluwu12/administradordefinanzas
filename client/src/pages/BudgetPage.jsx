@@ -35,14 +35,15 @@ export default function BudgetPage() {
                 api.get('/transactions/balance')
             ]);
 
-            if (summaryRes.data) {
+            if (summaryRes.data?.data) {
                 setInsight({
-                    recentMonthlyIncome: summaryRes.data.totalIncome || { USD: 0, VES: 0 },
-                    netSavings: summaryRes.data.netSavings || { USD: 0, VES: 0 }
+                    recentMonthlyIncome: summaryRes.data.data.totalIncome || { USD: 0, VES: 0 },
+                    netSavings: summaryRes.data.data.netSavings || { USD: 0, VES: 0 }
                 });
             }
-            setFixedExpenses(listRes.data || []);
-            setExchangeRate(balanceRes.data?.exchangeRate || null);
+            // API returns {success, data: [...]} so we need res.data.data
+            setFixedExpenses(listRes.data?.data || []);
+            setExchangeRate(balanceRes.data?.data?.exchangeRate || null);
         } catch (error) {
             console.error("Error loading budget data", error);
         } finally {
@@ -130,7 +131,7 @@ export default function BudgetPage() {
     const savingsTarget = disposable * 0.2;
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="space-y-8">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-gray-200 pb-6">
                 <div className="flex flex-col gap-2">
@@ -164,7 +165,7 @@ export default function BudgetPage() {
                 {/* Stats Cards Row */}
                 <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Income Card */}
-                    <div className="bg-white border border-gray-200 rounded-2xl p-6 flex flex-col justify-between h-40 relative overflow-hidden shadow-sm">
+                    <div className="bg-white border border-gray-200 rounded-2xl p-6 flex flex-col justify-between h-40 relative overflow-hidden shadow-sm transition-all hover:shadow-md hover:border-green-200">
                         <div className="absolute right-0 top-0 w-32 h-32 bg-gradient-to-bl from-green-500/10 to-transparent rounded-bl-full"></div>
                         <div>
                             <p className="text-gray-500 text-sm font-bold mb-1 uppercase tracking-wider">{texts.budget.incomeAvg}</p>
@@ -175,7 +176,7 @@ export default function BudgetPage() {
                     </div>
 
                     {/* Fixed Expenses Card */}
-                    <div className="bg-white border border-gray-200 rounded-2xl p-6 flex flex-col justify-between h-40 relative overflow-hidden shadow-sm">
+                    <div className="bg-white border border-gray-200 rounded-2xl p-6 flex flex-col justify-between h-40 relative overflow-hidden shadow-sm transition-all hover:shadow-md hover:border-red-200">
                         <div className="absolute right-0 top-0 w-32 h-32 bg-gradient-to-bl from-red-500/10 to-transparent rounded-bl-full"></div>
                         <div>
                             <p className="text-gray-500 text-sm font-bold mb-1 uppercase tracking-wider">Total Fijo ({primaryCurrency})</p>
@@ -197,7 +198,7 @@ export default function BudgetPage() {
                     </div>
 
                     {/* Disposable Card */}
-                    <div className={`bg-white border border-gray-200 rounded-2xl p-6 flex flex-col justify-between h-40 relative overflow-hidden shadow-sm`}>
+                    <div className={`bg-white border border-gray-200 rounded-2xl p-6 flex flex-col justify-between h-40 relative overflow-hidden shadow-sm transition-all hover:shadow-md hover:border-primary/30`}>
                         <div className={`absolute right-0 top-0 w-32 h-32 bg-gradient-to-bl ${disposable >= 0 ? 'from-primary/10' : 'from-red-500/10'} to-transparent rounded-bl-full`}></div>
                         <div>
                             <p className="text-gray-500 text-sm font-bold mb-1 uppercase tracking-wider">{texts.budget.disposable}</p>

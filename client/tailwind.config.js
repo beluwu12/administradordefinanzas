@@ -62,8 +62,8 @@ export default {
                 "2xl": "1rem",
             },
             fontFamily: {
-                sans: ['Manrope', 'sans-serif'],
-                display: ['Manrope', 'sans-serif'],
+                sans: ['Roboto', 'sans-serif'],
+                display: ['Roboto', 'sans-serif'],
             },
             keyframes: {
                 "accordion-down": {

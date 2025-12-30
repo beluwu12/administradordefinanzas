@@ -135,7 +135,7 @@ export default function SettingsPage() {
     };
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-6">
             {/* Message Toast */}
             {message && (
                 <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-xl shadow-lg font-medium animate-in slide-in-from-right ${message.type === 'error' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'

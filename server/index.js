@@ -30,11 +30,72 @@ const IS_PRIMARY_INSTANCE = process.env.INSTANCE_ID === '1' || process.env.INSTA
 // SECURITY MIDDLEWARE
 // ═══════════════════════════════════════════════════════════════
 
+const isProduction = NODE_ENV === 'production';
+
+// Block access to sensitive files FIRST (before any other middleware)
+app.use((req, res, next) => {
+  const blockedPaths = [
+    '/.env', '/.git', '/.gitignore', '/.DS_Store',
+    '/package.json', '/package-lock.json', '/yarn.lock',
+    '/.npmrc', '/tsconfig.json', '/vite.config.js',
+    '/prisma', '/node_modules'
+  ];
+
+  const path = req.path.toLowerCase();
+  if (blockedPaths.some(blocked => path.startsWith(blocked))) {
+    return res.status(404).json({ success: false, error: 'Not found' });
+  }
+  next();
+});
+
 // Helmet: Set various HTTP headers for security
 app.use(helmet({
-  contentSecurityPolicy: false, // Disable for API-only server
-  crossOriginEmbedderPolicy: false
+  // Content Security Policy - API server allows JSON responses
+  contentSecurityPolicy: isProduction ? {
+    directives: {
+      defaultSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+      baseUri: ["'none'"],
+      formAction: ["'none'"]
+    }
+  } : false,
+
+  // Strict Transport Security (HSTS) - force HTTPS
+  strictTransportSecurity: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true
+  },
+
+  // Prevent clickjacking
+  frameguard: { action: 'deny' },
+
+  // Prevent MIME type sniffing
+  noSniff: true,
+
+  // Referrer policy
+  referrerPolicy: { policy: 'no-referrer' },
+
+  // Hide X-Powered-By header
+  hidePoweredBy: true,
+
+  // Permissions Policy
+  permittedCrossDomainPolicies: { permittedPolicies: 'none' },
+
+  // Cross-Origin policies
+  crossOriginEmbedderPolicy: false, // Disable for API
+  crossOriginOpenerPolicy: { policy: 'same-origin' },
+  crossOriginResourcePolicy: { policy: 'same-origin' }
 }));
+
+// Additional security headers not covered by helmet
+app.use((req, res, next) => {
+  // Permissions-Policy (Feature-Policy successor)
+  res.setHeader('Permissions-Policy',
+    'accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()'
+  );
+  next();
+});
 
 // CORS: Configuration from environment variables
 const getAllowedOrigins = () => {

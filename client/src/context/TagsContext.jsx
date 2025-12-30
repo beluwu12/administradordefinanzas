@@ -17,8 +17,8 @@ export function TagsProvider({ children }) {
             setLoading(true);
             setError(null);
             const res = await api.get('/tags');
-            // api.js interceptor already unwraps {success, data} format
-            setTags(res.data || []);
+            // api.js does NOT auto-unwrap, so we need res.data.data
+            setTags(res.data?.data || []);
         } catch (err) {
             console.error('[TagsContext] Error fetching tags:', err);
             setError(err.message);
