@@ -51,32 +51,6 @@ export default function TagsPage() {
         }
     };
 
-    const handleSave = async (e) => {
-        e.preventDefault();
-        if (!formData.name.trim()) return;
-
-        try {
-            if (isEditing) {
-                // Update implementation (assuming backend supports PUT /tags/:id)
-                // If not supported, we might need to adjust or add the endpoint
-                await api.put(`/tags/${editId}`, formData);
-            } else {
-                await createTag(formData.name, formData.color); // The hook might be simple, let's use direct API for full control if needed
-                // Re-implementing create to support color/icon if hook doesn't
-                if (!isEditing) api.post('/tags', formData);
-            }
-
-            resetForm();
-            fetchTags();
-        } catch (error) {
-            console.error(error);
-            // Fallback for hook limitation if needed
-            if (!isEditing) fetchTags();
-        }
-    };
-
-    // Override handleSave to purely use API to ensure color support 
-    // since useTagCreation might be limited
     const onSaveSubmit = async (e) => {
         e.preventDefault();
         try {
