@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { TagsProvider } from './context/TagsContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import MainLayout from './components/layout/MainLayout';
+import SyncIndicator from './components/SyncIndicator';
+import BiometricGate from './components/BiometricGate';
 
 // Lazy load pages for code splitting
 const DashboardHelper = lazy(() => import('./pages/DashboardHelper'));
@@ -55,31 +57,34 @@ const ProtectedRoute = () => {
 function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <Router>
-          <Routes>
-            {/* Public Auth Routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
+      <BiometricGate>
+        <SyncIndicator />
+        <AuthProvider>
+          <Router>
+            <Routes>
+              {/* Public Auth Routes */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
 
-            {/* Protected App Routes - TagsProvider is inside ProtectedRoute now */}
-            <Route element={<ProtectedRoute />}>
-              <Route element={<MainLayout><Outlet /></MainLayout>}>
-                <Route path="/" element={<DashboardHelper />} />
-                <Route path="/transactions" element={<TransactionsPage />} />
-                <Route path="/tags" element={<TagsPage />} />
-                <Route path="/budget" element={<BudgetPage />} />
-                <Route path="/goals" element={<GoalsPage />} />
-                <Route path="/goals/:id" element={<GoalDetailPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
+              {/* Protected App Routes - TagsProvider is inside ProtectedRoute now */}
+              <Route element={<ProtectedRoute />}>
+                <Route element={<MainLayout><Outlet /></MainLayout>}>
+                  <Route path="/" element={<DashboardHelper />} />
+                  <Route path="/transactions" element={<TransactionsPage />} />
+                  <Route path="/tags" element={<TagsPage />} />
+                  <Route path="/budget" element={<BudgetPage />} />
+                  <Route path="/goals" element={<GoalsPage />} />
+                  <Route path="/goals/:id" element={<GoalDetailPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                </Route>
               </Route>
-            </Route>
 
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </Router>
-      </AuthProvider>
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          </Router>
+        </AuthProvider>
+      </BiometricGate>
     </ErrorBoundary>
   );
 }

@@ -26,6 +26,11 @@ const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const IS_PRIMARY_INSTANCE = process.env.INSTANCE_ID === '1' || process.env.INSTANCE_ID === undefined;
 
+// Trust first proxy (Azure Container Apps, nginx, etc.)
+if (NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // ═══════════════════════════════════════════════════════════════
 // SECURITY MIDDLEWARE
 // ═══════════════════════════════════════════════════════════════

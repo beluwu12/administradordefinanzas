@@ -1,18 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../context/AuthContext';
 import { getCountryConfig, isDualCurrency } from '../config/countries';
 import api, { unwrapData } from '../api';
+import biometricService from '../services/BiometricService';
+import notificationService from '../services/NotificationService';
 
 export default function SettingsPage() {
     const { user, logout, login } = useAuth();
     const navigate = useNavigate();
     const countryConfig = getCountryConfig(user?.country || 'VE');
     const isDual = isDualCurrency(user?.country || 'VE');
+    const isNative = Capacitor.isNativePlatform();
 
     const [activeSection, setActiveSection] = useState('profile');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
+
+    // Biometric state (only for native)
+    const [biometricAvailable, setBiometricAvailable] = useState(false);
+    const [biometricType, setBiometricType] = useState('Biometría');
+    const [biometricEnabled, setBiometricEnabled] = useState(false);
+    const [biometricLoading, setBiometricLoading] = useState(false);
 
     // Profile form state
     const [profileForm, setProfileForm] = useState({
@@ -50,6 +60,48 @@ export default function SettingsPage() {
     const showMessage = (text, type = 'success') => {
         setMessage({ text, type });
         setTimeout(() => setMessage(null), 4000);
+    };
+
+    // Initialize biometric on native platforms
+    useEffect(() => {
+        const initBiometric = async () => {
+            if (!isNative) return;
+
+            try {
+                const availability = await biometricService.checkAvailability();
+                setBiometricAvailable(availability.available);
+                setBiometricType(availability.type);
+
+                if (availability.available) {
+                    const enabled = await biometricService.isEnabled();
+                    setBiometricEnabled(enabled);
+                }
+
+                // Initialize notification service
+                await notificationService.initialize();
+            } catch (error) {
+                console.error('[Settings] Biometric init error:', error);
+            }
+        };
+
+        initBiometric();
+    }, [isNative]);
+
+    // Handle biometric toggle
+    const handleBiometricToggle = async () => {
+        if (!biometricAvailable) return;
+
+        setBiometricLoading(true);
+        try {
+            const newValue = !biometricEnabled;
+            await biometricService.setEnabled(newValue);
+            setBiometricEnabled(newValue);
+            showMessage(`Bloqueo biométrico ${newValue ? 'activado' : 'desactivado'}`);
+        } catch (error) {
+            showMessage(error.message || 'Error configurando biometría', 'error');
+        } finally {
+            setBiometricLoading(false);
+        }
     };
 
     // ═══════════════════════════════════════════════════════════════
@@ -411,6 +463,33 @@ export default function SettingsPage() {
                             </div>
 
                             <div className="space-y-6">
+                                {/* Biometric Toggle - Only on native */}
+                                {isNative && (
+                                    <div className={`flex items-center justify-between p-4 rounded-xl border ${biometricAvailable ? 'bg-gray-50 border-gray-100' : 'bg-gray-100 border-gray-200 opacity-60'}`}>
+                                        <div className="flex items-center gap-3">
+                                            <span className="material-symbols-outlined text-gray-600">fingerprint</span>
+                                            <div>
+                                                <p className="font-medium text-gray-900">Bloqueo con {biometricType}</p>
+                                                <p className="text-xs text-gray-500">
+                                                    {biometricAvailable
+                                                        ? 'Usa tu huella o rostro para desbloquear la app'
+                                                        : 'No disponible en este dispositivo'
+                                                    }
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={handleBiometricToggle}
+                                            disabled={!biometricAvailable || biometricLoading}
+                                            className={`w-12 h-6 rounded-full relative transition-colors ${biometricEnabled ? 'bg-primary' : 'bg-gray-300'
+                                                } ${(!biometricAvailable || biometricLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        >
+                                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${biometricEnabled ? 'right-1' : 'left-1'
+                                                }`}></div>
+                                        </button>
+                                    </div>
+                                )}
+
                                 {/* Change Password */}
                                 <form onSubmit={handlePasswordChange} className="p-4 rounded-xl bg-gray-50 border border-gray-100 space-y-4">
                                     <div className="flex items-center gap-3 mb-3">

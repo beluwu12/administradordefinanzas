@@ -74,13 +74,24 @@ export default function TransactionsPage() {
             setTransactions(txData || []);
             setPagination(paginationData);
 
-            // Calculate stats from current page transactions
-            let income = 0, expense = 0;
-            (txData || []).forEach(tx => {
-                if (tx.type === 'INCOME') income += parseFloat(tx.amount);
-                else if (tx.type === 'EXPENSE') expense += parseFloat(tx.amount);
-            });
-            setStats({ income, expense, balance: income - expense });
+            // Use stats from backend response (period totals)
+            const responseStats = res.data?.stats;
+            if (responseStats) {
+                setStats({
+                    income: responseStats.totalIncome || 0,
+                    expense: responseStats.totalExpense || 0,
+                    balance: responseStats.balance || 0
+                });
+            } else {
+                // Fallback: Calculate from current page if backend doesn't provide stats
+                let income = 0, expense = 0;
+                (txData || []).forEach(tx => {
+                    const amount = Math.abs(parseFloat(tx.amount));
+                    if (tx.type === 'INCOME') income += amount;
+                    else expense += amount;
+                });
+                setStats({ income, expense, balance: income - expense });
+            }
         } catch (error) {
             console.error("Error fetching transactions", error);
         } finally {
@@ -189,9 +200,6 @@ export default function TransactionsPage() {
                             <div className="p-2 bg-white/10 rounded-lg text-white backdrop-blur-sm">
                                 <span className="material-symbols-outlined">account_balance_wallet</span>
                             </div>
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-primary text-white">
-                                +22%
-                            </span>
                         </div>
                         <p className="text-gray-400 text-sm font-medium mb-1">Saldo Neto</p>
                         <p className="text-white text-3xl font-extrabold tracking-tight">

@@ -42,6 +42,15 @@ router.get('/', validate(paginationQuerySchema, 'query'), async (req, res, next)
             where.description = { contains: search, mode: 'insensitive' };
         }
 
+        // Add date filters if provided in query
+        const { startDate, endDate } = req.query;
+        if (startDate) {
+            where.date = { ...(where.date || {}), gte: new Date(startDate) };
+        }
+        if (endDate) {
+            where.date = { ...(where.date || {}), lte: new Date(endDate + 'T23:59:59.999Z') };
+        }
+
         const result = await paginate(prisma.transaction, where, {
             page,
             limit,
@@ -51,10 +60,34 @@ router.get('/', validate(paginationQuerySchema, 'query'), async (req, res, next)
             }
         });
 
+        // Calculate period totals using database aggregation - GROUP BY CURRENCY
+        const statsAggregation = await prisma.transaction.groupBy({
+            by: ['type', 'currency'],
+            where,
+            _sum: { amount: true }
+        });
+
+        // Only sum USD transactions for stats (VES would need exchange rate conversion)
+        let totalIncomeUSD = 0;
+        let totalExpenseUSD = 0;
+        statsAggregation.forEach(agg => {
+            const amount = Math.abs(agg._sum.amount || 0);
+            if (agg.currency === 'USD') {
+                if (agg.type === 'INCOME') totalIncomeUSD += amount;
+                else if (agg.type === 'EXPENSE') totalExpenseUSD += amount;
+            }
+            // VES amounts are not included in USD totals - they would distort the numbers
+        });
+
         res.json({
             success: true,
             data: result.data,
-            pagination: result.pagination
+            pagination: result.pagination,
+            stats: {
+                totalIncome: totalIncomeUSD,
+                totalExpense: totalExpenseUSD,
+                balance: totalIncomeUSD - totalExpenseUSD
+            }
         });
     } catch (error) {
         next(error);
