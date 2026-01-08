@@ -1,0 +1,35 @@
+/* Design System - Color Tokens */
+:root {
+  /* Brand - Rosa #db0f79 */
+  --color-primary: 330 90% 46%;
+  --color-primary-hover: 330 90% 40%;
+  --color-primary-light: 330 90% 95%;
+  
+  /* Semantic */
+  --color-success: 142 76% 36%;
+  --color-success-light: 142 76% 95%;
+  --color-danger: 0 84% 60%;
+  --color-danger-light: 0 84% 95%;
+  --color-warning: 38 92% 50%;
+  --color-warning-light: 38 92% 95%;
+  
+  /* Neutral */
+  --color-background: 340 10% 97%;
+  --color-surface: 0 0% 100%;
+  --color-border: 220 13% 91%;
+  --color-border-hover: 220 13% 80%;
+  
+  /* Text */
+  --color-text-primary: 340 30% 10%;
+  --color-text-secondary: 215 16% 47%;
+  --color-text-muted: 215 16% 60%;
+  --color-text-inverse: 0 0% 100%;
+}
+
+.dark {
+  --color-background: 340 30% 8%;
+  --color-surface: 220 20% 14%;
+  --color-border: 0 0% 100% / 0.1;
+  --color-text-primary: 0 0% 100%;
+  --color-text-secondary: 215 20% 65%;
+}

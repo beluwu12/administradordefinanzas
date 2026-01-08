@@ -1,17 +1,15 @@
+/**
+ * DashboardHelper - Refactored with Design System
+ */
 import React, { useEffect, useState } from 'react';
 import api, { unwrapData, unwrapPaginated } from '../api';
 import { Link, useNavigate } from 'react-router-dom';
-import { texts, formatCurrency } from '../i18n/es';
+import { formatCurrency } from '../i18n/es';
 import { useAuth } from '../context/AuthContext';
 import { isDualCurrency, getCountryConfig } from '../config/countries';
-import TransactionItem from '../components/TransactionItem';
-import SimplePieChart from '../components/common/SimplePieChart';
 import TransactionForm from '../components/TransactionForm';
+import { Card, Button, Badge } from '@/design-system';
 
-/**
- * DashboardHelper - Based on appuidesktop/dashboard_overview template
- * Cards layout with balance, goals, transactions
- */
 const DashboardHelper = () => {
     const { user } = useAuth();
     const isDual = isDualCurrency(user?.country || 'VE');
@@ -37,56 +35,30 @@ const DashboardHelper = () => {
                 api.get('/fixed-expenses')
             ];
 
-            if (isDual) {
-                requests.push(api.get('/exchange-rate/usd-ves'));
-            }
+            if (isDual) requests.push(api.get('/exchange-rate/usd-ves'));
 
             const responses = await Promise.all(requests);
             const [balanceRes, transactionsRes, goalsRes, insightRes, fixedExpensesRes] = responses;
 
-            // Use unwrapData for balance response
             const balanceData = unwrapData(balanceRes);
             if (isDual) {
-                if (balanceData && balanceData.primary) {
-                    setBalance({
-                        USD: balanceData.primary?.amount || 0,
-                        VES: balanceData.secondary?.amount || 0
-                    });
-                } else {
-                    setBalance(balanceData || { USD: 0, VES: 0 });
-                }
+                setBalance({
+                    USD: balanceData?.primary?.amount || 0,
+                    VES: balanceData?.secondary?.amount || 0
+                });
             } else {
-                if (balanceData && balanceData.primary) {
-                    setBalance({ primary: balanceData.primary?.amount || 0 });
-                } else if (typeof balanceData === 'number') {
-                    setBalance({ primary: balanceData });
-                } else {
-                    const amount = balanceData?.primary?.amount || balanceData?.amount || balanceData?.[countryConfig.defaultCurrency] || 0;
-                    setBalance({ primary: amount });
-                }
+                setBalance({ primary: balanceData?.primary?.amount || balanceData?.amount || 0 });
             }
 
-            // Use unwrapPaginated for transactions (supports pagination)
             const { data: txData } = unwrapPaginated(transactionsRes);
             setTransactions((txData || []).slice(0, 4));
-
-            // Goals data
-            const goalsData = unwrapData(goalsRes);
-            setGoals(goalsData || []);
-
-            // Insight data (changePercent for trending)
-            const insightData = unwrapData(insightRes);
-            setChangePercent(insightData?.changePercent ?? null);
-
-            // Fixed expenses data
-            const fixedData = unwrapData(fixedExpensesRes);
-            setFixedExpenses(fixedData || []);
+            setGoals(unwrapData(goalsRes) || []);
+            setChangePercent(unwrapData(insightRes)?.changePercent ?? null);
+            setFixedExpenses(unwrapData(fixedExpensesRes) || []);
 
             if (isDual && responses[5]) {
                 const rateData = unwrapData(responses[5]);
-                if (rateData && rateData.rate) {
-                    setRate(rateData.rate);
-                }
+                if (rateData?.rate) setRate(rateData.rate);
             }
         } catch (error) {
             console.error("Error loading dashboard data", error);
@@ -95,13 +67,10 @@ const DashboardHelper = () => {
         }
     };
 
-    useEffect(() => {
-        fetchData();
-    }, []);
+    useEffect(() => { fetchData(); }, []);
 
     const totalInVES = isDual && rate ? ((balance.VES || 0) + ((balance.USD || 0) * rate)) : 0;
     const primaryBalance = isDual ? (balance.USD || 0) : (balance.primary ?? 0);
-    const isPositive = primaryBalance >= 0;
 
     if (loading) return (
         <div className="flex items-center justify-center h-64">
@@ -114,71 +83,45 @@ const DashboardHelper = () => {
             {/* Top Row - Balance + Quick Actions */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Balance Card */}
-                <div className="bg-white border border-gray-200 rounded-xl p-5 relative overflow-hidden shadow-sm lg:col-span-1 transition-all hover:shadow-md hover:border-primary/30 group">
-                    <div className="absolute right-0 top-0 w-64 h-full bg-gradient-to-l from-primary/5 to-transparent pointer-events-none"></div>
+                <Card interactive className="p-5 relative overflow-hidden lg:col-span-1">
+                    <div className="absolute right-0 top-0 w-64 h-full bg-gradient-to-l from-primary/5 to-transparent pointer-events-none" />
                     <div className="flex flex-col justify-between h-full relative z-10">
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <p className="text-gray-500 font-medium mb-1 flex items-center gap-2">
                                     Patrimonio Neto Total
-                                    <span className="material-symbols-outlined text-gray-400 text-sm cursor-pointer hover:text-foreground">
-                                        visibility
-                                    </span>
+                                    <span className="material-symbols-outlined text-gray-400 text-sm">visibility</span>
                                 </p>
                                 <h2 className="text-3xl font-bold text-foreground tracking-tight">
-                                    {isDual
-                                        ? formatCurrency(balance.USD || 0, 'USD')
-                                        : formatCurrency(primaryBalance, countryConfig.defaultCurrency)
-                                    }
+                                    {isDual ? formatCurrency(balance.USD || 0, 'USD') : formatCurrency(primaryBalance, countryConfig.defaultCurrency)}
                                 </h2>
-                                {isDual && (
-                                    <p className="text-sm text-gray-500 mt-1">
-                                        + {formatCurrency(balance.VES || 0, 'VES')}
-                                    </p>
-                                )}
+                                {isDual && <p className="text-sm text-gray-500 mt-1">+ {formatCurrency(balance.VES || 0, 'VES')}</p>}
                             </div>
                             {changePercent !== null && (
-                                <span className={`px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1 ${changePercent >= 0
-                                    ? 'bg-green-100 text-green-700'
-                                    : 'bg-red-100 text-red-700'
-                                    }`}>
-                                    <span className="material-symbols-outlined text-sm">
-                                        {changePercent >= 0 ? 'trending_up' : 'trending_down'}
-                                    </span>
+                                <Badge variant={changePercent >= 0 ? 'success' : 'danger'} icon={changePercent >= 0 ? 'trending_up' : 'trending_down'}>
                                     {changePercent >= 0 ? '+' : ''}{changePercent}%
-                                </span>
+                                </Badge>
                             )}
                         </div>
-                        {/* Mini chart */}
                         <div className="flex items-end gap-1 h-10 w-full mt-2 opacity-50 hover:opacity-100 transition-opacity">
                             {[40, 50, 45, 60, 55, 75, 70, 85, 80, 100].map((h, i) => (
-                                <div
-                                    key={i}
-                                    className="w-full bg-primary rounded-t-sm transition-colors"
-                                    style={{ height: `${h}%`, opacity: 0.2 + (i * 0.08) }}
-                                ></div>
+                                <div key={i} className="w-full bg-primary rounded-t-sm" style={{ height: `${h}%`, opacity: 0.2 + (i * 0.08) }} />
                             ))}
                         </div>
                     </div>
-                </div>
+                </Card>
 
                 {/* Right Cards Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 lg:col-span-2">
                     {/* Quick Actions */}
-                    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex flex-col items-center justify-center gap-2 text-center h-full transition-all hover:shadow-md hover:border-primary/30">
+                    <Card className="p-4 flex flex-col items-center justify-center gap-2 text-center h-full">
                         <h3 className="text-foreground font-bold text-xs">Acciones Rápidas</h3>
-                        <button
-                            onClick={() => setShowTransactionForm(true)}
-                            className="flex items-center justify-center w-10 h-10 bg-primary hover:bg-pink-700 text-white rounded-full transition-all shadow-md shadow-primary/20 mt-1"
-                            title="Agregar Transacción"
-                        >
-                            <span className="material-symbols-outlined text-sm">add</span>
-                        </button>
+                        <Button size="icon" onClick={() => setShowTransactionForm(true)} icon="add" />
                         <span className="text-[10px] text-gray-500">Nueva transacción</span>
-                    </div>
+                    </Card>
 
                     {/* Goals Mini Card */}
-                    <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col justify-between gap-4 transition-all hover:shadow-md hover:border-green-200">
+                    <Card interactive className="p-5 flex flex-col justify-between gap-4">
                         <div>
                             <h4 className="text-sm font-bold text-foreground mb-3">Metas de Ahorro</h4>
                             {goals.length > 0 ? (
@@ -190,60 +133,47 @@ const DashboardHelper = () => {
                                         </span>
                                     </div>
                                     <div className="w-full bg-gray-100 rounded-full h-1.5">
-                                        <div
-                                            className="bg-primary h-1.5 rounded-full"
-                                            style={{ width: `${Math.min(100, (goals[0].savedAmount / goals[0].totalCost) * 100)}%` }}
-                                        ></div>
+                                        <div className="bg-primary h-1.5 rounded-full" style={{ width: `${Math.min(100, (goals[0].savedAmount / goals[0].totalCost) * 100)}%` }} />
                                     </div>
                                 </div>
                             ) : (
                                 <p className="text-xs text-gray-400">Sin metas creadas</p>
                             )}
                         </div>
-                        <div className="flex items-center gap-2 mt-auto pt-2 border-t border-gray-200">
-                            <Link
-                                to="/goals"
-                                className="flex-1 flex items-center justify-center gap-1 bg-primary text-white text-xs font-bold py-2 rounded-lg hover:bg-pink-700 transition-colors shadow-sm shadow-primary/20"
-                            >
-                                <span className="material-symbols-outlined text-[16px]">visibility</span> Ver todas
+                        <div className="pt-2 border-t border-gray-200">
+                            <Link to="/goals">
+                                <Button size="sm" className="w-full" icon="visibility">Ver todas</Button>
                             </Link>
                         </div>
-                    </div>
+                    </Card>
 
                     {/* Budget Mini Card */}
-                    <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col justify-between gap-4 transition-all hover:shadow-md hover:border-purple-200">
+                    <Card interactive className="p-5 flex flex-col justify-between gap-4">
                         <div>
                             <h4 className="text-sm font-bold text-foreground mb-3">Gastos Fijos</h4>
                             {fixedExpenses.length > 0 ? (
                                 <div className="flex flex-col gap-2">
                                     <div className="flex justify-between items-center">
                                         <span className="text-xs text-gray-500 truncate max-w-[100px]">{fixedExpenses[0].description}</span>
-                                        <span className="text-xs font-semibold text-foreground">
-                                            {formatCurrency(fixedExpenses[0].amount, fixedExpenses[0].currency)}
-                                        </span>
+                                        <span className="text-xs font-semibold text-foreground">{formatCurrency(fixedExpenses[0].amount, fixedExpenses[0].currency)}</span>
                                     </div>
-                                    <p className="text-[10px] text-gray-400">
-                                        Día {fixedExpenses[0].dueDay} • {fixedExpenses.length} total
-                                    </p>
+                                    <p className="text-[10px] text-gray-400">Día {fixedExpenses[0].dueDay} • {fixedExpenses.length} total</p>
                                 </div>
                             ) : (
                                 <p className="text-xs text-gray-400">Sin gastos fijos</p>
                             )}
                         </div>
-                        <div className="flex items-center gap-2 mt-auto pt-2 border-t border-gray-200">
-                            <Link
-                                to="/budget"
-                                className="flex-1 flex items-center justify-center gap-1 bg-gray-100 text-foreground text-xs font-bold py-2 rounded-lg hover:bg-gray-200 transition-colors"
-                            >
-                                <span className="material-symbols-outlined text-[16px]">pie_chart</span> Ver
+                        <div className="pt-2 border-t border-gray-200">
+                            <Link to="/budget">
+                                <Button variant="secondary" size="sm" className="w-full" icon="pie_chart">Ver</Button>
                             </Link>
                         </div>
-                    </div>
+                    </Card>
                 </div>
             </div>
 
-            {/* Bottom Row - Transactions Table */}
-            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm transition-all hover:shadow-md hover:border-gray-300">
+            {/* Transactions Table */}
+            <Card className="overflow-hidden">
                 <div className="p-6 border-b border-gray-200 flex items-center justify-between">
                     <h3 className="text-foreground font-bold text-lg">Transacciones Recientes</h3>
                     <Link to="/transactions" className="text-gray-500 hover:text-foreground transition-colors">
@@ -265,32 +195,15 @@ const DashboardHelper = () => {
                                 {transactions.map((tx) => (
                                     <tr key={tx.id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 flex items-center gap-3">
-                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${tx.type === 'income'
-                                                ? 'bg-green-100 text-green-600'
-                                                : 'bg-gray-100 text-gray-600'
-                                                }`}>
-                                                <span className="material-symbols-outlined text-sm">
-                                                    {tx.type === 'income' ? 'payments' : 'shopping_bag'}
-                                                </span>
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${tx.type === 'INCOME' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'}`}>
+                                                <span className="material-symbols-outlined text-sm">{tx.type === 'INCOME' ? 'payments' : 'shopping_bag'}</span>
                                             </div>
-                                            <span className="text-foreground font-medium">
-                                                {tx.description || 'Sin descripción'}
-                                            </span>
+                                            <span className="text-foreground font-medium">{tx.description || 'Sin descripción'}</span>
                                         </td>
-                                        <td className="px-6 py-4 text-gray-500">
-                                            {tx.tags?.[0]?.name || 'Sin categoría'}
-                                        </td>
-                                        <td className="px-6 py-4 text-gray-500">
-                                            {new Date(tx.date).toLocaleDateString('es-ES', {
-                                                day: 'numeric',
-                                                month: 'short',
-                                                year: 'numeric'
-                                            })}
-                                        </td>
-                                        <td className={`px-6 py-4 text-right font-medium ${tx.type === 'income' ? 'text-green-600' : 'text-foreground'
-                                            }`}>
-                                            {tx.type === 'income' ? '+' : '-'}
-                                            {formatCurrency(Math.abs(tx.amount), tx.currency)}
+                                        <td className="px-6 py-4 text-gray-500">{tx.tags?.[0]?.name || 'Sin categoría'}</td>
+                                        <td className="px-6 py-4 text-gray-500">{new Date(tx.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                                        <td className={`px-6 py-4 text-right font-medium ${tx.type === 'INCOME' ? 'text-green-600' : 'text-foreground'}`}>
+                                            {tx.type === 'INCOME' ? '+' : '-'}{formatCurrency(Math.abs(tx.amount), tx.currency)}
                                         </td>
                                     </tr>
                                 ))}
@@ -303,41 +216,29 @@ const DashboardHelper = () => {
                             </div>
                             <h4 className="text-foreground font-semibold mb-2">Sin transacciones</h4>
                             <p className="text-gray-500 text-sm mb-4">Registra tu primer gasto o ingreso</p>
-                            <button
-                                onClick={() => navigate('/transactions', { state: { openForm: true } })}
-                                className="inline-flex items-center gap-2 bg-primary hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-md shadow-primary/20"
-                            >
-                                <span className="material-symbols-outlined text-lg">add</span>
+                            <Button onClick={() => navigate('/transactions', { state: { openForm: true } })} icon="add">
                                 Agregar Transacción
-                            </button>
+                            </Button>
                         </div>
                     )}
                 </div>
-            </div>
+            </Card>
 
-            {/* Exchange Rate Info (Venezuela only) */}
+            {/* Exchange Rate Info */}
             {isDual && rate && (
-                <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                <Card className="p-5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                     <div>
                         <span className="text-gray-500 text-xs uppercase font-bold tracking-wider">Total Estimado en Bolívares</span>
-                        <p className="text-xs text-gray-400 mt-1">
-                            Tasa BCV: <span className="text-primary font-mono">{rate.toLocaleString('es-VE')}</span>
-                        </p>
+                        <p className="text-xs text-gray-400 mt-1">Tasa BCV: <span className="text-primary font-mono">{rate.toLocaleString('es-VE')}</span></p>
                     </div>
-                    <span className="text-2xl sm:text-3xl font-bold text-primary tracking-tight">
-                        {formatCurrency(totalInVES, 'VES')}
-                    </span>
-                </div>
+                    <span className="text-2xl sm:text-3xl font-bold text-primary tracking-tight">{formatCurrency(totalInVES, 'VES')}</span>
+                </Card>
             )}
 
-            {/* Transaction Form Modal */}
             {showTransactionForm && (
                 <TransactionForm
                     onClose={() => setShowTransactionForm(false)}
-                    onSuccess={() => {
-                        setShowTransactionForm(false);
-                        fetchData(); // Refresh data after adding transaction
-                    }}
+                    onSuccess={() => { setShowTransactionForm(false); fetchData(); }}
                 />
             )}
         </div>
