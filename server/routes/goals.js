@@ -208,10 +208,92 @@ router.delete('/:id',
         try {
             const { id } = req.params;
 
-            // Delete goal (cascade will handle progress)
+            // Delete goal (cascade will handle progress and contributions)
             await prisma.goal.delete({ where: { id } });
 
             res.json(success({ id }, 'Objetivo eliminado'));
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+// ═══════════════════════════════════════════════════════════════
+// GOAL CONTRIBUTIONS (New endpoints for Lovable UI)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/goals/:goalId/contributions - List all contributions for a goal
+ */
+router.get('/:goalId/contributions',
+    validate(goalIdParamSchema, 'params'),
+    requireOwnership('goal', 'goalId'),
+    async (req, res, next) => {
+        try {
+            const { goalId } = req.params;
+
+            const contributions = await prisma.goalContribution.findMany({
+                where: { goalId },
+                orderBy: { date: 'desc' }
+            });
+
+            res.json(success(contributions));
+        } catch (error) {
+            next(error);
+        }
+    }
+);
+
+/**
+ * POST /api/goals/:goalId/contributions - Add a new contribution to a goal
+ */
+router.post('/:goalId/contributions',
+    validate(goalIdParamSchema, 'params'),
+    requireOwnership('goal', 'goalId'),
+    async (req, res, next) => {
+        try {
+            const { goalId } = req.params;
+            const { amount, note, date } = req.body;
+
+            if (!amount || amount <= 0) {
+                const errResponse = errors.validation('El monto debe ser mayor a 0');
+                return res.status(errResponse.status).json(errResponse);
+            }
+
+            const parsedAmount = new Decimal(amount);
+
+            // Use transaction to update savedAmount atomically
+            const result = await prisma.$transaction(async (tx) => {
+                // Create contribution
+                const contribution = await tx.goalContribution.create({
+                    data: {
+                        goalId,
+                        amount: parsedAmount.toNumber(),
+                        note: note?.trim() || null,
+                        date: date ? new Date(date) : new Date()
+                    }
+                });
+
+                // Update goal's savedAmount
+                const goal = await tx.goal.findUnique({
+                    where: { id: goalId },
+                    select: { savedAmount: true, totalCost: true }
+                });
+
+                const newSavedAmount = new Decimal(goal.savedAmount).plus(parsedAmount);
+
+                // Cap at totalCost
+                const cappedAmount = Decimal.min(newSavedAmount, goal.totalCost);
+
+                await tx.goal.update({
+                    where: { id: goalId },
+                    data: { savedAmount: cappedAmount.toNumber() }
+                });
+
+                return contribution;
+            });
+
+            res.status(201).json(success(result, 'Contribución agregada'));
         } catch (error) {
             next(error);
         }

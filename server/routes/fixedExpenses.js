@@ -101,4 +101,64 @@ router.delete('/:id',
     }
 );
 
+// ═══════════════════════════════════════════════════════════════
+// UPCOMING BILLS (New endpoint for Lovable UI BillCalendar)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/fixed-expenses/upcoming - Get upcoming bills for calendar
+ * Query params: days (default 30)
+ */
+router.get('/upcoming', async (req, res, next) => {
+    try {
+        const days = parseInt(req.query.days) || 30;
+        const now = new Date();
+        const today = now.getDate();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        const expenses = await prisma.fixedExpense.findMany({
+            where: {
+                userId: req.userId,
+                isActive: true,
+                deletedAt: null
+            },
+            orderBy: { dueDay: 'asc' }
+        });
+
+        // Calculate next due date for each expense
+        const upcomingBills = expenses.map(expense => {
+            let nextDueDate;
+
+            // If dueDay is after today, it's this month
+            // Otherwise, it's next month
+            if (expense.dueDay >= today) {
+                nextDueDate = new Date(currentYear, currentMonth, expense.dueDay);
+            } else {
+                // Next month
+                nextDueDate = new Date(currentYear, currentMonth + 1, expense.dueDay);
+            }
+
+            // Handle month overflow for days > 28
+            if (nextDueDate.getDate() !== expense.dueDay) {
+                // Day doesn't exist in that month, use last day of previous month
+                nextDueDate = new Date(currentYear, currentMonth + 2, 0);
+            }
+
+            const daysUntilDue = Math.ceil((nextDueDate - now) / (1000 * 60 * 60 * 24));
+
+            return {
+                ...expense,
+                nextDate: nextDueDate.toISOString().split('T')[0],
+                daysUntilDue,
+                isOverdue: daysUntilDue < 0
+            };
+        }).filter(bill => bill.daysUntilDue <= days);
+
+        res.json(success(upcomingBills));
+    } catch (error) {
+        next(error);
+    }
+});
+
 module.exports = router;

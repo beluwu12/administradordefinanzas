@@ -593,4 +593,73 @@ router.delete('/account', async (req, res) => {
     }
 });
 
+// ═══════════════════════════════════════════════════════════════
+// USER PREFERENCES (New endpoint for Lovable UI)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * PATCH /api/auth/preferences - Update user preferences
+ */
+router.patch('/preferences', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({ success: false, error: 'No token' });
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        // Allowed preference fields
+        const allowedFields = [
+            'language', 'theme', 'defaultCurrency',
+            'notifyPush', 'notifyEmail', 'notifySound', 'soundVolume',
+            'budgetAlerts', 'budgetThreshold',
+            'billReminders', 'billReminderDays',
+            'notifyGoals', 'notifyWeekly'
+        ];
+
+        // Filter to only allowed fields
+        const updateData = {};
+        for (const field of allowedFields) {
+            if (req.body[field] !== undefined) {
+                updateData[field] = req.body[field];
+            }
+        }
+
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({ success: false, error: 'No valid fields to update' });
+        }
+
+        const user = await prisma.user.update({
+            where: { id: decoded.id },
+            data: updateData,
+            select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                language: true,
+                theme: true,
+                defaultCurrency: true,
+                notifyPush: true,
+                notifyEmail: true,
+                notifySound: true,
+                soundVolume: true,
+                budgetAlerts: true,
+                budgetThreshold: true,
+                billReminders: true,
+                billReminderDays: true,
+                notifyGoals: true,
+                notifyWeekly: true
+            }
+        });
+
+        logger.info('User preferences updated', { userId: decoded.id, fields: Object.keys(updateData) });
+        res.json({ success: true, data: user, message: 'Preferencias actualizadas' });
+    } catch (error) {
+        logger.error('Preferences update error', { error: error.message });
+        res.status(500).json({ success: false, error: 'Error actualizando preferencias' });
+    }
+});
+
 module.exports = router;

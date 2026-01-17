@@ -40,6 +40,22 @@ model User {
   defaultCurrency String   @default("USD")
   timezone        String   @default("America/Caracas")
   
+  // UI Preferences
+  language         String  @default("es")
+  theme            String  @default("system")
+  
+  // Notification Settings
+  notifyPush       Boolean @default(true)
+  notifyEmail      Boolean @default(false)
+  notifySound      Boolean @default(true)
+  soundVolume      Int     @default(70)
+  budgetAlerts     Boolean @default(true)
+  budgetThreshold  Int     @default(80)
+  billReminders    Boolean @default(true)
+  billReminderDays Int     @default(3)
+  notifyGoals      Boolean @default(true)
+  notifyWeekly     Boolean @default(false)
+  
   createdAt       DateTime @default(now())
 
   transactions      Transaction[]
@@ -49,6 +65,7 @@ model User {
   notifications     Notification[]
   pushSubscriptions PushSubscription[]
   sessions          Session[]
+  budgets           Budget[]
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -83,6 +100,7 @@ model Tag {
   name         String
   color        String?
   transactions Transaction[]
+  budgets      Budget[]
   
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId       String
@@ -110,6 +128,10 @@ model Transaction {
   deletedAt    DateTime?
   
   tags         Tag[]
+  
+  // Link to recurring/fixed expense (if auto-generated)
+  fixedExpense   FixedExpense? @relation(fields: [fixedExpenseId], references: [id])
+  fixedExpenseId String?
   
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId       String
@@ -143,6 +165,9 @@ model FixedExpense {
   
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String
+  
+  // Transactions generated from this recurring expense
+  transactions Transaction[]
 
   createdAt   DateTime  @default(now())
   
@@ -160,6 +185,7 @@ model Goal {
   description    String?
   totalCost      Float
   currency       String      @default("USD")
+  color          String?     // UI display color
   
   // Logic & Calculations
   durationMonths Int
@@ -178,6 +204,7 @@ model Goal {
   userId         String
 
   progress       GoalMonth[]
+  contributions  GoalContribution[]
   
   createdAt      DateTime    @default(now())
   
@@ -185,7 +212,7 @@ model Goal {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// GOAL MONTH MODEL
+// GOAL MONTH MODEL (Legacy - for quincena tracking)
 // ═══════════════════════════════════════════════════════════════
 
 model GoalMonth {
@@ -198,6 +225,48 @@ model GoalMonth {
   isQ1Paid    Boolean @default(false)
   isQ2Paid    Boolean @default(false)
 }
+
+// ═══════════════════════════════════════════════════════════════
+// GOAL CONTRIBUTION MODEL (New - for free contributions)
+// ═══════════════════════════════════════════════════════════════
+
+model GoalContribution {
+  id        String   @id @default(uuid())
+  amount    Float
+  note      String?
+  date      DateTime @default(now())
+  
+  goal      Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  goalId    String
+  
+  @@index([goalId, date])
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BUDGET MODEL (Category spending limits)
+// ═══════════════════════════════════════════════════════════════
+
+model Budget {
+  id              String   @id @default(uuid())
+  limit           Float
+  rolloverEnabled Boolean  @default(false)
+  rolloverAmount  Float    @default(0)
+  month           Int      // 1-12
+  year            Int
+  
+  tag       Tag      @relation(fields: [tagId], references: [id])
+  tagId     String
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([tagId, month, year, userId])
+  @@index([userId, month, year])
+}
+
 
 // ═══════════════════════════════════════════════════════════════
 // EXCHANGE RATE MODEL

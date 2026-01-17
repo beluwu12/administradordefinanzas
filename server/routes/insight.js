@@ -165,5 +165,135 @@ router.get('/summary', async (req, res, next) => {
     }
 });
 
+// ═══════════════════════════════════════════════════════════════
+// MONTHLY COMPARISON (New endpoint for Lovable UI charts)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/insight/monthly-comparison - Income vs Expense by month
+ * Query params: months (default 5)
+ */
+router.get('/monthly-comparison', async (req, res, next) => {
+    try {
+        const months = parseInt(req.query.months) || 5;
+        const now = new Date();
+        const startDate = new Date(now.getFullYear(), now.getMonth() - months + 1, 1);
+
+        const transactions = await prisma.transaction.findMany({
+            where: {
+                userId: req.userId,
+                date: { gte: startDate },
+                deletedAt: null
+            },
+            select: {
+                amount: true,
+                type: true,
+                date: true
+            }
+        });
+
+        // Group by month
+        const monthlyData = {};
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+        transactions.forEach(tx => {
+            const txDate = new Date(tx.date);
+            const key = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}`;
+
+            if (!monthlyData[key]) {
+                monthlyData[key] = {
+                    month: monthNames[txDate.getMonth()],
+                    year: txDate.getFullYear(),
+                    income: 0,
+                    expenses: 0
+                };
+            }
+
+            if (tx.type === 'INCOME') {
+                monthlyData[key].income += tx.amount;
+            } else {
+                monthlyData[key].expenses += tx.amount;
+            }
+        });
+
+        // Convert to array and sort
+        const result = Object.entries(monthlyData)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([, data]) => data);
+
+        res.json(success(result));
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * GET /api/insight/balance-history - Balance over time
+ * Query params: days (default 30)
+ */
+router.get('/balance-history', async (req, res, next) => {
+    try {
+        const days = parseInt(req.query.days) || 30;
+        const now = new Date();
+        const startDate = subDays(now, days);
+
+        // Get all transactions before the period to calculate initial balance
+        const previousTransactions = await prisma.transaction.findMany({
+            where: {
+                userId: req.userId,
+                date: { lt: startDate },
+                deletedAt: null
+            },
+            select: { amount: true, type: true }
+        });
+
+        let runningBalance = previousTransactions.reduce((sum, tx) => {
+            return tx.type === 'INCOME' ? sum + tx.amount : sum - tx.amount;
+        }, 0);
+
+        // Get transactions in the period
+        const periodTransactions = await prisma.transaction.findMany({
+            where: {
+                userId: req.userId,
+                date: { gte: startDate },
+                deletedAt: null
+            },
+            orderBy: { date: 'asc' },
+            select: { amount: true, type: true, date: true }
+        });
+
+        // Group by day
+        const dailyChanges = {};
+        periodTransactions.forEach(tx => {
+            const dateKey = tx.date.toISOString().split('T')[0];
+            if (!dailyChanges[dateKey]) {
+                dailyChanges[dateKey] = 0;
+            }
+            dailyChanges[dateKey] += tx.type === 'INCOME' ? tx.amount : -tx.amount;
+        });
+
+        // Build result array
+        const result = [];
+        for (let i = 0; i < days; i++) {
+            const date = new Date(startDate);
+            date.setDate(date.getDate() + i);
+            const dateKey = date.toISOString().split('T')[0];
+
+            if (dailyChanges[dateKey]) {
+                runningBalance += dailyChanges[dateKey];
+            }
+
+            result.push({
+                date: dateKey,
+                balance: Math.round(runningBalance * 100) / 100
+            });
+        }
+
+        res.json(success(result));
+    } catch (error) {
+        next(error);
+    }
+});
+
 module.exports = router;
 
