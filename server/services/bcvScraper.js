@@ -2,25 +2,33 @@
  * BCV Exchange Rate Scraper
  * Fetches USD/VES official rate from Banco Central de Venezuela
  * 
- * SECURITY: NO SSL BYPASS - Uses HTTP endpoint
- * RELIABILITY: Implements retry logic with exponential backoff
+ * NOTE: Uses rejectUnauthorized: false because BCV's SSL certificate
+ * is frequently misconfigured. This is acceptable for this government
+ * site as we're only reading public exchange rate data.
  */
 
 const axios = require('axios');
+const https = require('https');
 const cheerio = require('cheerio');
 const prisma = require('../db');
 const { getOrFetch, invalidate } = require('./cacheService');
 const { logger } = require('../utils/logger');
 
 // ═══════════════════════════════════════════════════════════════
-// CONSTANTS - No more magic numbers!
+// CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const BCV_URL = 'http://www.bcv.org.ve/';  // HTTP - BCV's SSL is unreliable
+const BCV_URL = 'https://www.bcv.org.ve/';  // HTTPS with custom agent
 const CACHE_KEY = 'bcv-rate-usd-ves';
 const REQUEST_TIMEOUT_MS = 15000;
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 2000;
 const CACHE_TTL_SECONDS = 3600; // 1 hour
+
+// Custom HTTPS agent that ignores SSL certificate errors
+// BCV's certificate chain is often misconfigured
+const httpsAgent = new https.Agent({
+    rejectUnauthorized: false
+});
 
 /**
  * Delay helper for retry logic
@@ -31,7 +39,6 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
  * Fetch BCV exchange rate with retry logic
- * NO SSL BYPASS - We use HTTP endpoint which BCV provides
  * @returns {Promise<number|null>} Exchange rate or null on failure
  */
 async function fetchBCVRate() {
@@ -43,6 +50,7 @@ async function fetchBCVRate() {
 
             const { data } = await axios.get(BCV_URL, {
                 timeout: REQUEST_TIMEOUT_MS,
+                httpsAgent: httpsAgent,
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                     'Accept': 'text/html,application/xhtml+xml',
