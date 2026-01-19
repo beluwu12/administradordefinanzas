@@ -246,12 +246,11 @@ Mes 2: [Q1: ✗ $50] [Q2: ✗ $50]
 ### Infraestructura
 | Componente | Tecnología | Propósito |
 |------------|------------|-----------|
-| Contenedores | Docker | Empaquetado |
+| Contenedores | Docker | Desarrollo local |
 | Orquestación | Docker Compose | Desarrollo local |
-| Cloud | Azure Container Apps | Producción |
-| Registry | Azure Container Registry | Almacén de imágenes |
-| DB Cloud | Azure PostgreSQL Flexible | DB productiva |
-| Reverse Proxy | Nginx | Servir frontend |
+| Frontend Cloud | Vercel | Hosting + CDN |
+| Backend Cloud | Render | Node.js hosting |
+| DB Cloud | Supabase PostgreSQL | DB productiva |
 
 ---
 
@@ -260,31 +259,30 @@ Mes 2: [Q1: ✗ $50] [Q2: ✗ $50]
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                              INTERNET                                    │
-└─────────────────────────────┬───────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Azure Container Apps Environment                      │
-│                                                                          │
-│  ┌─────────────────────────┐     ┌─────────────────────────────────┐   │
-│  │   finanzas-frontend     │     │       finanzas-backend          │   │
-│  │   (Nginx + React SPA)   │────▶│       (Node.js + Express)       │   │
-│  │   Port: 80              │     │       Port: 3000                │   │
-│  └─────────────────────────┘     └───────────────┬─────────────────┘   │
-│                                                   │                      │
-└───────────────────────────────────────────────────┼──────────────────────┘
-                                                    │
-                                                    ▼
-                              ┌─────────────────────────────────────┐
-                              │   Azure PostgreSQL Flexible Server  │
-                              │        (finanzas-postgres)          │
-                              └─────────────────────────────────────┘
+└───────────────────┬─────────────────────────────────┬───────────────────┘
+                    │                                 │
+                    ▼                                 ▼
+┌───────────────────────────────┐    ┌────────────────────────────────────┐
+│           VERCEL              │    │             RENDER                 │
+│   (Frontend - React + Vite)   │    │    (Backend - Node.js + Express)   │
+│                               │───▶│                                    │
+│  remix-of-fincontrol-insights │    │       finanzas-api.onrender.com    │
+│        .vercel.app            │    │                                    │
+└───────────────────────────────┘    └─────────────────┬──────────────────┘
+                                                       │
+                                                       ▼
+                                    ┌─────────────────────────────────────┐
+                                    │          SUPABASE                   │
+                                    │     (PostgreSQL Database)           │
+                                    │                                     │
+                                    │  aws-0-us-east-1.pooler.supabase.com│
+                                    └─────────────────────────────────────┘
 ```
 
 ### Flujo de Request
 
 ```
-Browser → Nginx (Frontend) → /api/* proxy → Express (Backend) → Prisma → PostgreSQL
+Browser → Vercel (Frontend) → HTTPS → Render (Backend) → Prisma → Supabase PostgreSQL
 ```
 
 ---

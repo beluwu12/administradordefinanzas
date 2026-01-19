@@ -1,279 +1,244 @@
 # ☁️ Guía de Despliegue en la Nube
 
-Esta guía cubre el despliegue de la aplicación en **Azure Container Apps** con PostgreSQL.
+Esta guía cubre el despliegue de la aplicación usando el **Free Tier Stack**:
+- **Frontend**: Vercel (gratis)
+- **Backend**: Render (gratis)
+- **Database**: Supabase PostgreSQL (gratis)
 
 ---
 
 ## 📋 Requisitos Previos
 
-| Software | Versión | Descarga |
-|----------|---------|----------|
-| Azure CLI | 2.50+ | [Instalar](https://docs.microsoft.com/cli/azure/install-azure-cli) |
-| Docker Desktop | 4.0+ | [Descargar](https://www.docker.com/products/docker-desktop/) |
-| PowerShell | 7+ (Windows) | Incluido en Windows |
-
-Además necesitas:
-- ✅ Cuenta de Azure activa
-- ✅ Suscripción con créditos disponibles
+| Servicio | Cuenta | Registro |
+|----------|--------|----------|
+| Vercel | Requerida | [vercel.com](https://vercel.com) |
+| Render | Requerida | [render.com](https://render.com) |
+| Supabase | Requerida | [supabase.com](https://supabase.com) |
+| GitHub | Requerida | Para CI/CD automático |
 
 ---
 
-## 🔷 Despliegue en Azure Container Apps
-
-### Arquitectura
+## 🏗️ Arquitectura
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                 Azure Container Apps                     │
-│                                                         │
-│  ┌──────────────┐         ┌──────────────┐             │
-│  │   Frontend   │────────▶│   Backend    │             │
-│  │   (Nginx)    │         │  (Node.js)   │             │
-│  └──────────────┘         └──────┬───────┘             │
-│                                  │                      │
-└──────────────────────────────────┼──────────────────────┘
-                                   │
-                    ┌──────────────▼───────────────┐
-                    │  Azure PostgreSQL Flexible   │
-                    │        (Managed DB)          │
-                    └──────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                        INTERNET                              │
+└───────────────────┬─────────────────────┬───────────────────┘
+                    │                     │
+        ┌───────────▼───────────┐ ┌──────▼──────────┐
+        │       VERCEL          │ │     RENDER      │
+        │  (Frontend - React)   │ │ (Backend - Node)│
+        │                       │ │                 │
+        │  remix-of-fincontrol  │ │  finanzas-api   │
+        │  -insights.vercel.app │ │  .onrender.com  │
+        └───────────────────────┘ └────────┬────────┘
+                                           │
+                              ┌────────────▼────────────┐
+                              │       SUPABASE          │
+                              │   (PostgreSQL Database) │
+                              │                         │
+                              │  aws-1-us-east-1.pooler │
+                              │    .supabase.com        │
+                              └─────────────────────────┘
 ```
 
 ---
 
-### Paso 1: Configurar Variables de Entorno
+## 🗄️ Paso 1: Configurar Supabase (Database)
 
-```powershell
-cd deploy
-copy .env.azure.example .env.azure
-```
+### 1.1 Crear proyecto
+1. Ve a [supabase.com](https://supabase.com) → New Project
+2. Nombre: `finanzas-app`
+3. Región: `East US` (o la más cercana)
+4. Genera una contraseña segura y **guárdala**
 
-Edita `.env.azure` con tus valores:
+### 1.2 Obtener Connection String
+1. Settings → Database → Connection string
+2. Copia la URL de **Connection pooling** (Session mode):
+   ```
+   postgresql://postgres.[PROJECT-ID]:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres
+   ```
 
+### 1.3 Ejecutar migraciones
 ```bash
-# Recursos Azure
-AZURE_RESOURCE_GROUP="finanzas-app"
-AZURE_LOCATION="eastus"
-AZURE_REGISTRY_NAME="mifinanzasregistry"  # ¡Debe ser único globalmente!
-
-# PostgreSQL
-POSTGRES_SERVER_NAME="finanzas-postgres"
-POSTGRES_ADMIN_USER="finanzas"
-POSTGRES_ADMIN_PASSWORD="MiPassword$egur0123!"  # Mínimo: 8 caracteres, mayúsculas, números, símbolos
-POSTGRES_DB="finanzas"
-
-# Container Apps
-CONTAINER_ENV_NAME="finanzas-env"
-
-# Secrets de la App
-JWT_SECRET="genera-esto-con-openssl-rand-hex-32"
-```
-
-> ⚠️ **Importante**: El nombre del registry (`AZURE_REGISTRY_NAME`) debe ser único en todo Azure.
-
----
-
-### Paso 2: Ejecutar Setup Azure
-
-Este script verifica y crea los recursos base:
-
-```powershell
-cd deploy
-.\setup-azure.ps1
-```
-
-**¿Qué hace este script?**
-1. ✅ Verifica Azure CLI instalado
-2. ✅ Inicia sesión en Azure (si es necesario)
-3. ✅ Verifica Docker instalado
-4. ✅ Crea Resource Group (si no existe)
-5. ✅ Crea Container Registry (si no existe)
-6. ✅ Hace login al registry
-
----
-
-### Paso 3: Construir y Subir Imágenes
-
-```powershell
-.\build-and-push.ps1
-```
-
-**¿Qué hace este script?**
-1. 🔐 Login al Container Registry
-2. 🐳 Construye imagen del backend (`./server`)
-3. 🐳 Construye imagen del frontend (`./client`)
-4. ⬆️ Sube ambas imágenes al registry
-
----
-
-### Paso 4: Desplegar Aplicaciones
-
-```powershell
-.\deploy-apps.ps1
-```
-
-**¿Qué hace este script?**
-1. 🗄️ Crea PostgreSQL Flexible Server (~3-5 minutos)
-2. 🌐 Crea Container App Environment
-3. 🔧 Configura acceso al registry
-4. 🚀 Despliega Backend con variables de entorno
-5. 🚀 Despliega Frontend
-
-Al finalizar, obtendrás las URLs de acceso:
-```
-Frontend: https://finanzas-frontend.xxxxx.azurecontainerapps.io
-Backend:  https://finanzas-backend.xxxxx.azurecontainerapps.io
+cd server
+npx prisma migrate deploy
 ```
 
 ---
 
-## 🔄 Actualizaciones de la Aplicación
+## 🚀 Paso 2: Desplegar Backend en Render
 
-Para actualizar después de cambios en el código:
+### 2.1 Crear Web Service
+1. Ve a [render.com](https://render.com) → New → Web Service
+2. Conecta tu repositorio de GitHub
+3. Configuración:
+   - **Name**: `finanzas-backend`
+   - **Root Directory**: `server`
+   - **Runtime**: Node
+   - **Build Command**: `npm install && npx prisma generate`
+   - **Start Command**: `npm start`
 
-```powershell
-cd deploy
+### 2.2 Variables de Entorno
+Agrega estas variables en Render → Environment:
 
-# Reconstruir y subir nuevas imágenes
-.\build-and-push.ps1
+| Variable | Valor |
+|----------|-------|
+| `DATABASE_URL` | Tu connection string de Supabase |
+| `JWT_SECRET` | Genera con `openssl rand -hex 32` |
+| `NODE_ENV` | `production` |
+| `CORS_ALLOWED_ORIGINS` | `https://tu-app.vercel.app` |
+| `CRON_ENABLED` | `true` |
+| `FEATURE_RATE_LIMIT_ENABLED` | `true` |
 
-# Actualizar los containers
-.\deploy-apps.ps1
-```
+### 2.3 Deploy
+Render automáticamente despliega cuando haces push a `master`.
 
-Los containers existentes se actualizarán automáticamente con las nuevas imágenes.
-
----
-
-## 🔧 Configuración del Frontend
-
-El frontend detecta automáticamente si está en Azure usando `client/src/config.js`:
-
-```javascript
-const hostname = window.location.hostname;
-
-const isProduction = hostname.includes('azurecontainerapps.io') || 
-                     !hostname.includes('localhost');
-
-const API_URL = isProduction 
-    ? 'https://TU-BACKEND-URL.azurecontainerapps.io/api'
-    : `http://${hostname}:3000/api`;
-```
-
-> **Nota**: Después del primer despliegue, debes actualizar la URL del backend en `config.js` y volver a ejecutar `build-and-push.ps1` + `deploy-apps.ps1`.
+**URL resultante**: `https://finanzas-backend.onrender.com`
 
 ---
 
-## 💾 Backups de Base de Datos
+## 🌐 Paso 3: Desplegar Frontend en Vercel
 
-### Backup Manual
+### 3.1 Importar proyecto
+1. Ve a [vercel.com](https://vercel.com) → New Project
+2. Importa tu repositorio de GitHub
+3. Configuración:
+   - **Root Directory**: `client` (o `lovable-ui` según tu frontend)
+   - **Framework Preset**: Vite
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
 
-```powershell
-.\backup.ps1
+### 3.2 Variables de Entorno
+En Vercel → Settings → Environment Variables:
+
+| Variable | Valor |
+|----------|-------|
+| `VITE_API_URL` | `https://finanzas-backend.onrender.com/api` |
+
+### 3.3 Deploy
+Vercel automáticamente despliega cuando haces push a `master`.
+
+---
+
+## 🔄 Paso 4: Configurar CORS
+
+Después de obtener tu URL de Vercel, actualiza en Render:
+
+```
+CORS_ALLOWED_ORIGINS=https://tu-app.vercel.app
 ```
 
-Esto crea un archivo SQL en la carpeta `backups/`.
-
-### Restaurar Backup
-
-```powershell
-# Conectar a PostgreSQL
-psql -h tu-servidor.postgres.database.azure.com -U finanzas -d finanzas
-
-# Restaurar
-\i backups/backup_2024-01-15.sql
+Si tienes múltiples dominios:
+```
+CORS_ALLOWED_ORIGINS=https://tu-app.vercel.app,https://custom-domain.com
 ```
 
 ---
 
-## 📊 Variables de Entorno Requeridas
+## 💰 Costos
 
-| Variable | Descripción | Ejemplo |
-|----------|-------------|---------|
-| `DATABASE_URL` | Conexión PostgreSQL | `postgresql://user:pass@host:5432/db?sslmode=require` |
-| `JWT_SECRET` | Clave para tokens JWT | Generar con `openssl rand -hex 32` |
-| `NODE_ENV` | Entorno de ejecución | `production` |
-| `CRON_ENABLED` | Habilitar tareas programadas | `true` |
-| `VAPID_PUBLIC_KEY` | Push notifications (opcional) | Ver `.env.example` |
-| `VAPID_PRIVATE_KEY` | Push notifications (opcional) | Ver `.env.example` |
+| Servicio | Plan | Costo |
+|----------|------|-------|
+| Vercel | Hobby | **$0/mes** |
+| Render | Free | **$0/mes** |
+| Supabase | Free | **$0/mes** |
+| **Total** | | **$0/mes** ✨ |
+
+### Limitaciones del Free Tier
+
+| Servicio | Limitación |
+|----------|------------|
+| Render | El servidor "duerme" después de 15 min de inactividad. Primera request tarda ~30s |
+| Supabase | 500MB storage, 2GB bandwidth/mes |
+| Vercel | 100GB bandwidth/mes |
 
 ---
 
-## 💰 Costos Estimados (Azure)
+## 🔧 CI/CD Automático
 
-| Recurso | SKU | Costo Mensual |
-|---------|-----|---------------|
-| Container Apps (Backend) | 0.5 vCPU, 1GB RAM | ~$10-20 |
-| Container Apps (Frontend) | 0.25 vCPU, 0.5GB RAM | ~$5-10 |
-| PostgreSQL Flexible | B1ms (Burstable) | ~$15-25 |
-| Container Registry | Basic | ~$5 |
-| **Total Estimado** | | **~$35-60/mes** |
+Ambos servicios tienen CI/CD integrado:
 
-> 💡 **Tip**: Configura `min-replicas: 0` para reducir costos cuando no hay tráfico.
+1. **Push to `master`** → 
+2. **Vercel** reconstruye el frontend automáticamente
+3. **Render** reconstruye el backend automáticamente
+
+No necesitas hacer nada manual después del setup inicial.
+
+---
+
+## 📊 Variables de Entorno Completas
+
+### Backend (Render)
+
+| Variable | Requerida | Descripción |
+|----------|-----------|-------------|
+| `DATABASE_URL` | ✅ | Connection string de Supabase |
+| `JWT_SECRET` | ✅ | Clave para tokens (min 32 chars) |
+| `NODE_ENV` | ✅ | `production` |
+| `CORS_ALLOWED_ORIGINS` | ✅ | URLs del frontend separadas por coma |
+| `PORT` | ❌ | Render lo asigna automáticamente |
+| `CRON_ENABLED` | ❌ | `true` para habilitar tareas programadas |
+| `VAPID_PUBLIC_KEY` | ❌ | Para push notifications |
+| `VAPID_PRIVATE_KEY` | ❌ | Para push notifications |
+
+### Frontend (Vercel)
+
+| Variable | Requerida | Descripción |
+|----------|-----------|-------------|
+| `VITE_API_URL` | ✅ | URL completa del backend con `/api` |
 
 ---
 
 ## 🛠️ Solución de Problemas
 
-### Error: "The subscription is not registered to use namespace 'Microsoft.App'"
+### Error: CORS blocked origin
+**Causa**: El frontend no está en `CORS_ALLOWED_ORIGINS`
+**Solución**: Agregar la URL exacta del frontend en Render → Environment
 
-```powershell
-az provider register --namespace Microsoft.App
-az provider register --namespace Microsoft.OperationalInsights
-```
+### Error: Backend muy lento (30+ segundos)
+**Causa**: Free tier de Render "duerme" el servidor
+**Solución**: 
+- Esperar la primera request
+- Upgrade a paid tier ($7/mes) para eliminar sleep
 
-### Error: Container App no inicia
+### Error: Database connection failed
+**Causa**: Connection string incorrecta o SSL
+**Solución**: Verificar que la URL tenga `?sslmode=require` al final
 
-```powershell
-# Ver logs del container
-az containerapp logs show --name finanzas-backend --resource-group finanzas-app --follow
-```
-
-### Error: "Connection refused" a PostgreSQL
-
-1. Verifica que el firewall permite todas las IPs:
-```powershell
-az postgres flexible-server firewall-rule create \
-    --resource-group finanzas-app \
-    --name finanzas-postgres \
-    --rule-name AllowAll \
-    --start-ip-address 0.0.0.0 \
-    --end-ip-address 255.255.255.255
-```
-
-2. Verifica SSL mode en la URL de conexión: `?sslmode=require`
-
-### Ver recursos desplegados
-
-```powershell
-# Listar todos los recursos
-az resource list --resource-group finanzas-app --output table
-
-# Ver estado de Container Apps
-az containerapp list --resource-group finanzas-app --output table
-```
+### Ver logs del backend
+1. Render Dashboard → Tu servicio → Logs
+2. O usar el endpoint: `https://tu-backend.onrender.com/health`
 
 ---
 
-## 🗑️ Eliminar Recursos
+## 💾 Backups
 
-Para eliminar todos los recursos de Azure:
-
-```powershell
-# ⚠️ CUIDADO: Esto elimina TODO incluyendo la base de datos
-az group delete --name finanzas-app --yes --no-wait
+### Backup manual de Supabase
+```bash
+cd deploy
+./backup.sh
 ```
+
+### Backup desde Supabase Dashboard
+1. Settings → Database → Backups
+2. Download latest backup
 
 ---
 
-## 🟢 Alternativa: Google Cloud Run
+## 🚀 Upgrade Path
 
-Si prefieres Google Cloud, consulta la documentación oficial:
-- [Cloud Run](https://cloud.google.com/run/docs)
-- [Cloud SQL for PostgreSQL](https://cloud.google.com/sql/docs/postgres)
+Cuando necesites más capacidad:
+
+| Servicio | Free → Paid | Beneficio |
+|----------|-------------|-----------|
+| Render | $7/mes | Sin sleep, más RAM |
+| Supabase | $25/mes | 8GB storage, backups diarios |
+| Vercel | $20/mes | Más bandwidth, analytics |
 
 ---
 
 **¿Necesitas ayuda?**
-- [Azure Container Apps Docs](https://learn.microsoft.com/azure/container-apps/)
-- [Azure PostgreSQL Docs](https://learn.microsoft.com/azure/postgresql/)
+- [Render Docs](https://render.com/docs)
+- [Vercel Docs](https://vercel.com/docs)
+- [Supabase Docs](https://supabase.com/docs)

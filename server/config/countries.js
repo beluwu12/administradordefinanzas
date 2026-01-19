@@ -17,6 +17,19 @@ const COUNTRIES = {
             bcvScraper: true
         }
     },
+    EC: {
+        name: 'Ecuador',
+        flag: '🇪🇨',
+        currencies: ['USD'],
+        defaultCurrency: 'USD',
+        locale: 'es-EC',
+        timezone: 'America/Guayaquil',
+        features: {
+            dualCurrency: false,
+            exchangeRate: false,
+            bcvScraper: false
+        }
+    },
     CO: {
         name: 'Colombia',
         flag: '🇨🇴',

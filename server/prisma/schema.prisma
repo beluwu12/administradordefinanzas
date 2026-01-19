@@ -30,6 +30,7 @@ model User {
   notifyWeekly      Boolean            @default(false)
   soundVolume       Int                @default(70)
   theme             String             @default("system")
+  dualCurrencyEnabled Boolean          @default(true)
   budgets           Budget[]
   fixedExpenses     FixedExpense[]
   goals             Goal[]
@@ -212,6 +213,7 @@ model PushSubscription {
 
 enum Country {
   VE
+  EC
   CO
   CL
   MX

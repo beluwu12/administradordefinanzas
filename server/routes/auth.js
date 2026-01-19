@@ -130,7 +130,9 @@ const formatUserResponse = (user, accessToken = null) => {
         lastName: user.lastName,
         country: user.country,
         defaultCurrency: user.defaultCurrency,
-        timezone: user.timezone
+        timezone: user.timezone,
+        dualCurrencyEnabled: user.dualCurrencyEnabled,
+        language: user.language
     };
     if (accessToken) {
         response.token = accessToken;
@@ -150,7 +152,7 @@ const formatUserResponse = (user, accessToken = null) => {
  */
 router.post('/register', authLimiter, validate(registerSchema), async (req, res) => {
     try {
-        const { email, password, firstName, lastName, country } = req.body;
+        const { email, password, firstName, lastName, country, dualCurrencyEnabled, language } = req.body;
 
         // Check if user exists
         const userExists = await prisma.user.findUnique({ where: { email } });
@@ -175,7 +177,9 @@ router.post('/register', authLimiter, validate(registerSchema), async (req, res)
                 lastName,
                 country,
                 defaultCurrency,
-                timezone
+                timezone,
+                dualCurrencyEnabled: dualCurrencyEnabled ?? (country === 'VE'),
+                language: language || 'es'
             }
         });
 
@@ -405,7 +409,9 @@ router.get('/me', async (req, res) => {
                 lastName: true,
                 country: true,
                 defaultCurrency: true,
-                timezone: true
+                timezone: true,
+                dualCurrencyEnabled: true,
+                language: true
             }
         });
 
@@ -611,7 +617,7 @@ router.patch('/preferences', async (req, res) => {
 
         // Allowed preference fields
         const allowedFields = [
-            'language', 'theme', 'defaultCurrency',
+            'language', 'theme', 'defaultCurrency', 'dualCurrencyEnabled',
             'notifyPush', 'notifyEmail', 'notifySound', 'soundVolume',
             'budgetAlerts', 'budgetThreshold',
             'billReminders', 'billReminderDays',
@@ -641,6 +647,7 @@ router.patch('/preferences', async (req, res) => {
                 language: true,
                 theme: true,
                 defaultCurrency: true,
+                dualCurrencyEnabled: true,
                 notifyPush: true,
                 notifyEmail: true,
                 notifySound: true,
