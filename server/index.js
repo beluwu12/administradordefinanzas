@@ -102,6 +102,19 @@ app.use((req, res, next) => {
   next();
 });
 
+// Health check and static routes (before CORS to avoid noise)
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+app.get('/', (req, res) => {
+  res.json({
+    name: 'Tu Gestor API',
+    version: '1.0.0',
+    status: 'running'
+  });
+});
+
 // CORS: Configuration from environment variables
 const getAllowedOrigins = () => {
   // Get origins from environment variable (comma-separated)
