@@ -6,6 +6,7 @@
  */
 
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = require('express-rate-limit');
 const { logger } = require('../utils/logger');
 
 // Check if rate limiting is enabled via feature flag
@@ -26,10 +27,12 @@ const authLimiter = rateLimit({
     },
     standardHeaders: true, // Return rate limit info in RateLimit-* headers
     legacyHeaders: false, // Disable X-RateLimit-* headers
-    keyGenerator: (req) => {
+    keyGenerator: (req, res) => {
+        // Use ipKeyGenerator helper for proper IPv6 handling
+        const ip = ipKeyGenerator(req, res);
         // Combine IP + email for more granular limiting
         const email = req.body?.email?.toLowerCase() || 'unknown';
-        return `${req.ip}:${email}`;
+        return `${ip}:${email}`;
     },
     handler: (req, res, next, options) => {
         logger.warn('Rate limit exceeded for auth', {
