@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,272 +7,176 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ═══════════════════════════════════════════════════════════════
-// ENUMS
-// ═══════════════════════════════════════════════════════════════
-
-enum Country {
-  VE  // Venezuela - Dual currency (USD + VES)
-  CO  // Colombia - COP only
-  CL  // Chile - CLP only
-  MX  // Mexico - MXN only
-  AR  // Argentina - ARS only
-  US  // USA - USD only
-}
-
-// ═══════════════════════════════════════════════════════════════
-// USER MODEL
-// ═══════════════════════════════════════════════════════════════
-
 model User {
-  id              String   @id @default(uuid())
-  email           String   @unique
-  password        String   // bcrypt
-  firstName       String
-  lastName        String
-  verified        Boolean  @default(false)
-  
-  // Multi-country support
-  country         Country  @default(VE)
-  defaultCurrency String   @default("USD")
-  timezone        String   @default("America/Caracas")
-  
-  // UI Preferences
-  language         String  @default("es")
-  theme            String  @default("system")
-  
-  // Notification Settings
-  notifyPush       Boolean @default(true)
-  notifyEmail      Boolean @default(false)
-  notifySound      Boolean @default(true)
-  soundVolume      Int     @default(70)
-  budgetAlerts     Boolean @default(true)
-  budgetThreshold  Int     @default(80)
-  billReminders    Boolean @default(true)
-  billReminderDays Int     @default(3)
-  notifyGoals      Boolean @default(true)
-  notifyWeekly     Boolean @default(false)
-  
-  createdAt       DateTime @default(now())
-
-  transactions      Transaction[]
+  id                String             @id @default(uuid())
+  email             String             @unique
+  password          String
+  firstName         String
+  lastName          String
+  verified          Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  defaultCurrency   String             @default("USD")
+  timezone          String             @default("America/Caracas")
+  country           Country            @default(VE)
+  billReminderDays  Int                @default(3)
+  billReminders     Boolean            @default(true)
+  budgetAlerts      Boolean            @default(true)
+  budgetThreshold   Int                @default(80)
+  language          String             @default("es")
+  notifyEmail       Boolean            @default(false)
+  notifyGoals       Boolean            @default(true)
+  notifyPush        Boolean            @default(true)
+  notifySound       Boolean            @default(true)
+  notifyWeekly      Boolean            @default(false)
+  soundVolume       Int                @default(70)
+  theme             String             @default("system")
+  budgets           Budget[]
   fixedExpenses     FixedExpense[]
-  tags              Tag[]
   goals             Goal[]
   notifications     Notification[]
   pushSubscriptions PushSubscription[]
   sessions          Session[]
-  budgets           Budget[]
+  tags              Tag[]
+  transactions      Transaction[]
 }
 
-// ═══════════════════════════════════════════════════════════════
-// SESSION MODEL - For refresh token rotation and reuse detection
-// ═══════════════════════════════════════════════════════════════
-
 model Session {
-  id          String    @id @default(uuid())
-  tokenHash   String    @unique  // SHA-256 hash of refresh token
-  
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId      String
-  
-  userAgent   String?
-  ipAddress   String?
-  
-  createdAt   DateTime  @default(now())
-  expiresAt   DateTime
-  lastUsedAt  DateTime  @default(now())
-  revokedAt   DateTime?  // Set when token is rotated or revoked
-  
+  id         String    @id @default(uuid())
+  tokenHash  String    @unique
+  userId     String
+  userAgent  String?
+  ipAddress  String?
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime
+  lastUsedAt DateTime  @default(now())
+  revokedAt  DateTime?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId, revokedAt])
   @@index([tokenHash])
 }
-
-// ═══════════════════════════════════════════════════════════════
-// TAG MODEL
-// ═══════════════════════════════════════════════════════════════
 
 model Tag {
   id           String        @id @default(uuid())
   name         String
   color        String?
-  transactions Transaction[]
-  budgets      Budget[]
-  
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId       String
-  
   createdAt    DateTime      @default(now())
+  budgets      Budget[]
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[] @relation("TagToTransaction")
 
   @@unique([name, userId])
 }
 
-// ═══════════════════════════════════════════════════════════════
-// TRANSACTION MODEL
-// ═══════════════════════════════════════════════════════════════
-
 model Transaction {
-  id           String    @id @default(uuid())
-  amount       Float
-  currency     String    @default("USD") // USD, VES, COP, CLP, MXN, ARS
-  exchangeRate Float?    // Value of 1 USD in local currency (VE only)
-  type         String    // 'INCOME' or 'EXPENSE'
-  description  String
-  source       String?
-  date         DateTime  @default(now())
-  
-  // Soft delete
-  deletedAt    DateTime?
-  
-  tags         Tag[]
-  
-  // Link to recurring/fixed expense (if auto-generated)
-  fixedExpense   FixedExpense? @relation(fields: [fixedExpenseId], references: [id])
+  id             String        @id @default(uuid())
+  amount         Float
+  currency       String        @default("USD")
+  exchangeRate   Float?
+  type           String
+  description    String
+  source         String?
+  date           DateTime      @default(now())
+  userId         String
+  createdAt      DateTime      @default(now())
+  deletedAt      DateTime?
   fixedExpenseId String?
-  
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId       String
-
-  createdAt    DateTime  @default(now())
+  fixedExpense   FixedExpense? @relation(fields: [fixedExpenseId], references: [id])
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tags           Tag[]         @relation("TagToTransaction")
 
   @@index([userId, date])
   @@index([userId, type])
   @@index([userId, deletedAt])
 }
 
-// ═══════════════════════════════════════════════════════════════
-// FIXED EXPENSE MODEL
-// ═══════════════════════════════════════════════════════════════
-
 model FixedExpense {
-  id          String    @id @default(uuid())
-  amount      Float
-  currency    String    @default("USD")
-  description String
-  dueDay      Int       // 1-31
-  isActive    Boolean   @default(true)
-  
-  // Soft delete
-  deletedAt   DateTime?
-  
-  // Notification tracking (to avoid duplicates)
+  id             String        @id @default(uuid())
+  amount         Float
+  currency       String        @default("USD")
+  description    String
+  dueDay         Int
+  isActive       Boolean       @default(true)
+  userId         String
+  createdAt      DateTime      @default(now())
+  deletedAt      DateTime?
   lastNotified5d DateTime?
   lastNotified3d DateTime?
   lastNotified1d DateTime?
-  
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId      String
-  
-  // Transactions generated from this recurring expense
-  transactions Transaction[]
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions   Transaction[]
 
-  createdAt   DateTime  @default(now())
-  
   @@index([userId, dueDay])
   @@index([userId, deletedAt])
 }
 
-// ═══════════════════════════════════════════════════════════════
-// GOAL MODEL
-// ═══════════════════════════════════════════════════════════════
-
 model Goal {
-  id             String      @id @default(uuid())
+  id             String             @id @default(uuid())
   title          String
   description    String?
   totalCost      Float
-  currency       String      @default("USD")
-  color          String?     // UI display color
-  
-  // Logic & Calculations
+  currency       String             @default("USD")
   durationMonths Int
   monthlyAmount  Float
   deadline       DateTime?
-  
-  // Progress Tracking
-  startDate      DateTime    @default(now())
-  savedAmount    Float       @default(0)
+  startDate      DateTime           @default(now())
+  savedAmount    Float              @default(0)
   tag            String?
-  
-  // Soft delete
-  deletedAt      DateTime?
-  
-  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId         String
-
-  progress       GoalMonth[]
+  createdAt      DateTime           @default(now())
+  deletedAt      DateTime?
+  color          String?
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   contributions  GoalContribution[]
-  
-  createdAt      DateTime    @default(now())
-  
+  progress       GoalMonth[]
+
   @@index([userId, deletedAt])
 }
 
-// ═══════════════════════════════════════════════════════════════
-// GOAL MONTH MODEL (Legacy - for quincena tracking)
-// ═══════════════════════════════════════════════════════════════
-
 model GoalMonth {
-  id          String  @id @default(uuid())
-  goal        Goal    @relation(fields: [goalId], references: [id], onDelete: Cascade)
-  goalId      String
-  
-  monthIndex  Int     // 1 to 12
-  target      Float
-  isQ1Paid    Boolean @default(false)
-  isQ2Paid    Boolean @default(false)
+  id         String  @id @default(uuid())
+  goalId     String
+  monthIndex Int
+  target     Float
+  isQ1Paid   Boolean @default(false)
+  isQ2Paid   Boolean @default(false)
+  goal       Goal    @relation(fields: [goalId], references: [id], onDelete: Cascade)
 }
-
-// ═══════════════════════════════════════════════════════════════
-// GOAL CONTRIBUTION MODEL (New - for free contributions)
-// ═══════════════════════════════════════════════════════════════
 
 model GoalContribution {
-  id        String   @id @default(uuid())
-  amount    Float
-  note      String?
-  date      DateTime @default(now())
-  
-  goal      Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
-  goalId    String
-  
+  id     String   @id @default(uuid())
+  amount Float
+  note   String?
+  date   DateTime @default(now())
+  goalId String
+  goal   Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
   @@index([goalId, date])
 }
-
-// ═══════════════════════════════════════════════════════════════
-// BUDGET MODEL (Category spending limits)
-// ═══════════════════════════════════════════════════════════════
 
 model Budget {
   id              String   @id @default(uuid())
   limit           Float
   rolloverEnabled Boolean  @default(false)
   rolloverAmount  Float    @default(0)
-  month           Int      // 1-12
+  month           Int
   year            Int
-  
-  tag       Tag      @relation(fields: [tagId], references: [id])
-  tagId     String
-  
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  tagId           String
+  userId          String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  tag             Tag      @relation(fields: [tagId], references: [id])
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([tagId, month, year, userId])
   @@index([userId, month, year])
 }
 
-
-// ═══════════════════════════════════════════════════════════════
-// EXCHANGE RATE MODEL
-// ═══════════════════════════════════════════════════════════════
-
 model ExchangeRate {
   id        String   @id @default(uuid())
-  source    String   // e.g. "BCV"
-  pair      String   // e.g. "USD-VES"
+  source    String
+  pair      String
   rate      Float
   fetchedAt DateTime @default(now())
 
@@ -283,41 +184,37 @@ model ExchangeRate {
   @@index([pair, fetchedAt])
 }
 
-// ═══════════════════════════════════════════════════════════════
-// NOTIFICATION MODEL
-// ═══════════════════════════════════════════════════════════════
-
 model Notification {
   id        String   @id @default(uuid())
   title     String
   body      String
-  type      String   // 'quincena_reminder', 'goal_warning', 'fixed_expense', 'system'
+  type      String
   isRead    Boolean  @default(false)
   link      String?
-  
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
-  
   createdAt DateTime @default(now())
-  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId, isRead])
 }
-
-// ═══════════════════════════════════════════════════════════════
-// PUSH SUBSCRIPTION MODEL
-// ═══════════════════════════════════════════════════════════════
 
 model PushSubscription {
   id        String   @id @default(uuid())
   endpoint  String
   p256dh    String
   auth      String
-  
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
-  
   createdAt DateTime @default(now())
-  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([endpoint, userId])
 }
 
+enum Country {
+  VE
+  CO
+  CL
+  MX
+  AR
+  US
+}
