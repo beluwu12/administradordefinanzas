@@ -40,12 +40,14 @@ export const transformTransactionToBackend = (
 ): {
     description: string;
     amount: number;
+    currency: string;
     type: string;
     date: string;
     tagIds: string[];
 } => ({
     description: tx.description,
     amount: tx.amount,
+    currency: tx.currency || 'USD',
     type: tx.type.toUpperCase(),
     date: new Date(tx.date).toISOString(),
     tagIds: [tx.categoryId],
