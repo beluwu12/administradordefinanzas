@@ -17,7 +17,7 @@ const { logger } = require('../utils/logger');
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const BCV_URL = 'https://www.bcv.org.ve/';  // HTTPS with custom agent
+const BCV_URL = 'https://www.bcv.org.ve/';
 const CACHE_KEY = 'bcv-rate-usd-ves';
 const REQUEST_TIMEOUT_MS = 15000;
 const MAX_RETRIES = 3;
@@ -25,87 +25,153 @@ const RETRY_DELAY_MS = 2000;
 const CACHE_TTL_SECONDS = 3600; // 1 hour
 
 // Custom HTTPS agent that ignores SSL certificate errors
-// BCV's certificate chain is often misconfigured
 const httpsAgent = new https.Agent({
     rejectUnauthorized: false
 });
 
+// ═══════════════════════════════════════════════════════════════
+// RETRY WRAPPER
+// ═══════════════════════════════════════════════════════════════
+
 /**
- * Delay helper for retry logic
- * @param {number} ms - Milliseconds to wait
- * @returns {Promise<void>}
+ * Generic retry wrapper with exponential backoff
+ * @param {Function} fn - Async function to execute
+ * @param {Object} options - Configuration options
+ * @param {number} options.maxRetries - Maximum retry attempts (default: 3)
+ * @param {number} options.delayMs - Base delay between retries (default: 2000)
+ * @param {boolean} options.backoff - Use exponential backoff (default: true)
+ * @param {string} options.name - Name for logging purposes
+ * @returns {Promise<{success: boolean, data?: any, error?: Error}>}
  */
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+async function withRetry(fn, options = {}) {
+    const {
+        maxRetries = MAX_RETRIES,
+        delayMs = RETRY_DELAY_MS,
+        backoff = true,
+        name = 'operation'
+    } = options;
+
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const data = await fn();
+            return { success: true, data };
+        } catch (error) {
+            lastError = error;
+            logger.warn(`${name} attempt ${attempt}/${maxRetries} failed`, {
+                error: error.message
+            });
+
+            if (attempt < maxRetries) {
+                const waitTime = backoff ? delayMs * attempt : delayMs;
+                logger.info(`Retrying ${name} in ${waitTime}ms...`);
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+            }
+        }
+    }
+
+    logger.error(`All ${name} attempts failed`, {
+        error: lastError?.message,
+        attempts: maxRetries
+    });
+
+    return { success: false, error: lastError };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HELPER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Fetch raw HTML from BCV website
+ * @returns {Promise<string>} HTML content
+ * @throws {Error} On network failure
+ */
+async function fetchBCVHtml() {
+    const { data } = await axios.get(BCV_URL, {
+        timeout: REQUEST_TIMEOUT_MS,
+        httpsAgent: httpsAgent,
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'text/html,application/xhtml+xml',
+            'Accept-Language': 'es-VE,es;q=0.9'
+        }
+    });
+    return data;
+}
+
+/**
+ * Parse rate text from BCV HTML using multiple selector strategies
+ * @param {string} html - Raw HTML content
+ * @returns {string} Rate text (e.g., "45,23")
+ * @throws {Error} If rate cannot be found
+ */
+function parseRateFromHtml(html) {
+    const $ = cheerio.load(html);
+
+    // Strategy 1: Direct selector
+    let rateText = $('#dolar strong').text().trim();
+
+    // Strategy 2: Fallback to field-content
+    if (!rateText) {
+        rateText = $('#dolar .field-content').text().trim();
+    }
+
+    // Strategy 3: Search for USD container
+    if (!rateText) {
+        const usdContainer = $('span:contains("USD")').closest('div');
+        rateText = usdContainer.find('strong').text().trim();
+    }
+
+    if (!rateText) {
+        throw new Error('Could not find rate in HTML');
+    }
+
+    return rateText;
+}
+
+/**
+ * Parse rate value from text string
+ * @param {string} text - Rate text (e.g., "45,23" or "45.23")
+ * @returns {number} Parsed rate value
+ * @throws {Error} If parsing fails or value is invalid
+ */
+function parseRateValue(text) {
+    // Clean: remove non-numeric chars except comma, dot, minus
+    const cleanedText = text.replace(/[^\d,.-]/g, '').replace(',', '.');
+    const rate = parseFloat(cleanedText);
+
+    if (isNaN(rate) || !isFinite(rate) || rate <= 0) {
+        throw new Error(`Invalid rate value: "${text}" -> ${rate}`);
+    }
+
+    return rate;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
 
 /**
  * Fetch BCV exchange rate with retry logic
  * @returns {Promise<number|null>} Exchange rate or null on failure
  */
 async function fetchBCVRate() {
-    let lastError = null;
+    logger.info('Fetching BCV Rate...');
 
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-        try {
-            logger.info(`Fetching BCV Rate (attempt ${attempt}/${MAX_RETRIES})...`);
+    const result = await withRetry(async () => {
+        const html = await fetchBCVHtml();
+        const rateText = parseRateFromHtml(html);
+        const rate = parseRateValue(rateText);
+        return rate;
+    }, { name: 'BCV fetch' });
 
-            const { data } = await axios.get(BCV_URL, {
-                timeout: REQUEST_TIMEOUT_MS,
-                httpsAgent: httpsAgent,
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                    'Accept': 'text/html,application/xhtml+xml',
-                    'Accept-Language': 'es-VE,es;q=0.9'
-                }
-            });
-
-            const $ = cheerio.load(data);
-
-            // Selector based on typical BCV structure
-            // div#dolar -> div.col-sm-6 -> div.col-xs-6 -> strong
-            let rateText = $('#dolar strong').text().trim();
-
-            if (!rateText) {
-                // Fallback: Sometimes it's inside #dolar .field-content
-                rateText = $('#dolar .field-content').text().trim();
-            }
-
-            // Additional fallback: Search for "USD" text container
-            if (!rateText) {
-                const usdContainer = $('span:contains("USD")').closest('div');
-                rateText = usdContainer.find('strong').text().trim();
-            }
-
-            if (!rateText) {
-                throw new Error('Could not find rate in HTML');
-            }
-
-            // Parse "45,23" -> 45.23
-            const cleanedText = rateText.replace(/[^\d,.-]/g, '').replace(',', '.');
-            const rate = parseFloat(cleanedText);
-
-            if (isNaN(rate) || !isFinite(rate) || rate <= 0) {
-                throw new Error(`Parsed rate is invalid: ${rateText} -> ${rate}`);
-            }
-
-            logger.info('BCV Rate Fetched successfully', { rate, attempt });
-            return rate;
-
-        } catch (error) {
-            lastError = error;
-            logger.warn(`BCV fetch attempt ${attempt} failed`, { error: error.message });
-
-            if (attempt < MAX_RETRIES) {
-                const delayTime = RETRY_DELAY_MS * attempt; // Exponential backoff
-                logger.info(`Retrying in ${delayTime}ms...`);
-                await delay(delayTime);
-            }
-        }
+    if (result.success) {
+        logger.info('BCV Rate fetched successfully', { rate: result.data });
+        return result.data;
     }
 
-    logger.error('All BCV fetch attempts failed', {
-        error: lastError?.message,
-        attempts: MAX_RETRIES
-    });
     return null;
 }
 
@@ -164,8 +230,15 @@ async function getLatestRate() {
 }
 
 module.exports = {
+    // Main exports
     updateExchangeRate,
     getLatestRate,
     getLatestRateFromDB,
-    invalidateRateCache: () => invalidate(CACHE_KEY)
+    invalidateRateCache: () => invalidate(CACHE_KEY),
+
+    // Exposed for testing
+    withRetry,
+    fetchBCVHtml,
+    parseRateFromHtml,
+    parseRateValue
 };
