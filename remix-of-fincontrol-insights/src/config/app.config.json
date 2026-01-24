@@ -1,0 +1,75 @@
+{
+    "app": {
+        "name": "Tu Gestor",
+        "version": "1.0.0",
+        "description": "Administrador de Finanzas Personales"
+    },
+    "api": {
+        "baseUrl": "https://finanzas-backend.onrender.com",
+        "timeout": 15000,
+        "retryAttempts": 3
+    },
+    "bcv": {
+        "maxRetries": 3,
+        "retryDelayMs": 2000,
+        "cacheTtlSeconds": 3600
+    },
+    "cache": {
+        "defaultTtlSeconds": 3600,
+        "exchangeRateTtl": 3600,
+        "transactionsTtl": 300
+    },
+    "pagination": {
+        "defaultPageSize": 20,
+        "maxPageSize": 100
+    },
+    "budget": {
+        "thresholdWarning": 80,
+        "thresholdCritical": 95,
+        "defaultAlertThreshold": 80
+    },
+    "goals": {
+        "colors": [
+            "hsl(142, 76%, 36%)",
+            "hsl(330, 90%, 46%)",
+            "hsl(200, 70%, 50%)",
+            "hsl(280, 65%, 60%)",
+            "hsl(43, 74%, 66%)",
+            "hsl(27, 87%, 67%)"
+        ]
+    },
+    "notifications": {
+        "defaultVolume": 50,
+        "maxVolume": 100,
+        "defaultBillReminderDays": 3,
+        "maxBillReminderDays": 14
+    },
+    "transactions": {
+        "recentLimit": 10,
+        "defaultSortOrder": "desc"
+    },
+    "charts": {
+        "monthlyComparisonMonths": 5,
+        "balanceHistoryDays": 30
+    },
+    "countries": {
+        "default": "VE",
+        "supported": [
+            "VE",
+            "US",
+            "EC"
+        ]
+    },
+    "currencies": {
+        "default": "USD",
+        "supported": [
+            "USD",
+            "VES"
+        ]
+    },
+    "ui": {
+        "animationDuration": 300,
+        "toastDuration": 5000,
+        "skeletonShimmer": true
+    }
+}
