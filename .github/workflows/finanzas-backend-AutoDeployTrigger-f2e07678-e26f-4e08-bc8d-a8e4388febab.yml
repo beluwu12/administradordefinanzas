@@ -1,0 +1,49 @@
+name: Trigger auto deployment for finanzas-backend
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ master ]
+    paths:
+    - '**'
+    - '.github/workflows/finanzas-backend-AutoDeployTrigger-f2e07678-e26f-4e08-bc8d-a8e4388febab.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write #This is required for requesting the OIDC JWT Token
+      contents: read #Required when GH token is used to authenticate with private repo
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.FINANZASBACKEND_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.FINANZASBACKEND_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.FINANZASBACKEND_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}
+          _dockerfilePathKey_: _dockerfilePath_
+          _targetLabelKey_: _targetLabel_
+          registryUrl: tufinanzasregistry.azurecr.io
+          registryUsername: ${{ secrets.FINANZASBACKEND_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.FINANZASBACKEND_REGISTRY_PASSWORD }}
+          containerAppName: finanzas-backend
+          resourceGroup: finanzas-app
+          imageToBuild: tufinanzasregistry.azurecr.io/finanzas-backend:${{ github.sha }}
+          _buildArgumentsKey_: |
+            _buildArgumentsValues_
+
+
