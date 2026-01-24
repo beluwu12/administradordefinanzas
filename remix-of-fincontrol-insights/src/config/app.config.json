@@ -5,7 +5,7 @@
         "description": "Administrador de Finanzas Personales"
     },
     "api": {
-        "baseUrl": "https://finanzas-backend.onrender.com",
+        "baseUrl": "https://tu-gestor-backend.onrender.com",
         "timeout": 15000,
         "retryAttempts": 3
     },
