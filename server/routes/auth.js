@@ -21,6 +21,7 @@ const { success, errors } = require('../utils/responseUtils');
 const { logger } = require('../utils/logger');
 const { authLimiter, refreshLimiter } = require('../middleware/rateLimiter');
 const { verifyCsrf, setCsrfCookie, clearCsrfCookie } = require('../middleware/csrf');
+const { requireAuth } = require('../middleware/requireAuth');
 
 // ═══════════════════════════════════════════════════════════════
 // TOKEN CONFIGURATION
@@ -390,18 +391,12 @@ router.post('/refresh', refreshLimiter, verifyCsrf, async (req, res) => {
 });
 
 /**
- * GET /api/auth/me - Get current user profile
+ * GET /api/auth/me - Get current user profile (ALL fields)
  */
-router.get('/me', async (req, res) => {
+router.get('/me', requireAuth, async (req, res) => {
     try {
-        const token = req.headers.authorization?.split(' ')[1];
-        if (!token) {
-            return res.status(401).json({ success: false, error: 'No token' });
-        }
-
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = await prisma.user.findUnique({
-            where: { id: decoded.id },
+            where: { id: req.userId },
             select: {
                 id: true,
                 email: true,
@@ -411,17 +406,30 @@ router.get('/me', async (req, res) => {
                 defaultCurrency: true,
                 timezone: true,
                 dualCurrencyEnabled: true,
-                language: true
+                language: true,
+                theme: true,
+                // Notification preferences
+                notifyPush: true,
+                notifyEmail: true,
+                notifySound: true,
+                soundVolume: true,
+                budgetAlerts: true,
+                budgetThreshold: true,
+                billReminders: true,
+                billReminderDays: true,
+                notifyGoals: true,
+                notifyWeekly: true,
             }
         });
 
         if (!user) {
-            return res.status(401).json({ success: false, error: 'Usuario no encontrado' });
+            return res.status(404).json({ success: false, error: 'Usuario no encontrado' });
         }
 
         res.json({ success: true, data: user });
     } catch (error) {
-        res.status(401).json({ success: false, error: 'Token inválido' });
+        logger.error('Get profile error', { error: error.message, userId: req.userId });
+        res.status(500).json({ success: false, error: 'Error obteniendo perfil' });
     }
 });
 
@@ -429,7 +437,9 @@ router.get('/me', async (req, res) => {
  * POST /api/auth/logout - Clear refresh token and revoke session
  * CSRF protection: requires x-csrf-token header matching csrf_token cookie
  */
-router.post('/logout', verifyCsrf, async (req, res) => {
+// CSRF protection only in production — in dev, frontend may not have the cookie yet
+const logoutMiddleware = process.env.NODE_ENV === 'production' ? [verifyCsrf] : [];
+router.post('/logout', ...logoutMiddleware, async (req, res) => {
     try {
         const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
 
@@ -454,23 +464,16 @@ router.post('/logout', verifyCsrf, async (req, res) => {
 /**
  * PUT /api/auth/profile - Update user profile (name)
  */
-router.put('/profile', async (req, res) => {
+router.put('/profile', requireAuth, async (req, res) => {
     try {
-        const token = req.headers.authorization?.split(' ')[1];
-        if (!token) {
-            return res.status(401).json({ success: false, error: 'No token' });
-        }
-
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const { firstName, lastName, timezone } = req.body;
 
-        // Validate input
         if (!firstName || !lastName) {
             return res.status(400).json({ success: false, error: 'Nombre y apellido son requeridos' });
         }
 
         const updatedUser = await prisma.user.update({
-            where: { id: decoded.id },
+            where: { id: req.userId },
             data: {
                 firstName: firstName.trim(),
                 lastName: lastName.trim(),
@@ -487,7 +490,7 @@ router.put('/profile', async (req, res) => {
             }
         });
 
-        logger.info('User profile updated', { userId: decoded.id });
+        logger.info('User profile updated', { userId: req.userId });
         res.json({ success: true, data: updatedUser });
     } catch (error) {
         logger.error('Profile update error', { error: error.message });
@@ -498,17 +501,10 @@ router.put('/profile', async (req, res) => {
 /**
  * PUT /api/auth/password - Change password
  */
-router.put('/password', async (req, res) => {
+router.put('/password', requireAuth, async (req, res) => {
     try {
-        const token = req.headers.authorization?.split(' ')[1];
-        if (!token) {
-            return res.status(401).json({ success: false, error: 'No token' });
-        }
-
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const { currentPassword, newPassword } = req.body;
 
-        // Validate input
         if (!currentPassword || !newPassword) {
             return res.status(400).json({ success: false, error: 'Contraseñas requeridas' });
         }
@@ -517,32 +513,28 @@ router.put('/password', async (req, res) => {
             return res.status(400).json({ success: false, error: 'La nueva contraseña debe tener al menos 6 caracteres' });
         }
 
-        // Get user with password
         const user = await prisma.user.findUnique({
-            where: { id: decoded.id }
+            where: { id: req.userId }
         });
 
         if (!user) {
-            return res.status(401).json({ success: false, error: 'Usuario no encontrado' });
+            return res.status(404).json({ success: false, error: 'Usuario no encontrado' });
         }
 
-        // Verify current password
         const isMatch = await bcrypt.compare(currentPassword, user.password);
         if (!isMatch) {
             return res.status(400).json({ success: false, error: 'Contraseña actual incorrecta' });
         }
 
-        // Hash new password
         const salt = await bcrypt.genSalt(AUTH.BCRYPT_SALT_ROUNDS);
         const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-        // Update password
         await prisma.user.update({
-            where: { id: decoded.id },
+            where: { id: req.userId },
             data: { password: hashedPassword }
         });
 
-        logger.info('User password changed', { userId: decoded.id });
+        logger.info('User password changed', { userId: req.userId });
         res.json({ success: true, message: 'Contraseña actualizada exitosamente' });
     } catch (error) {
         logger.error('Password change error', { error: error.message });
@@ -553,45 +545,34 @@ router.put('/password', async (req, res) => {
 /**
  * DELETE /api/auth/account - Delete user account and all data
  */
-router.delete('/account', async (req, res) => {
+router.delete('/account', requireAuth, async (req, res) => {
     try {
-        const token = req.headers.authorization?.split(' ')[1];
-        if (!token) {
-            return res.status(401).json({ success: false, error: 'No token' });
-        }
-
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const { password } = req.body;
 
-        // Require password confirmation
         if (!password) {
             return res.status(400).json({ success: false, error: 'Contraseña requerida para confirmar' });
         }
 
-        // Get user
         const user = await prisma.user.findUnique({
-            where: { id: decoded.id }
+            where: { id: req.userId }
         });
 
         if (!user) {
-            return res.status(401).json({ success: false, error: 'Usuario no encontrado' });
+            return res.status(404).json({ success: false, error: 'Usuario no encontrado' });
         }
 
-        // Verify password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ success: false, error: 'Contraseña incorrecta' });
         }
 
-        // Delete user (cascade will delete related data due to onDelete: Cascade in schema)
         await prisma.user.delete({
-            where: { id: decoded.id }
+            where: { id: req.userId }
         });
 
-        // Clear refresh token cookie
         res.clearCookie(REFRESH_COOKIE_NAME);
 
-        logger.info('User account deleted', { userId: decoded.id, email: user.email });
+        logger.info('User account deleted', { userId: req.userId, email: user.email });
         res.json({ success: true, message: 'Cuenta eliminada exitosamente' });
     } catch (error) {
         logger.error('Account deletion error', { error: error.message });
@@ -606,16 +587,8 @@ router.delete('/account', async (req, res) => {
 /**
  * PATCH /api/auth/preferences - Update user preferences
  */
-router.patch('/preferences', async (req, res) => {
+router.patch('/preferences', requireAuth, async (req, res) => {
     try {
-        const token = req.headers.authorization?.split(' ')[1];
-        if (!token) {
-            return res.status(401).json({ success: false, error: 'No token' });
-        }
-
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-        // Allowed preference fields
         const allowedFields = [
             'language', 'theme', 'defaultCurrency', 'dualCurrencyEnabled',
             'notifyPush', 'notifyEmail', 'notifySound', 'soundVolume',
@@ -624,7 +597,6 @@ router.patch('/preferences', async (req, res) => {
             'notifyGoals', 'notifyWeekly'
         ];
 
-        // Filter to only allowed fields
         const updateData = {};
         for (const field of allowedFields) {
             if (req.body[field] !== undefined) {
@@ -637,7 +609,7 @@ router.patch('/preferences', async (req, res) => {
         }
 
         const user = await prisma.user.update({
-            where: { id: decoded.id },
+            where: { id: req.userId },
             data: updateData,
             select: {
                 id: true,
@@ -661,7 +633,7 @@ router.patch('/preferences', async (req, res) => {
             }
         });
 
-        logger.info('User preferences updated', { userId: decoded.id, fields: Object.keys(updateData) });
+        logger.info('User preferences updated', { userId: req.userId, fields: Object.keys(updateData) });
         res.json({ success: true, data: user, message: 'Preferencias actualizadas' });
     } catch (error) {
         logger.error('Preferences update error', { error: error.message });

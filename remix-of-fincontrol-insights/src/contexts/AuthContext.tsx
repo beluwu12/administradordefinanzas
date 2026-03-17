@@ -1,9 +1,12 @@
 /**
  * Authentication Context
  * Provides auth state and functions across the app
+ * 
+ * Key design: isInitializing (mount session check) is separate from
+ * isLoggingIn (form submission) to prevent button blocking bugs.
  */
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { authApi, clearAuth, isAuthenticated as checkAuth } from '@/lib/api';
 
 interface User {
@@ -31,90 +34,118 @@ interface RegisterData {
 interface AuthContextType {
     user: User | null;
     isAuthenticated: boolean;
-    isLoading: boolean;
+    /** True while checking existing session on mount */
+    isInitializing: boolean;
+    /** True while login/register API call is in progress */
+    isLoggingIn: boolean;
     login: (email: string, password: string) => Promise<void>;
     register: (data: RegisterData) => Promise<void>;
-    logout: () => void;
+    logout: () => Promise<void>;
     updateUser: (updates: Partial<User>) => void;
     error: string | null;
+    /** @deprecated Use isInitializing or isLoggingIn instead */
+    isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const INIT_TIMEOUT_MS = 10_000; // 10s timeout for session check
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isInitializing, setIsInitializing] = useState(true);
+    const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Helper: transform backend user response to frontend User
+    const mapUser = useCallback((profile: {
+        id: string;
+        email?: string;
+        firstName?: string;
+        lastName?: string;
+        defaultCurrency?: string;
+        country?: string;
+        dualCurrencyEnabled?: boolean;
+        language?: string;
+        theme?: string;
+    }): User => ({
+        id: profile.id,
+        name: `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || profile.email || 'Usuario',
+        email: profile.email,
+        currency: profile.defaultCurrency,
+        country: profile.country,
+        dualCurrencyEnabled: profile.dualCurrencyEnabled,
+        language: profile.language,
+        theme: profile.theme,
+    }), []);
 
     // Check for existing session on mount
     useEffect(() => {
+        let didTimeout = false;
+
         const initAuth = async () => {
             if (checkAuth()) {
                 try {
                     const profile = await authApi.getProfile();
-                    setUser({
-                        id: profile.id,
-                        name: `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || profile.email || 'Usuario',
-                        email: profile.email,
-                        currency: profile.defaultCurrency,
-                        country: profile.country,
-                        dualCurrencyEnabled: profile.dualCurrencyEnabled,
-                        language: profile.language,
-                        theme: profile.theme,
-                    });
+                    if (!didTimeout) {
+                        setUser(mapUser(profile));
+                    }
                 } catch {
-                    // Token expired or invalid
+                    // Token expired or invalid — clean up
                     clearAuth();
                 }
             }
-            setIsLoading(false);
+            if (!didTimeout) {
+                setIsInitializing(false);
+            }
         };
-        initAuth();
-    }, []);
+
+        // Safety timeout: if initAuth hangs, stop blocking the UI
+        const timer = setTimeout(() => {
+            didTimeout = true;
+            setIsInitializing(false);
+            clearAuth();
+        }, INIT_TIMEOUT_MS);
+
+        initAuth().finally(() => clearTimeout(timer));
+    }, [mapUser]);
 
     const login = async (email: string, password: string) => {
         setError(null);
-        setIsLoading(true);
+        setIsLoggingIn(true);
         try {
             const response = await authApi.login({ email, password });
-            setUser({
-                id: response.user.id,
-                name: `${response.user.firstName || ''} ${response.user.lastName || ''}`.trim() || response.user.email || 'Usuario',
-                email: response.user.email,
-                currency: response.user.defaultCurrency,
-                country: response.user.country,
-                dualCurrencyEnabled: response.user.dualCurrencyEnabled,
-                language: response.user.language,
-            });
+            setUser(mapUser(response.user));
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : 'Error de inicio de sesión';
+            // Read error message directly from the caught error (not stale state)
+            const message = err instanceof Error
+                ? err.message
+                : typeof err === 'object' && err !== null && 'message' in err
+                    ? String((err as { message: string }).message)
+                    : 'Error de inicio de sesión';
             setError(message);
-            throw err;
+            throw err; // Re-throw so Login.tsx catch block can handle it too
         } finally {
-            setIsLoading(false);
+            setIsLoggingIn(false);
         }
     };
 
     const register = async (data: RegisterData) => {
         setError(null);
-        setIsLoading(true);
+        setIsLoggingIn(true);
         try {
             const response = await authApi.register(data);
-            setUser({
-                id: response.user.id,
-                name: `${response.user.firstName || ''} ${response.user.lastName || ''}`.trim() || response.user.email || 'Usuario',
-                email: response.user.email,
-                currency: response.user.defaultCurrency,
-                country: response.user.country,
-                dualCurrencyEnabled: response.user.dualCurrencyEnabled,
-                language: response.user.language,
-            });
+            setUser(mapUser(response.user));
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : 'Error al registrar';
+            const message = err instanceof Error
+                ? err.message
+                : typeof err === 'object' && err !== null && 'message' in err
+                    ? String((err as { message: string }).message)
+                    : 'Error al registrar';
             setError(message);
             throw err;
         } finally {
-            setIsLoading(false);
+            setIsLoggingIn(false);
         }
     };
 
@@ -122,9 +153,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(prev => prev ? { ...prev, ...updates } : null);
     };
 
-    const logout = () => {
-        clearAuth();
-        setUser(null);
+    const logout = async () => {
+        try {
+            // Revoke session on the backend (invalidates refresh token)
+            await authApi.logout();
+        } catch {
+            // If the API call fails (e.g., already expired), still clean up locally
+        } finally {
+            clearAuth();
+            setUser(null);
+            setError(null);
+        }
     };
 
     return (
@@ -132,12 +171,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             value={{
                 user,
                 isAuthenticated: !!user,
-                isLoading,
+                isInitializing,
+                isLoggingIn,
                 login,
                 register,
                 logout,
                 updateUser,
                 error,
+                // Backwards compat: isLoading = true if either initializing or logging in
+                isLoading: isInitializing || isLoggingIn,
             }}
         >
             {children}

@@ -23,7 +23,7 @@ import {
 const Login = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { login, isAuthenticated, isLoading, error } = useAuth();
+    const { login, isAuthenticated, isInitializing } = useAuth();
     const { language, setLanguage, t } = useLanguage();
     const { toast } = useToast();
 
@@ -50,10 +50,14 @@ const Login = () => {
                 title: language === 'es' ? '¡Bienvenido!' : 'Welcome!',
                 description: language === 'es' ? 'Inicio de sesión exitoso' : 'Login successful'
             });
-        } catch {
+        } catch (err: unknown) {
+            // Read error directly from the caught error (not stale context state)
+            const errorMessage = err instanceof Error
+                ? err.message
+                : (language === 'es' ? 'Credenciales inválidas' : 'Invalid credentials');
             toast({
                 title: 'Error',
-                description: error || (language === 'es' ? 'Credenciales inválidas' : 'Invalid credentials'),
+                description: errorMessage,
                 variant: 'destructive'
             });
         } finally {
@@ -173,9 +177,9 @@ const Login = () => {
                             <Button
                                 type="submit"
                                 className="w-full h-11 text-base font-medium transition-all duration-200 active:scale-[0.98]"
-                                disabled={isLoading || isSubmitting}
+                                disabled={isSubmitting || isInitializing}
                             >
-                                {(isLoading || isSubmitting) ? (
+                                {isSubmitting ? (
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 ) : null}
                                 {language === 'es' ? 'Iniciar Sesión' : 'Sign In'}
