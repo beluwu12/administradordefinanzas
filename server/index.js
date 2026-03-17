@@ -175,6 +175,10 @@ app.use(express.json({ limit: '10mb' }));
 // Cookie parser (for refresh tokens)
 app.use(cookieParser());
 
+// Request logger (after body parser so we can log request bodies)
+const { requestLogger } = require('./middleware/requestLogger');
+app.use('/api', requestLogger);
+
 // Rate limiting for authentication endpoints
 const authLimiter = rateLimit({
   windowMs: RATE_LIMITS.AUTH_WINDOW_MS,

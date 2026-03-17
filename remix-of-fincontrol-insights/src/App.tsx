@@ -9,6 +9,7 @@ import { NotificationSettingsProvider } from "./contexts/NotificationSettingsCon
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import DevPanel from "./components/features/DevPanel";
 import MainLayout from "./components/layout/MainLayout";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -34,6 +35,7 @@ const App = () => (
               <TooltipProvider>
                 <Toaster />
                 <Sonner />
+                <DevPanel />
                 <BrowserRouter>
                   <Routes>
                     {/* Public routes */}
